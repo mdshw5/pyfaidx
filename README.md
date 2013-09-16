@@ -36,8 +36,13 @@ class faidx
     >>> fa.fetch('EM_PHG:V01146', 1, 10)
     EM_PHG:V01146
     TCTCACAGTG
-    >>> fa.fetch('EM_PHG:V01146', 100, 120)
+    >>> x = fa.fetch('EM_PHG:V01146', 100, 120)
+    >>> x
     EM_PHG:V01146
+    GGTTGGGGATGACCCTTGGGT
+    >>> x.name
+    EM_PHG:V01146
+    >>> x.seq
     GGTTGGGGATGACCCTTGGGT
     
 - If the FASTA file is not indexed, when `faidx` is initialized the `build` method will automatically run,
