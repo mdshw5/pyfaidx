@@ -48,4 +48,4 @@ Acknowledgements
 ------------------
 This project is freely licensed by the author, [Matthew Shirley](http://mattshirley.com), and was completed under the mentorship 
 and financial support of Drs. [Sarah Wheelan](http://sjwheelan.som.jhmi.edu) and [Vasan Yegnasubramanian](http://yegnalab.onc.jhmi.edu) at 
-the Sidney Kimmel Comprehensive Cancer Center in the Department of Oncology Biostatistics and Bioinformatics.
+the Sidney Kimmel Comprehensive Cancer Center in the Department of Oncology.
