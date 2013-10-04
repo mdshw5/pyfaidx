@@ -164,7 +164,7 @@ class faidx:
         try:
             entry = self.index[rname]
         except KeyError:
-            print "rname does not exist"
+            sys.exit("Requested rname {0} does not exist! Please check your FASTA file.".format(rname))
         start = start - 1 ## make coordinates [0,1)
         offset = entry.get('offset')
         rlen = entry.get('rlen')
