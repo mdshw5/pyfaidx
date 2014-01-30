@@ -83,7 +83,7 @@ class Faidx(object):
         """ Build faidx index and write to ``outfile``.
         faidx index is in the format:
         rname\trlen\toffset\tlen\tblen """
-        with open(outfile, 'wb') as indexfile, open(filename, 'rb') as fastafile:
+        with open(outfile, 'w') as indexfile, open(filename, 'r') as fastafile:
             rname = None
             offset = 0
             rlen = 0
