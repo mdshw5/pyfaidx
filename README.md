@@ -36,8 +36,13 @@ class faidx
     >>> fa.fetch('EM_PHG:V01146', 1, 10)
     EM_PHG:V01146
     TCTCACAGTG
-    >>> fa.fetch('EM_PHG:V01146', 100, 120)
+    >>> x = fa.fetch('EM_PHG:V01146', 100, 120)
+    >>> x
     EM_PHG:V01146
+    GGTTGGGGATGACCCTTGGGT
+    >>> x.name
+    EM_PHG:V01146
+    >>> x.seq
     GGTTGGGGATGACCCTTGGGT
     
 - If the FASTA file is not indexed, when `faidx` is initialized the `build` method will automatically run,
@@ -48,4 +53,4 @@ Acknowledgements
 ------------------
 This project is freely licensed by the author, [Matthew Shirley](http://mattshirley.com), and was completed under the mentorship 
 and financial support of Drs. [Sarah Wheelan](http://sjwheelan.som.jhmi.edu) and [Vasan Yegnasubramanian](http://yegnalab.onc.jhmi.edu) at 
-the Sidney Kimmel Comprehensive Cancer Center in the Department of Oncology Biostatistics and Bioinformatics.
+the Sidney Kimmel Comprehensive Cancer Center in the Department of Oncology.
