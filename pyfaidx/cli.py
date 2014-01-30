@@ -18,30 +18,26 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
-import sys
 import argparse
-import re
-import pyfaidx
+from pyfaidx import *
 
-def main(args):
+def fetch(args):
     rname, interval = args.region.split(':')
     start, end = interval.split('-')
-    kwargs = dict(zip(['rname', 'start', 'end'], [rname, int(start), int(end)]))
-    with pyfaidx.faidx(args.fasta) as faidx:
-        sequence = faidx.fetch(**kwargs)
+    with Genome(args.fasta) as genome:
+        sequence = genome[rname][int(start) - 1:int(end)]
         if args.name:
-            sys.stdout.write('{name}\n{seq}\n'.format(name='>' + args.region, seq=sequence.seq))
+            print(sequence)
         else:
-            sys.stdout.write('{seq}\n'.format(seq=sequence.seq))
+            print(*sequence.seq, sep='')
 
-def parse_options():
+def main():
     parser = argparse.ArgumentParser(description='Fetch sequence from faidx-indexed FASTA')
-    parser.add_argument('fasta', type=str, help='faidx indexed FASTA file')
+    parser.add_argument('fasta', type=str, help='FASTA file')
     parser.add_argument('-r', '--region', type=str, help='region of sequence to fetch e.g. chr1:1-1000')
     parser.add_argument('-n', '--name', action="store_true", default=False, help='print sequence names')
     args = parser.parse_args()
-    return args
+    fetch(args)
     
 if __name__ == "__main__":
-    args = parse_options()
-    main(args)
+    main()

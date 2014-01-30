@@ -1,111 +1,65 @@
-from __future__ import division
-import os
 import sys
-import gzip
 import mmap
+import os
+import itertools
 
-class reader:
-    """ 
-    A class to read the names and sequences from a fasta file.
-    """
-    def __init__(self, filename):
-        name, ext = os.path.splitext(filename)
-        if ext == '.gz':
-            self.file = gzip.open(filename, 'rb')
-        else:
-            self.file = open(filename, 'r')
-
-    def __iter__(self):
-        """ 
-        Return tuple (name, sequence).
-        """
-        seq = ''
-        for line in self.file:
-            if line[0] == '>':
-                if seq != '':
-                    yield fasta(name, seq.upper())
-                    seq = ''
-                name = line.rstrip()
-            else:
-                seq = seq + line.rstrip()
-                
-        yield fasta(name, seq.upper()) 
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.file.close()
-        
-class writer:
-    """ Take a `py:class:fasta` object and file name, open file and write fasta """
-    def __init__(self, filename=None, gz=False, stdout=False, wrap=70):
-        if (gz == True) and (stdout == False):
-            self.file = gzip.open(filename, 'wb')
-        elif (gz == False) and (stdout == False):
-            self.file = open(filename, 'w')
-        elif stdout == True:
-            self.file = sys.stdout
-        elif (filename == None) and (stdout == False):
-            raise IOError
-        self.wrap = wrap
-
-    def write(self, fasta):
-        """ Write fastq with binary encoded conversion string appended to read strand """
-        self.file.write(fasta.name + '\n')
-        try:
-            while len(fasta) > 0:
-                self.file.write(fasta.seq[:self.wrap] + '\n')
-                fasta.seq = fasta.seq[self.wrap:]
-        except IndexError:
-            self.file.write(fasta.seq + '\n')
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.file.close()
-        
-class fasta(object):
-    """ Hold name and sequence returned by `py:class:fastaReader` """
-    def __init__(self, name='', seq=''):
+class Fasta(object):
+    """ Hold name and sequence returned by `py:class:Reader` """
+    def __init__(self, name='', seq=tuple()):
         self.name = name
         self.seq = seq
+        self.sequence = self.seq
+        assert isinstance(name, str)
+        assert isinstance(seq, tuple)
         
     def __getitem__(self, key):
-        return self.__class__(self.name, self.seq[key])
-        
+        return self.__class__(self.name, tuple(self.seq[key]))
+
     def __repr__(self):
-        return '\n'.join([self.name, self.seq])
-        
+        return '\n'.join([self.name, ''.join(self.seq)])
+
     def __len__(self):
         return len(self.seq)
 
     def reverse(self):
-        """ Returns reverse ordered self """
+        """ Returns reverse ordered self
+        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
+        >>> x.reverse()
+        test
+        ATGCTA
+        """
         return self.__class__(self.name, self.seq[::-1])
-        
+
     def complement(self):
-        """ Returns the compliment of self. This only affects the sequence slot. """
-        dict = {'A':'T', 'T':'A', 'C':'G', 'G':'C', 'N':'N'}
-        compseq = ''.join(map(lambda x: dict[x], self.seq))
-        return self.__class__(self.name, compseq)
+        """ Returns the compliment of self. This only affects the sequence slot.
+        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
+        >>> x.complement()
+        test
+        TAGCAT
+        """
+        table = str.maketrans('ACTGN','TGACN')
+        return self.__class__(self.name, tuple(''.join(self.seq).translate(table)))
 
     def revcomplement(self):
-        """ Take the reverse compliment of self. """
+        """ Take the reverse compliment of self.
+        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
+        >>> x.revcomplement()
+        test
+        TACGAT
+        """
         return self.reverse().complement()
-        
+
     def gc(self):
-        """ Return the GC content of self as a float """
+        """ Return the GC content of self as a float
+        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
+        >>> x.gc()
+        0.3333333333333333
+        """
         g = self.seq.count('G')
         c = self.seq.count('C')
         return (g + c) / len(self)
-    
-    def cpg(self):
-        """ Return the number of CpG sites in self.seq """
-        return self.seq.count('CG')
 
-class faidx:
+class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename):
         self.filename = filename
@@ -119,12 +73,13 @@ class faidx:
                     line = line.strip()
                     rname, rlen, offset, lenc, lenb = line.split('\t')
                     self.index[rname] = {'rlen':int(rlen), 'offset':int(offset), 'lenc':int(lenc), 'lenb':int(lenb)}
-                
+
         else:
-            self.build(self.filename, self.indexname)
+            self.build_fai(self.filename, self.indexname)
             self.__init__(filename)
 
-    def build(self, filename, outfile):
+    @staticmethod
+    def build_fai(filename, outfile):
         """ Build faidx index and write to ``outfile``.
         faidx index is in the format:
         rname\trlen\toffset\tlen\tblen """
@@ -153,18 +108,18 @@ class faidx:
                     rname = line.rstrip()[1:].split()[0]
                     thisoffset = offset + len(line)
             indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
-        
+
     def fetch(self, rname, start, end):
-        """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates 
+        """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
         1. Count newlines before start
         2. Count newlines to end
-        3. Difference of 1 and 2 is number of newlines in [start:end] 
-        4. Seek to start position, taking newlines into account 
+        3. Difference of 1 and 2 is number of newlines in [start:end]
+        4. Seek to start position, taking newlines into account
         5. Read to end position, return sequence without newlines """
         try:
             entry = self.index[rname]
         except KeyError:
-            print "rname does not exist"
+            sys.exit("Requested rname {0} does not exist! Please check your FASTA file.".format(rname))
         start = start - 1 ## make coordinates [0,1)
         offset = entry.get('offset')
         rlen = entry.get('rlen')
@@ -180,19 +135,75 @@ class faidx:
         bend = offset + newlines_total + rlen
         self.m.seek(bstart)
         if seq_blen < 0:
-            return fasta(rname, '')
+            return Fasta(rname, tuple())
         if bstart + seq_blen <= bend:
             s = self.m.read(seq_blen)
         else:
             s = self.m.read(bend - bstart)
-        return fasta(rname, s.replace('\n',''))
+        seq = s.decode('utf-8')
+        return Fasta(name='{r},{s:n}-{e:n}'.format(r=rname, s=start + 1, e=end), seq=tuple(base for base in seq if base != '\n'))
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.file.close()
+
+class Chromosome(object):
+    def __init__(self, name, genome=None):
+        self.name = name
+        self.genome = genome
         
+    def __getitem__(self, n):
+        """Return sequence from region [start, end)
+
+        Coordinates are 0-based, end-exclusive."""
+        if isinstance(n, slice):
+            return self.genome.get_seq(self.name, n.start + 1, n.stop)
+        elif isinstance(n, key):
+            return self.genome.get_seq(self.name, n.start + 1, n.start + 1)
+
+    def __repr__(self):
+        return 'Chromosome("%s")' % (self.name)
+
+
+class Genome(object):
+    def __init__(self, filename, default_seq=None):
+        """
+        A genome object that provides a pygr compatible interface.
+        filename: fasta file
+        default_seq: if given, this base will always be returned if
+            region is unavailable.
+        """
+        self._genome = Faidx(filename)
+        self._chroms = {}
+        self._default_seq = default_seq
+
+    def __contains__(self, chrom):
+        """Return True if genome contains chromosome."""
+        return chrom in self._chroms
+
+    def __getitem__(self, chrom):
+        """Return a chromosome by its name."""
+        if chrom not in self._chroms:
+            self._chroms[chrom] = Chromosome(chrom, self)
+        return self._chroms[chrom]
+
+    def get_seq(self, chrom, start, end):
+        """Return a sequence by chromosome name and region [start, end).
+
+        Coordinates are 0-based, end-exclusive.
+        """
+        # Get sequence from real genome object and save result.
+        seq = self._genome.fetch(chrom, start, end)
+        return seq
+        
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self._genome.__exit__()
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

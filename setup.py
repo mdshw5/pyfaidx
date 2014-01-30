@@ -1,23 +1,18 @@
-from distutils.core import setup
+from setuptools import setup, Extension
+import distutils.core
 import sys
-import os.path
-
-__version__ = '0.0.1'
-
-if sys.version_info < (2, 7):
-        sys.exit("Python 2.7 is required.\n")
-
+import os
 setup(
         name = 'pyfaidx',
         provides = 'pyfaidx',
-        version = __version__,
+        version = "0.1.0",
         author = 'Matthew Shirley',
         author_email = 'mdshw5@gmail.com',
         url = 'http://mattshirley.com',
         description = 'A pure python implementation of samtools faidx FASTA indexing',
         license = 'MIT',
-        py_modules = ['pyfaidx'],
-        scripts = ['scripts/pyfaidx-fetch.py'],
+        packages = ['pyfaidx'],
+        entry_points = { 'console_scripts': [ 'pyfaidx = pyfaidx.cli:main' ] },
         classifiers = [
                 "Development Status :: 3 - Alpha",
                 "License :: OSI Approved :: MIT License",
@@ -25,7 +20,7 @@ setup(
                 "Intended Audience :: Science/Research",
                 "Natural Language :: English",
                 "Operating System :: Unix",
-                "Programming Language :: Python :: 2.7",
+                "Programming Language :: Python :: 3.3",
                 "Topic :: Scientific/Engineering :: Bio-Informatics"
         ]
 )
