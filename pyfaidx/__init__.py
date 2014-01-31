@@ -8,12 +8,18 @@ class Fasta(object):
     def __init__(self, name='', seq=tuple()):
         self.name = name
         self.seq = seq
-        self.sequence = self.seq
         assert isinstance(name, str)
         assert isinstance(seq, tuple)
         
     def __getitem__(self, key):
         return self.__class__(self.name, tuple(self.seq[key]))
+        
+    def __str__(self):
+        return ''.join(self.seq)
+        
+    def __neg__(self):
+        """ Returns the compliment of sequence """
+        return self.revcomplement().seq
 
     def __repr__(self):
         return '\n'.join([self.name, ''.join(self.seq)])
@@ -106,7 +112,8 @@ class Faidx(object):
                     blen = 0
                     rlen = 0
                     rname = line.rstrip()[1:].split()[0]
-                    thisoffset = offset + len(line)
+                    offset += len(line)
+                    thisoffset = offset
             indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def fetch(self, rname, start, end):
