@@ -41,7 +41,7 @@ class Genome
     >>> from pyfaidx import Genome
     >>> genome = Genome('T7.fa')
     >>> genome['EM_PHG:V01146'][0:10]
-    EM_PHG:V01146,1-10
+    EM_PHG:V01146:1-10
     TCTCACAGTG
 
 class Faidx
