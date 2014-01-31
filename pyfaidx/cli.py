@@ -27,7 +27,7 @@ def fetch(args):
     with Genome(args.fasta) as genome:
         sequence = genome[rname][int(start) - 1:int(end)]
         if args.name:
-            print(sequence)
+            print(sequence.name, sequence, sep='\n')
         else:
             print(*sequence.seq, sep='')
 

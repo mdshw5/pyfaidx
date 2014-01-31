@@ -25,6 +25,16 @@ A pure python implementation of samtools faidx FASTA indexing.
                             region of sequence to fetch e.g. chr1:1-1000
       -n, --name            print sequence names
       
+cli script: pyfaidx
+-------------------
+
+    $ pyfaidx /tmp/hg19.fa -r chr10:1000000-1000010
+    GGAGGGCTGCA
+    
+    $ pyfaidx /tmp/hg19.fa -n -r chr10:1000000-1000010
+    chr10:1000000-1000010
+    GGAGGGCTGCA
+      
 class Genome
 -----------
 

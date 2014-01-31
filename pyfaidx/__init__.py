@@ -148,7 +148,7 @@ class Faidx(object):
         else:
             s = self.m.read(bend - bstart)
         seq = s.decode('utf-8')
-        return Fasta(name='{r},{s:n}-{e:n}'.format(r=rname, s=start + 1, e=end), seq=tuple(base for base in seq if base != '\n'))
+        return Fasta(name='{r}:{s:n}-{e:n}'.format(r=rname, s=start + 1, e=end), seq=tuple(base for base in seq if base != '\n'))
 
     def __enter__(self):
         return self
