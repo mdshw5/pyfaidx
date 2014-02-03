@@ -12,6 +12,7 @@ setup(
         description = 'A pure python implementation of samtools faidx FASTA indexing',
         license = 'MIT',
         packages = ['pyfaidx'],
+        install_requires = ['six'],
         entry_points = { 'console_scripts': [ 'pyfaidx = pyfaidx.cli:main' ] },
         classifiers = [
                 "Development Status :: 4 - Beta",
