@@ -1,11 +1,15 @@
 pyfaidx
 =======
+[![Build Status](https://travis-ci.org/mdshw5/pyfaidx.png?branch=master)](https://travis-ci.org/mdshw5/pyfaidx)
 
 Installation
 ------------
 This package is tested under Python 3.3.
 
-To install the `pyfaidx` module and `pyfaidx` cli script, simply run `python setup.py install`.
+```
+pip install -r requirements.txt
+python setup.py install
+```
 
 Usage
 -----
