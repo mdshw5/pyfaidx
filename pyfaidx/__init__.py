@@ -151,7 +151,7 @@ class Genome(object):
             region is unavailable.
         """
         self._genome = Faidx(filename)
-        self._chroms = dict((rname: Chromosome(rname, self)) for rname in self._genome.index.keys())
+        self._chroms = dict((rname, Chromosome(rname, self)) for rname in self._genome.index.keys())
         self._default_seq = default_seq
 
     def __contains__(self, chrom):
