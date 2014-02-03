@@ -19,6 +19,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
+import sys
 from pyfaidx import *
 
 def fetch(args):
@@ -27,9 +28,11 @@ def fetch(args):
     with Genome(args.fasta) as genome:
         sequence = genome[rname][int(start) - 1:int(end)]
         if args.name:
-            print(sequence.name, sequence, sep='\n')
+            sys.stdout.write('\n'.join((sequence.name, str(sequence))))
+            sys.stdout.write('\n')
         else:
-            print(*sequence.seq, sep='')
+            sys.stdout.write(str(sequence))
+            sys.stdout.write('\n')
 
 def main():
     parser = argparse.ArgumentParser(description='Fetch sequence from faidx-indexed FASTA')

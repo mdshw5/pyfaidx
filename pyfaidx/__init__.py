@@ -1,7 +1,12 @@
+from __future__ import division
 import sys
 import mmap
 import os
 import itertools
+from six import PY2, PY3
+
+if PY2:
+    import string
 
 class Fasta(object):
     """ Hold name and sequence returned by `py:class:Reader` """
@@ -22,48 +27,10 @@ class Fasta(object):
         return self.revcomplement().seq
 
     def __repr__(self):
-        return '\n'.join([self.name, ''.join(self.seq)])
+        return '\n'.join(['>' + self.name, ''.join(self.seq)])
 
     def __len__(self):
         return len(self.seq)
-
-    def reverse(self):
-        """ Returns reverse ordered self
-        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
-        >>> x.reverse()
-        test
-        ATGCTA
-        """
-        return self.__class__(self.name, self.seq[::-1])
-
-    def complement(self):
-        """ Returns the compliment of self. This only affects the sequence slot.
-        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
-        >>> x.complement()
-        test
-        TAGCAT
-        """
-        table = str.maketrans('ACTGN','TGACN')
-        return self.__class__(self.name, tuple(''.join(self.seq).translate(table)))
-
-    def revcomplement(self):
-        """ Take the reverse compliment of self.
-        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
-        >>> x.revcomplement()
-        test
-        TACGAT
-        """
-        return self.reverse().complement()
-
-    def gc(self):
-        """ Return the GC content of self as a float
-        >>> x = Fasta(name='test', seq=tuple('ATCGTA'))
-        >>> x.gc()
-        0.3333333333333333
-        """
-        g = self.seq.count('G')
-        c = self.seq.count('C')
-        return (g + c) / len(self)
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
@@ -210,6 +177,37 @@ class Genome(object):
 
     def __exit__(self, *args):
         self._genome.__exit__()
+        
+def reverse(seq):
+    """ Returns reverse ordered seq.
+    >>> x = tuple('ATCGTA')
+    >>> y = reverse(x)
+    >>> x[::-1] == y
+    True
+    """
+    return seq[::-1]
+
+def complement(seq):
+    """ Returns the compliment of seq.
+    >>> x = tuple('ATCGTA')
+    >>> complement(x)
+    ('T', 'A', 'G', 'C', 'A', 'T')
+    """
+    if PY3:
+        table = str.maketrans('ACTGN','TGACN')
+    elif PY2:
+        table = string.maketrans('ACTGN','TGACN')
+    return tuple(''.join(seq).translate(table))
+
+def gc(seq):
+    """ Return the GC content of seq as a float
+    >>> x = tuple('ATCGTA')
+    >>> gc(x)
+    0.3333333333333333
+    """
+    g = seq.count('G')
+    c = seq.count('C')
+    return (g + c) / len(seq)
 
 if __name__ == "__main__":
     import doctest
