@@ -2,7 +2,7 @@
 
 ## Description
 
-Samtools provides a function "faidx" (**fa**sta **i**n**d**e**x**), which 
+Samtools provides a function "faidx" (FAsta InDeX), which 
 creates a small flat index file ".fai" allowing for fast random access to any 
 subsequence in the indexed fasta.
 
