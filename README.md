@@ -54,7 +54,7 @@ EM_PHG:V01146
 GGTTGGGGATGACCCTTGGGT
 ```
     
-- If the FASTA file is not indexed, when `faidx` is initialized the `build` method will automatically run,
+- If the FASTA file is not indexed, when `Faidx` is initialized the `build` method will automatically run,
 producing "filename.fa.fai" where "filename.fa" is the original FASTA file.
 - Start and end coordinates are 1-based.
 
