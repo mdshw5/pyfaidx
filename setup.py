@@ -9,7 +9,7 @@ setup(
         author = 'Matthew Shirley',
         author_email = 'mdshw5@gmail.com',
         url = 'http://mattshirley.com',
-        description = 'A pure python implementation of samtools faidx FASTA indexing',
+        description = '"samtools faidx" compatible FASTA indexing in pure python',
         license = 'MIT',
         packages = ['pyfaidx'],
         install_requires = ['six'],
