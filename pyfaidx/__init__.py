@@ -203,8 +203,9 @@ def complement(seq):
 def gc(seq):
     """ Return the GC content of seq as a float
     >>> x = tuple('ATCGTA')
-    >>> round(gc(x), 2)
-    0.33
+    >>> y = round(gc(x), 2)
+    >>> y == 0.33
+    True
     """
     g = seq.count('G')
     c = seq.count('C')
