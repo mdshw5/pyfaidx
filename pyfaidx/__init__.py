@@ -56,32 +56,33 @@ class Faidx(object):
         """ Build faidx index and write to ``outfile``.
         faidx index is in the format:
         rname\trlen\toffset\tlen\tblen """
-        with open(outfile, 'w') as indexfile, open(filename, 'r') as fastafile:
-            rname = None
-            offset = 0
-            rlen = 0
-            blen = 0
-            clen = 0
-            for line in fastafile:
-                if (line[0] == '>') and (rname is None):
-                    rname = line.rstrip()[1:].split()[0]
-                    offset += len(line)
-                    thisoffset = offset
-                elif line[0] != '>':
-                    if blen == 0:
-                        blen = len(line)
-                    offset += len(line)
-                    if clen == 0:
-                        clen = len(line.rstrip())
-                    rlen += len(line.rstrip())
-                elif (line[0] == '>') and (rname is not None):
-                    indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
-                    blen = 0
-                    rlen = 0
-                    rname = line.rstrip()[1:].split()[0]
-                    offset += len(line)
-                    thisoffset = offset
-            indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
+        with open(outfile, 'w') as indexfile:
+            with open(filename, 'r') as fastafile:
+                rname = None
+                offset = 0
+                rlen = 0
+                blen = 0
+                clen = 0
+                for line in fastafile:
+                    if (line[0] == '>') and (rname is None):
+                        rname = line.rstrip()[1:].split()[0]
+                        offset += len(line)
+                        thisoffset = offset
+                    elif line[0] != '>':
+                        if blen == 0:
+                            blen = len(line)
+                        offset += len(line)
+                        if clen == 0:
+                            clen = len(line.rstrip())
+                        rlen += len(line.rstrip())
+                    elif (line[0] == '>') and (rname is not None):
+                        indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
+                        blen = 0
+                        rlen = 0
+                        rname = line.rstrip()[1:].split()[0]
+                        offset += len(line)
+                        thisoffset = offset
+                indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def fetch(self, rname, start, end):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates

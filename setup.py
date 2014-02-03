@@ -14,13 +14,17 @@ setup(
         packages = ['pyfaidx'],
         entry_points = { 'console_scripts': [ 'pyfaidx = pyfaidx.cli:main' ] },
         classifiers = [
-                "Development Status :: 3 - Alpha",
+                "Development Status :: 4 - Beta",
                 "License :: OSI Approved :: MIT License",
                 "Environment :: Console",
                 "Intended Audience :: Science/Research",
                 "Natural Language :: English",
                 "Operating System :: Unix",
+                "Programming Language :: Python :: 2.7",
                 "Programming Language :: Python :: 3.3",
+                "Programming Language :: Python :: 3.2",
+                "Programming Language :: Python :: 2.6",
+                "Programming Language :: Python :: Implementation :: PyPy",
                 "Topic :: Scientific/Engineering :: Bio-Informatics"
         ]
 )
