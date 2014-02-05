@@ -3,21 +3,21 @@ import sys
 import mmap
 import os
 import itertools
-from six import PY2, PY3
+from six import PY2, PY3, string_types
 
 if PY2:
     import string
 
 class Fasta(object):
     """ Hold name and sequence returned by `py:class:Reader` """
-    def __init__(self, name='', seq=tuple()):
+    def __init__(self, name='', seq=''):
         self.name = name
         self.seq = seq
-        assert isinstance(name, str)
-        assert isinstance(seq, tuple)
-        
+        assert isinstance(name, string_types)
+        assert isinstance(seq, string_types)
+
     def __getitem__(self, key):
-        return self.__class__(self.name, tuple(self.seq[key]))
+        return self.__class__(self.name, self.seq[key])
         
     def __str__(self):
         return ''.join(self.seq)
@@ -110,13 +110,15 @@ class Faidx(object):
         bend = offset + newlines_total + rlen
         self.m.seek(bstart)
         if seq_blen < 0:
-            return Fasta(rname, tuple())
+            return Fasta(rname)
         if bstart + seq_blen <= bend:
             s = self.m.read(seq_blen)
         else:
             s = self.m.read(bend - bstart)
         seq = s.decode('utf-8')
-        return Fasta(name='{r}:{s:n}-{e:n}'.format(r=rname, s=start + 1, e=end), seq=tuple(base for base in seq if base != '\n'))
+        print(type(seq))
+        return Fasta(name='{r}:{s:n}-{e:n}'.format(r=rname, s=start + 1,
+            e=end), seq=seq.replace('\n', ''))
 
     def __enter__(self):
         return self
@@ -181,7 +183,7 @@ class Genome(object):
         
 def reverse(seq):
     """ Returns reverse ordered seq.
-    >>> x = tuple('ATCGTA')
+    >>> x = 'ATCGTA'
     >>> y = reverse(x)
     >>> x[::-1] == y
     True
@@ -190,19 +192,19 @@ def reverse(seq):
 
 def complement(seq):
     """ Returns the compliment of seq.
-    >>> x = tuple('ATCGTA')
+    >>> x = 'ATCGTA'
     >>> complement(x)
-    ('T', 'A', 'G', 'C', 'A', 'T')
+    'TAGCAT'
     """
     if PY3:
         table = str.maketrans('ACTGN','TGACN')
     elif PY2:
         table = string.maketrans('ACTGN','TGACN')
-    return tuple(''.join(seq).translate(table))
+    return seq.translate(table)
 
 def gc(seq):
     """ Return the GC content of seq as a float
-    >>> x = tuple('ATCGTA')
+    >>> x = 'ATCGTA'
     >>> y = round(gc(x), 2)
     >>> y == 0.33
     True
