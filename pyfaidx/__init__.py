@@ -2,6 +2,7 @@ from __future__ import division
 import sys
 import mmap
 import os
+import re
 import itertools
 from six import PY2, PY3, string_types
 
@@ -9,7 +10,6 @@ if PY2:
     import string
 
 class Fasta(object):
-    """ Hold name and sequence returned by `py:class:Reader` """
     def __init__(self, name='', seq=''):
         self.name = name
         self.seq = seq
@@ -23,13 +23,43 @@ class Fasta(object):
         return self.seq
 
     def __neg__(self):
-        """ Returns the compliment of sequence """
-        return complement(str(self.seq))[::-1]
+        """ Returns the compliment of sequence
+        >>> s = Fasta('chr1:123-125', 'ACT')
+        >>> sm = -s
+        >>> sm
+        >chr1:125-123(-)
+        AGT
+
+        >>> (-sm).seq == s.seq
+        True
+        >>> (-sm).name == s.name
+        True
+        """
+        # test if name is like: chrXX:1234-7899
+        m = re.match("(.+):(\d+)-(\d+)", self.name)
+        # flip the start and end and add "-" if it's negative.
+        if m:
+            chrom, start, end = m.groups(1)
+            name = "%s:%s-%s" % (chrom, end, start)
+            if int(start) < int(end):
+                name = name + "(-)"
+        else:
+            name = self.name
+            if name.endswith("(-)"):
+                name = name[:-3]
+            else:
+                name += "(-)"
+
+        return Fasta(name, complement(str(self.seq))[::-1])
 
     def __repr__(self):
         return '\n'.join(('>' + self.name, self.seq))
 
     def __len__(self):
+        """
+        >>> len(Fasta('chr1:123-125', 'ACT'))
+        3
+        """
         return len(self.seq)
 
 class Faidx(object):
