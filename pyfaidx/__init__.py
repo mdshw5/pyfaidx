@@ -116,7 +116,6 @@ class Faidx(object):
         else:
             s = self.m.read(bend - bstart)
         seq = s.decode('utf-8')
-        print(type(seq))
         return Fasta(name='{r}:{s:n}-{e:n}'.format(r=rname, s=start + 1,
             e=end), seq=seq.replace('\n', ''))
 
