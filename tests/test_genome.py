@@ -66,3 +66,9 @@ class TestFaidx:
         result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
                              480, 500)
         assert str(result) == expect
+
+    def test_rev(self):
+        expect = 'GA'
+        result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
+                             480, 482)
+        assert str(-result) == expect, result

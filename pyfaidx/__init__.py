@@ -18,16 +18,16 @@ class Fasta(object):
 
     def __getitem__(self, key):
         return self.__class__(self.name, self.seq[key])
-        
+
     def __str__(self):
-        return ''.join(self.seq)
-        
+        return self.seq
+
     def __neg__(self):
         """ Returns the compliment of sequence """
-        return self.revcomplement().seq
+        return complement(str(self.seq))[::-1]
 
     def __repr__(self):
-        return '\n'.join(['>' + self.name, ''.join(self.seq)])
+        return '\n'.join(('>' + self.name, self.seq))
 
     def __len__(self):
         return len(self.seq)
@@ -129,7 +129,7 @@ class Chromosome(object):
     def __init__(self, name, genome=None):
         self.name = name
         self.genome = genome
-        
+
     def __getitem__(self, n):
         """Return sequence from region [start, end)
 
@@ -171,15 +171,14 @@ class Genome(object):
         Coordinates are 0-based, end-exclusive.
         """
         # Get sequence from real genome object and save result.
-        seq = self._genome.fetch(chrom, start, end)
-        return seq
-        
+        return self._genome.fetch(chrom, start, end)
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self._genome.__exit__()
-        
+
 def reverse(seq):
     """ Returns reverse ordered seq.
     >>> x = 'ATCGTA'
