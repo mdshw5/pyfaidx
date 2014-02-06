@@ -24,7 +24,7 @@ class Fasta(object):
 
     def __neg__(self):
         """ Returns the compliment of sequence """
-        return complement(self.seq)[::-1]
+        return complement(str(self.seq))[::-1]
 
     def __repr__(self):
         return '\n'.join(('>' + self.name, self.seq))
