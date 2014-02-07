@@ -37,7 +37,7 @@ class Fasta(object):
         """ Returns the reverse compliment of sequence 
         >>> x = Fasta(name='chr1', seq='ATCGTA', start=1, end=6)
         >>> -x
-        >chr1 (complement)
+        >chr1 (complement):6-1
         TACGAT
         """
         return self.__class__(self.name, self.seq[::-1], start=self.end, end=self.start).complement
@@ -72,7 +72,7 @@ class Fasta(object):
             table = str.maketrans('ACTGN','TGACN')
         elif PY2:
             table = string.maketrans('ACTGN','TGACN')
-        comp = self.__class__(self.name, self.seq.translate(table), start=self.start, end=self.end)
+        comp = self.__class__(self.name, str(self.seq).translate(table), start=self.start, end=self.end)
         comp.comp = False if self.comp else True
         return comp
 
