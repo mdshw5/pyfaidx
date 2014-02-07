@@ -9,28 +9,72 @@ if PY2:
     import string
 
 class Fasta(object):
-    """ Hold name and sequence returned by `py:class:Reader` """
-    def __init__(self, name='', seq=''):
+    """ Hold name and sequence returned by `py:class:Reader` 
+    name = FASTA entry name
+    seq = FASTA sequence
+    start, end = coordinates of subsequence (optional)
+    comp = boolean switch for complement property
+    """
+    def __init__(self, name='', seq='', start=None, end=None):
         self.name = name
         self.seq = seq
+        self.start = start
+        self.end = end
+        self.comp = False
         assert isinstance(name, string_types)
         assert isinstance(seq, string_types)
 
-    def __getitem__(self, key):
-        return self.__class__(self.name, self.seq[key])
-
+    def __getitem__(self, n):
+        if isinstance(n, slice):
+            return self.__class__(self.name, self.seq[n.start:n.stop])
+        elif isinstance(n, key):
+            return self.__class__(self.name, self.seq[n])
+        
     def __str__(self):
         return self.seq
-
+        
     def __neg__(self):
-        """ Returns the compliment of sequence """
-        return complement(str(self.seq))[::-1]
+        """ Returns the reverse compliment of sequence 
+        >>> x = Fasta(name='chr1', seq='ATCGTA', start=1, end=6)
+        >>> -x
+        >chr1 (complement):6-1
+        TACGAT
+        """
+        return self.__class__(self.name, self.seq[::-1], start=self.end, end=self.start).complement
 
     def __repr__(self):
-        return '\n'.join(('>' + self.name, self.seq))
+        if self.comp:
+            name = '{rname} (complement)'.format(rname=self.name)
+        else:
+            name = self.name
+        if self.start:
+            return '\n'.join(['>{name}:{start}-{end}'.format(name=name, 
+                start=self.start, end=self.end), self.seq])
+        else:
+            return '\n'.join(['>{name}'.format(name=name), self.seq])
 
     def __len__(self):
+        """
+        >>> len(Fasta('chr1', 'ACT'))
+        3
+        """
         return len(self.seq)
+    
+    @property
+    def complement(self):
+        """ Returns the compliment of self.
+        >>> x = Fasta(name='chr1', seq='ATCGTA')
+        >>> x.complement
+        >chr1 (complement)
+        TAGCAT
+        """
+        if PY3:
+            table = str.maketrans('ACTGN','TGACN')
+        elif PY2:
+            table = string.maketrans('ACTGN','TGACN')
+        comp = self.__class__(self.name, str(self.seq).translate(table), start=self.start, end=self.end)
+        comp.comp = False if self.comp else True
+        return comp
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
@@ -116,8 +160,8 @@ class Faidx(object):
         else:
             s = self.m.read(bend - bstart)
         seq = s.decode('utf-8')
-        return Fasta(name='{r}:{s:n}-{e:n}'.format(r=rname, s=start + 1,
-            e=end), seq=seq.replace('\n', ''))
+        return Fasta(name=rname, start=int(start + 1),
+            end=int(end), seq=seq.replace('\n', ''))
 
     def __enter__(self):
         return self
@@ -178,27 +222,6 @@ class Genome(object):
 
     def __exit__(self, *args):
         self._genome.__exit__()
-
-def reverse(seq):
-    """ Returns reverse ordered seq.
-    >>> x = 'ATCGTA'
-    >>> y = reverse(x)
-    >>> x[::-1] == y
-    True
-    """
-    return seq[::-1]
-
-def complement(seq):
-    """ Returns the compliment of seq.
-    >>> x = 'ATCGTA'
-    >>> complement(x)
-    'TAGCAT'
-    """
-    if PY3:
-        table = str.maketrans('ACTGN','TGACN')
-    elif PY2:
-        table = string.maketrans('ACTGN','TGACN')
-    return seq.translate(table)
 
 def gc(seq):
     """ Return the GC content of seq as a float
