@@ -1,3 +1,7 @@
+"""
+Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
+"""
+
 from __future__ import division
 import sys
 import mmap
@@ -8,8 +12,8 @@ from six import PY2, PY3, string_types
 if PY2:
     import string
 
-class Fasta(object):
-    """ Hold name and sequence returned by `py:class:Reader` 
+class Sequence(object):
+    """ 
     name = FASTA entry name
     seq = FASTA sequence
     start, end = coordinates of subsequence (optional)
@@ -26,21 +30,28 @@ class Fasta(object):
 
     def __getitem__(self, n):
         if isinstance(n, slice):
-            return self.__class__(self.name, self.seq[n.start:n.stop])
-        elif isinstance(n, key):
-            return self.__class__(self.name, self.seq[n])
+            start, stop, step = n.indices(len(self))
+            if stop == -1:
+                stop = start
+            else:
+                stop = len(self) - stop
+            return self.__class__(self.name, self.seq[n.start:n.stop:n.step], self.start + start, self.end - stop)
+        elif isinstance(n, int):
+            if n < 0:
+                n = len(self) + n
+            return self.__class__(self.name, self.seq[n], self.start + n, self.start + n)
         
     def __str__(self):
         return self.seq
         
     def __neg__(self):
         """ Returns the reverse compliment of sequence 
-        >>> x = Fasta(name='chr1', seq='ATCGTA', start=1, end=6)
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
         >>> -x
         >chr1 (complement):6-1
         TACGAT
         """
-        return self.__class__(self.name, self.seq[::-1], start=self.end, end=self.start).complement
+        return self[::-1].complement
 
     def __repr__(self):
         if self.comp:
@@ -55,7 +66,7 @@ class Fasta(object):
 
     def __len__(self):
         """
-        >>> len(Fasta('chr1', 'ACT'))
+        >>> len(Sequence('chr1', 'ACT'))
         3
         """
         return len(self.seq)
@@ -63,7 +74,7 @@ class Fasta(object):
     @property
     def complement(self):
         """ Returns the compliment of self.
-        >>> x = Fasta(name='chr1', seq='ATCGTA')
+        >>> x = Sequence(name='chr1', seq='ATCGTA')
         >>> x.complement
         >chr1 (complement)
         TAGCAT
@@ -75,6 +86,18 @@ class Fasta(object):
         comp = self.__class__(self.name, str(self.seq).translate(table), start=self.start, end=self.end)
         comp.comp = False if self.comp else True
         return comp
+    
+    @property    
+    def gc(self):
+        """ Return the GC content of seq as a float
+        >>> x = Sequence(name='chr1', seq='ATCGTA')
+        >>> y = round(x.gc, 2)
+        >>> y == 0.33
+        True
+        """
+        g = self.seq.count('G')
+        c = self.seq.count('C')
+        return (g + c) / len(self.seq)
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
@@ -94,6 +117,9 @@ class Faidx(object):
         else:
             self.build_fai(self.filename, self.indexname)
             self.__init__(filename)
+            
+    def __repr__(self):
+        return 'Faidx("%s")' % (self.filename)
 
     @staticmethod
     def build_fai(filename, outfile):
@@ -160,7 +186,7 @@ class Faidx(object):
         else:
             s = self.m.read(bend - bstart)
         seq = s.decode('utf-8')
-        return Fasta(name=rname, start=int(start + 1),
+        return Sequence(name=rname, start=int(start + 1),
             end=int(end), seq=seq.replace('\n', ''))
 
     def __enter__(self):
@@ -169,70 +195,81 @@ class Faidx(object):
     def __exit__(self, *args):
         self.file.close()
 
-class Chromosome(object):
-    def __init__(self, name, genome=None):
+class FastaRecord(object):
+    def __init__(self, name, fa=None):
         self.name = name
-        self.genome = genome
+        self._fa = fa
 
     def __getitem__(self, n):
         """Return sequence from region [start, end)
 
         Coordinates are 0-based, end-exclusive."""
         if isinstance(n, slice):
-            return self.genome.get_seq(self.name, n.start + 1, n.stop)
-        elif isinstance(n, key):
-            return self.genome.get_seq(self.name, n.start + 1, n.start + 1)
+            start, stop, step = n.start, n.stop, n.step
+            if not start:
+                start = 0
+            if not stop:
+                stop = len(self)
+            if stop < 0:
+                stop = len(self) + stop
+            if start < 0:
+                start = len(self) + start
+            return self._fa.get_seq(self.name, start + 1, stop)[::step]
+            
+        elif isinstance(n, int):
+            if n < 0:
+                n = len(self) + n
+            return self._fa.get_seq(self.name, n + 1, n + 1)
 
     def __repr__(self):
-        return 'Chromosome("%s")' % (self.name)
+        return 'FastaRecord("%s")' % (self.name)
+        
+    def __len__(self):
+        """ Return length of chromosome """
+        return self._fa.faidx.index[self.name]['rlen']
 
-
-class Genome(object):
+class Fasta(object):
     def __init__(self, filename, default_seq=None):
         """
-        A genome object that provides a pygr compatible interface.
+        An object that provides a pygr compatible interface.
         filename: fasta file
         default_seq: if given, this base will always be returned if
             region is unavailable.
         """
-        self._genome = Faidx(filename)
-        self._chroms = dict((rname, Chromosome(rname, self)) for rname in self._genome.index.keys())
+        self.filename = filename
+        self.faidx = Faidx(filename)
+        self._records = dict((rname, FastaRecord(rname, self)) for rname in self.faidx.index.keys())
         self._default_seq = default_seq
 
-    def __contains__(self, chrom):
-        """Return True if genome contains chromosome."""
-        return chrom in self._chroms
+    def __contains__(self, record):
+        """Return True if genome contains record."""
+        return record in self._records
 
-    def __getitem__(self, chrom):
+    def __getitem__(self, record):
         """Return a chromosome by its name."""
-        if chrom not in self._chroms:
-            self._chroms[chrom] = Chromosome(chrom, self)
-        return self._chroms[chrom]
+        if record not in self._records:
+            self._records[record] = FastaRecord(record, self)
+        return self._records[record]
+
+    def __repr__(self):
+        return 'Fasta("%s")' % (self.filename)
+    
+    def keys(self):
+        return self._records.keys()
 
     def get_seq(self, chrom, start, end):
-        """Return a sequence by chromosome name and region [start, end).
+        """Return a sequence by record name and interval [start, end).
 
         Coordinates are 0-based, end-exclusive.
         """
         # Get sequence from real genome object and save result.
-        return self._genome.fetch(chrom, start, end)
+        return self.faidx.fetch(chrom, start, end)
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        self._genome.__exit__()
-
-def gc(seq):
-    """ Return the GC content of seq as a float
-    >>> x = 'ATCGTA'
-    >>> y = round(gc(x), 2)
-    >>> y == 0.33
-    True
-    """
-    g = seq.count('G')
-    c = seq.count('C')
-    return (g + c) / len(seq)
+        self.faidx.__exit__(*args)
 
 if __name__ == "__main__":
     import doctest

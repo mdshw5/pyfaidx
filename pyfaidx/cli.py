@@ -23,22 +23,23 @@ import sys
 from pyfaidx import *
 
 def fetch(args):
-    rname, interval = args.region.split(':')
-    start, end = interval.split('-')
-    with Genome(args.fasta) as genome:
-        sequence = genome[rname][int(start) - 1:int(end)]
-        if args.name:
-            sys.stdout.write('\n'.join((sequence.name, str(sequence))))
-            sys.stdout.write('\n')
-        else:
-            sys.stdout.write(str(sequence))
-            sys.stdout.write('\n')
+    with Fasta(args.fasta) as fasta:
+        for region in args.regions:
+            rname, interval = region.split(':')
+            start, end = interval.split('-')
+            sequence = fasta[rname][int(start) - 1:int(end)]
+            if args.name:
+                sys.stdout.write(sequence.__repr__())
+                sys.stdout.write('\n')
+            else:
+                sys.stdout.write(str(sequence))
+                sys.stdout.write('\n')
 
 def main():
     parser = argparse.ArgumentParser(description='Fetch sequence from faidx-indexed FASTA')
     parser.add_argument('fasta', type=str, help='FASTA file')
-    parser.add_argument('-r', '--region', type=str, help='region of sequence to fetch e.g. chr1:1-1000')
-    parser.add_argument('-n', '--name', action="store_true", default=False, help='print sequence names')
+    parser.add_argument('regions', type=str, nargs='*', help='space separated regions of sequence to fetch e.g. chr1:1-1000')
+    parser.add_argument('-n', '--name', action="store_true", default=True, help='print sequence names')
     args = parser.parse_args()
     fetch(args)
     

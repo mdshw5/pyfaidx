@@ -5,7 +5,7 @@ import os
 setup(
         name = 'pyfaidx',
         provides = 'pyfaidx',
-        version = "0.1.0",
+        version = "0.1.1",
         author = 'Matthew Shirley',
         author_email = 'mdshw5@gmail.com',
         url = 'http://mattshirley.com',
@@ -13,7 +13,7 @@ setup(
         license = 'MIT',
         packages = ['pyfaidx'],
         install_requires = ['six'],
-        entry_points = { 'console_scripts': [ 'pyfaidx = pyfaidx.cli:main' ] },
+        entry_points = { 'console_scripts': [ 'faidx = pyfaidx.cli:main' ] },
         classifiers = [
                 "Development Status :: 4 - Beta",
                 "License :: OSI Approved :: MIT License",

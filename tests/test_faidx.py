@@ -42,33 +42,33 @@ class TestFaidx:
                     'AGCCACTGCTACTACAGCAAAGTGCAGAGGAAAGTTCCACTTCCAGAAAAA'
                     'GAACTACAGAAGACGATATCCCCACACTGCCTACCTCAGAGCATAAATGCA'
                     'TACATTCTAGAGAAGGTGATTGAAGTGGGAAAAAATGATGACCTGGAGGACTC')
-        result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
+        result = self.faidx.fetch('KF435150.1',
                              1, 482)
         assert str(result) == expect
         
     def test_fetch_middle(self):
         """ Fetch the middle of a gene entry """
         expect = 'TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA'
-        result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
+        result = self.faidx.fetch('KF435150.1',
                              100, 150)
         assert str(result) == expect
 
     def test_fetch_end(self):
         """ Fetch the end of a gene entry """
         expect = 'TC'
-        result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
+        result = self.faidx.fetch('KF435150.1',
                              480, 482)
         assert str(result) == expect
         
     def test_fetch_border(self):
         """ Fetch past the end of a gene entry """
         expect = 'TC'
-        result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
+        result = self.faidx.fetch('KF435150.1',
                              480, 500)
         assert str(result) == expect
 
     def test_rev(self):
         expect = 'GA'
-        result = self.faidx.fetch('gi|557361099|gb|KF435150.1|',
+        result = self.faidx.fetch('KF435150.1',
                              480, 482)
         assert str(-result) == expect, result
