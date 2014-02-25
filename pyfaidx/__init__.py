@@ -180,7 +180,7 @@ class Faidx(object):
         bend = offset + newlines_total + rlen
         self.m.seek(bstart)
         if seq_blen < 0:
-            return Fasta(rname)
+            return Sequence(name=rname, start=0, end=0)
         if bstart + seq_blen <= bend:
             s = self.m.read(seq_blen)
         else:
