@@ -4,13 +4,19 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 import sys
-import mmap
 import os
 import itertools
 from six import PY2, PY3, string_types
 
 if PY2:
     import string
+    
+class FastaIndexingError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    
+    def __str__(self):
+        return repr(self.msg)
 
 class Sequence(object):
     """ 
@@ -103,8 +109,7 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename):
         self.filename = filename
-        self.file = open(filename, 'r+b')
-        self.m = mmap.mmap(self.file.fileno(), 0)
+        self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
         if os.path.exists(self.indexname):
             self.index = {}
@@ -127,31 +132,50 @@ class Faidx(object):
         faidx index is in the format:
         rname\trlen\toffset\tlen\tblen """
         with open(outfile, 'w') as indexfile:
-            with open(filename, 'r') as fastafile:
-                rname = None
-                offset = 0
-                rlen = 0
-                blen = 0
-                clen = 0
+            with open(filename, 'rb') as fastafile:
+                rname = None ## reference sequence name
+                offset = 0 ## binary offset of end of current line
+                rlen = 0 ## reference character length
+                blen = 0 ## binary line length (includes newline)
+                clen = 0 ## character line length
+                short_lines = [] ## lines shorter than blen
+                line_number = 0
                 for line in fastafile:
+                    line_blen = len(line)
+                    line_clen = len(line.rstrip('\n\r'))
                     if (line[0] == '>') and (rname is None):
                         rname = line.rstrip()[1:].split()[0]
-                        offset += len(line)
+                        offset += line_blen
                         thisoffset = offset
                     elif line[0] != '>':
                         if blen == 0:
-                            blen = len(line)
-                        offset += len(line)
+                            blen = line_blen
+                        ## only one short line should be allowed
+                        ## before we hit the next header
+                        elif blen > line_blen:
+                            short_lines.append(line_number)
+                            if len(short_lines) > 1:
+                                indexfile.close()
+                                os.remove(indexfile.name)
+                                raise FastaIndexingError("Line length of fasta file is not consistent! "
+                                    "Early short line found in >{0} at line {1:n}.".format(rname, short_lines[0] + 1))
+                        elif blen < line_blen:
+                            raise FastaIndexingError("Line length of fasta file is not consistent! "
+                                    "Long line found in >{0} at line {1:n}.".format(rname, line_number + 1))
+                        offset += line_blen
                         if clen == 0:
-                            clen = len(line.rstrip())
-                        rlen += len(line.rstrip())
+                            clen = line_clen
+                        rlen += line_clen
                     elif (line[0] == '>') and (rname is not None):
                         indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
                         blen = 0
                         rlen = 0
+                        clen = 0
+                        short_lines = []
                         rname = line.rstrip()[1:].split()[0]
-                        offset += len(line)
+                        offset += line_blen
                         thisoffset = offset
+                    line_number += 1
                 indexfile.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def fetch(self, rname, start, end):
@@ -178,13 +202,13 @@ class Faidx(object):
         seq_blen = newlines_inside + seq_len
         bstart = offset + newlines_before + start
         bend = offset + newlines_total + rlen
-        self.m.seek(bstart)
+        self.file.seek(bstart)
         if seq_blen < 0:
             return Sequence(name=rname, start=0, end=0)
         if bstart + seq_blen <= bend:
-            s = self.m.read(seq_blen)
+            s = self.file.read(seq_blen)
         else:
-            s = self.m.read(bend - bstart)
+            s = self.file.read(bend - bstart)
         seq = s.decode('utf-8')
         return Sequence(name=rname, start=int(start + 1),
             end=int(end), seq=seq.replace('\n', ''))
