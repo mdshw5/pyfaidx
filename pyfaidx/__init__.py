@@ -17,6 +17,13 @@ class FastaIndexingError(Exception):
     
     def __str__(self):
         return repr(self.msg)
+        
+class FetchError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    
+    def __str__(self):
+        return repr(self.msg)       
 
 class Sequence(object):
     """ 
@@ -188,7 +195,7 @@ class Faidx(object):
         try:
             entry = self.index[rname]
         except KeyError:
-            sys.exit("Requested rname {0} does not exist! Please check your FASTA file.".format(rname))
+            raise FetchError("Requested rname {0} does not exist! Please check your FASTA file.".format(rname))
         start = start - 1 ## make coordinates [0,1)
         offset = entry.get('offset')
         rlen = entry.get('rlen')
