@@ -8,12 +8,6 @@ python:
 install:
 - pip install -r requirements.txt
 - python setup.py install
-before_script:
-- pip install sphinx
-- cd docs
-- make html
-- cp -r build/html ../build/docs
-- cd ..
 script: nosetests
 deploy:
   provider: pypi
