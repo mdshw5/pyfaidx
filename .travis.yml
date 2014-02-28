@@ -8,6 +8,8 @@ python:
 install:
 - pip install -r requirements.txt
 - python setup.py install
+before_script:
+- cp -r docs/build/html build/docs
 script: nosetests
 deploy:
   provider: pypi
