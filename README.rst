@@ -23,55 +23,55 @@ Acts like a dictionary.
 
 .. code:: python 
 
-    >>> genes.keys() ['NR\_104215.1',
-    'KF435150.1', 'NM\_001282548.1', 'NM\_001282549.1', 'XM\_005249644.1',
-    'NM\_001282543.1', 'NR\_104216.1', 'XM\_005265508.1', 'XR\_241079.1',
-    'AB821309.1', 'XM\_005249645.1', 'XR\_241081.1', 'XM\_005249643.1',
-    'XM\_005249642.1', 'NM\_001282545.1', 'NR\_104212.1', 'XR\_241080.1',
-    'XM\_005265507.1', 'KF435149.1', 'NM\_000465.3']
+    >>> genes.keys() ['NR_104215.1',
+    'KF435150.1', 'NM_001282548.1', 'NM_001282549.1', 'XM_005249644.1',
+    'NM_001282543.1', 'NR_104216.1', 'XM_005265508.1', 'XR_241079.1',
+    'AB821309.1', 'XM_005249645.1', 'XR_241081.1', 'XM_005249643.1',
+    'XM_005249642.1', 'NM_001282545.1', 'NR_104212.1', 'XR_241080.1',
+    'XM_005265507.1', 'KF435149.1', 'NM_000465.3']
 
-    >>> genes['NM\_001282543.1'][200:230] 
-    NM\_001282543.1:201-230
+    >>> genes['NM_001282543.1'][200:230] 
+    NM_001282543.1:201-230
     CTCGTTCCGCGCCCGCCATGGAACCGGATG
 
-    >>> genes['NM\_001282543.1'][200:230].seq
+    >>> genes['NM_001282543.1'][200:230].seq
     'CTCGTTCCGCGCCCGCCATGGAACCGGATG'
     
-    >>> genes['NM\_001282543.1'][200:230].name
-    'NM\_001282543.1:201-230'
+    >>> genes['NM_001282543.1'][200:230].name
+    'NM_001282543.1:201-230'
     
-    >>> genes['NM\_001282543.1'][200:230].start 
+    >>> genes['NM_001282543.1'][200:230].start 
     201
     
-    >>> genes['NM\_001282543.1'][200:230].end 
+    >>> genes['NM_001282543.1'][200:230].end 
     230
 
 Slices just like a string: 
 
 .. code:: python 
 
-    >>> genes['NM\_001282543.1'][200:230][:10] 
-    NM\_001282543.1:201-210
+    >>> genes['NM_001282543.1'][200:230][:10] 
+    NM_001282543.1:201-210
     CTCGTTCCGC
 
-    >>> genes['NM\_001282543.1'][200:230][::-1]
-    NM\_001282543.1:230-201 
+    >>> genes['NM_001282543.1'][200:230][::-1]
+    NM_001282543.1:230-201 
     GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
 
-    >>> genes['NM\_001282543.1'][200:230][::3]
-    NM\_001282543.1:201-230 
+    >>> genes['NM_001282543.1'][200:230][::3]
+    NM_001282543.1:201-230 
     CGCCCCTACA
 
 Complements and reverse complements just like DNA
 
 .. code:: python 
 
-    >>> genes['NM\_001282543.1'][200:230].complement 
-    NM\_001282543.1 (complement):201-230 
+    >>> genes['NM_001282543.1'][200:230].complement 
+    NM_001282543.1 (complement):201-230 
     GAGCAAGGCGCGGGCGGTACCTTGGCCTAC
 
-    >>> genes['NM\_001282543.1'][200:230] 
-    NM\_001282543.1 (complement):230-201 
+    >>> genes['NM_001282543.1'][200:230] 
+    NM_001282543.1 (complement):230-201 
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
 
 It also provides a command-line script:
@@ -81,10 +81,10 @@ cli script: faidx
 
 .. code:: shell
 
-    $ faidx tests/data/genes.fasta NM\_001282543.1:201-210 NM\_001282543.1:300-320 
-    >NM\_001282543.1:201-210 
+    $ faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320 
+    >NM_001282543.1:201-210 
     CTCGTTCCGC
-    >NM\_001282543.1:300-320 
+    >NM_001282543.1:300-320 
     GTAATTGTGTAAGTGACTGCA
 
 Same syntax as ``samtools faidx``

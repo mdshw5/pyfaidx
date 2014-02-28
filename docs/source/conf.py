@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # pyfaidx documentation build configuration file, created by
-# sphinx-quickstart on Fri Feb 28 11:03:22 2014.
+# sphinx-quickstart on Fri Feb 28 11:47:50 2014.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -31,8 +31,6 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.coverage',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -72,7 +70,7 @@ release = '0.1.3'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = []
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
