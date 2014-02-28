@@ -19,51 +19,76 @@ random access of **DNA** subsequences from huge fasta files in a
     >>> genes
     Fasta("tests/data/genes.fasta")
 
-Acts like a dictionary: \`\`\`python >>> genes.keys() ['NR\_104215.1',
-'KF435150.1', 'NM\_001282548.1', 'NM\_001282549.1', 'XM\_005249644.1',
-'NM\_001282543.1', 'NR\_104216.1', 'XM\_005265508.1', 'XR\_241079.1',
-'AB821309.1', 'XM\_005249645.1', 'XR\_241081.1', 'XM\_005249643.1',
-'XM\_005249642.1', 'NM\_001282545.1', 'NR\_104212.1', 'XR\_241080.1',
-'XM\_005265507.1', 'KF435149.1', 'NM\_000465.3']
+Acts like a dictionary.
 
-            genes['NM\_001282543.1'][200:230] NM\_001282543.1:201-230
-            CTCGTTCCGCGCCCGCCATGGAACCGGATG
+.. code:: python 
 
-            genes['NM\_001282543.1'][200:230].seq
-            'CTCGTTCCGCGCCCGCCATGGAACCGGATG'
-            genes['NM\_001282543.1'][200:230].name
-            'NM\_001282543.1:201-230'
-            genes['NM\_001282543.1'][200:230].start 201
-            genes['NM\_001282543.1'][200:230].end 230 \`\`\`
+    >>> genes.keys() ['NR\_104215.1',
+    'KF435150.1', 'NM\_001282548.1', 'NM\_001282549.1', 'XM\_005249644.1',
+    'NM\_001282543.1', 'NR\_104216.1', 'XM\_005265508.1', 'XR\_241079.1',
+    'AB821309.1', 'XM\_005249645.1', 'XR\_241081.1', 'XM\_005249643.1',
+    'XM\_005249642.1', 'NM\_001282545.1', 'NR\_104212.1', 'XR\_241080.1',
+    'XM\_005265507.1', 'KF435149.1', 'NM\_000465.3']
 
-Slices just like a string: \`\`\`python >>>
-genes['NM\_001282543.1'][200:230][:10] >NM\_001282543.1:201-210
-CTCGTTCCGC
+    >>> genes['NM\_001282543.1'][200:230] 
+    NM\_001282543.1:201-230
+    CTCGTTCCGCGCCCGCCATGGAACCGGATG
 
-            genes['NM\_001282543.1'][200:230][::-1]
-            NM\_001282543.1:230-201 GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
+    >>> genes['NM\_001282543.1'][200:230].seq
+    'CTCGTTCCGCGCCCGCCATGGAACCGGATG'
+    
+    >>> genes['NM\_001282543.1'][200:230].name
+    'NM\_001282543.1:201-230'
+    
+    >>> genes['NM\_001282543.1'][200:230].start 
+    201
+    
+    >>> genes['NM\_001282543.1'][200:230].end 
+    230
 
-            genes['NM\_001282543.1'][200:230][::3]
-            NM\_001282543.1:201-230 CGCCCCTACA \`\`\`
+Slices just like a string: 
 
-Complements and reverse complements just like DNA \`\`\`python >>>
-genes['NM\_001282543.1'][200:230].complement >NM\_001282543.1
-(complement):201-230 GAGCAAGGCGCGGGCGGTACCTTGGCCTAC
+.. code:: python 
 
-            -genes['NM\_001282543.1'][200:230] NM\_001282543.1
-            (complement):230-201 CATCCGGTTCCATGGCGGGCGCGGAACGAG \`\`\`
+    >>> genes['NM\_001282543.1'][200:230][:10] 
+    NM\_001282543.1:201-210
+    CTCGTTCCGC
+
+    >>> genes['NM\_001282543.1'][200:230][::-1]
+    NM\_001282543.1:230-201 
+    GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
+
+    >>> genes['NM\_001282543.1'][200:230][::3]
+    NM\_001282543.1:201-230 
+    CGCCCCTACA
+
+Complements and reverse complements just like DNA
+
+.. code:: python 
+
+    >>> genes['NM\_001282543.1'][200:230].complement 
+    NM\_001282543.1 (complement):201-230 
+    GAGCAAGGCGCGGGCGGTACCTTGGCCTAC
+
+    >>> genes['NM\_001282543.1'][200:230] 
+    NM\_001282543.1 (complement):230-201 
+    CATCCGGTTCCATGGCGGGCGCGGAACGAG
 
 It also provides a command-line script:
 
 cli script: faidx
 ~~~~~~~~~~~~~~~~~
 
-\`\`\`shell $ faidx tests/data/genes.fasta NM\_001282543.1:201-210
-NM\_001282543.1:300-320 >NM\_001282543.1:201-210 CTCGTTCCGC
->NM\_001282543.1:300-320 GTAATTGTGTAAGTGACTGCA
+.. code:: shell
+
+    $ faidx tests/data/genes.fasta NM\_001282543.1:201-210 NM\_001282543.1:300-320 
+    >NM\_001282543.1:201-210 
+    CTCGTTCCGC
+    >NM\_001282543.1:300-320 
+    GTAATTGTGTAAGTGACTGCA
 
 Same syntax as ``samtools faidx``
-``shell $ samtools faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320 >NM_001282543.1:201-210 CTCGTTCCGC >NM_001282543.1:300-320 GTAATTGTGTAAGTGACTGCA``
+
 
 A lower-level Faidx class is also available:
 
