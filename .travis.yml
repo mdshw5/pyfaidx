@@ -13,6 +13,7 @@ before_script:
 - cd docs
 - make html
 - cp -r build/html ../build/docs
+- cd ..
 script: nosetests
 deploy:
   provider: pypi
