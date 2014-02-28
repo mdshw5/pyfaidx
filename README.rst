@@ -1,0 +1,134 @@
+|Build Status|
+
+Description
+-----------
+
+Samtools provides a function "faidx" (FAsta InDeX), which creates a
+small flat index file ".fai" allowing for fast random access to any
+subsequence in the indexed fasta, while loading a minimal amount of the
+file in to memory.
+
+Pyfaidx provides an interface for creating and using this index for fast
+random access of **DNA** subsequences from huge fasta files in a
+"pythonic" manner. For example:
+
+.. code:: python
+
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta')
+    >>> genes
+    Fasta("tests/data/genes.fasta")
+
+Acts like a dictionary: \`\`\`python >>> genes.keys() ['NR\_104215.1',
+'KF435150.1', 'NM\_001282548.1', 'NM\_001282549.1', 'XM\_005249644.1',
+'NM\_001282543.1', 'NR\_104216.1', 'XM\_005265508.1', 'XR\_241079.1',
+'AB821309.1', 'XM\_005249645.1', 'XR\_241081.1', 'XM\_005249643.1',
+'XM\_005249642.1', 'NM\_001282545.1', 'NR\_104212.1', 'XR\_241080.1',
+'XM\_005265507.1', 'KF435149.1', 'NM\_000465.3']
+
+            genes['NM\_001282543.1'][200:230] NM\_001282543.1:201-230
+            CTCGTTCCGCGCCCGCCATGGAACCGGATG
+
+            genes['NM\_001282543.1'][200:230].seq
+            'CTCGTTCCGCGCCCGCCATGGAACCGGATG'
+            genes['NM\_001282543.1'][200:230].name
+            'NM\_001282543.1:201-230'
+            genes['NM\_001282543.1'][200:230].start 201
+            genes['NM\_001282543.1'][200:230].end 230 \`\`\`
+
+Slices just like a string: \`\`\`python >>>
+genes['NM\_001282543.1'][200:230][:10] >NM\_001282543.1:201-210
+CTCGTTCCGC
+
+            genes['NM\_001282543.1'][200:230][::-1]
+            NM\_001282543.1:230-201 GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
+
+            genes['NM\_001282543.1'][200:230][::3]
+            NM\_001282543.1:201-230 CGCCCCTACA \`\`\`
+
+Complements and reverse complements just like DNA \`\`\`python >>>
+genes['NM\_001282543.1'][200:230].complement >NM\_001282543.1
+(complement):201-230 GAGCAAGGCGCGGGCGGTACCTTGGCCTAC
+
+            -genes['NM\_001282543.1'][200:230] NM\_001282543.1
+            (complement):230-201 CATCCGGTTCCATGGCGGGCGCGGAACGAG \`\`\`
+
+It also provides a command-line script:
+
+cli script: faidx
+~~~~~~~~~~~~~~~~~
+
+\`\`\`shell $ faidx tests/data/genes.fasta NM\_001282543.1:201-210
+NM\_001282543.1:300-320 >NM\_001282543.1:201-210 CTCGTTCCGC
+>NM\_001282543.1:300-320 GTAATTGTGTAAGTGACTGCA
+
+Same syntax as ``samtools faidx``
+``shell $ samtools faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320 >NM_001282543.1:201-210 CTCGTTCCGC >NM_001282543.1:300-320 GTAATTGTGTAAGTGACTGCA``
+
+A lower-level Faidx class is also available:
+
+.. code:: python
+
+    >>> from pyfaidx import Faidx
+    >>> fa = Faidx('T7.fa')
+    >>> fa.build('T7.fa', 'T7.fa.fai')
+    >>> fa.index
+    {'EM_PHG:V01146': {'lenc': 60, 'lenb': 61, 'rlen': 39937, 'offset': 40571}, 'EM_PHG:GU071091': {'lenc': 60, 'lenb': 61, 'rlen': 39778, 'offset': 74}}
+
+    >>> fa.fetch('EM_PHG:V01146', 1, 10)
+    EM_PHG:V01146
+    TCTCACAGTG
+
+    >>> fa.fetch('EM_PHG:V01146', 100, 120)
+    >EM_PHG:V01146
+    GGTTGGGGATGACCCTTGGGT
+
+-  If the FASTA file is not indexed, when ``Faidx`` is initialized the
+   ``build`` method will automatically run, producing "filename.fa.fai"
+   where "filename.fa" is the original FASTA file.
+-  Start and end coordinates are 1-based.
+
+Installation
+------------
+
+This package is tested under Python 3.3, 3.2, 2.7, 2.6, and pypy.
+
+::
+
+    pip install pyfaidx
+
+    or
+
+    python setup.py install
+
+CLI Usage
+---------
+
+"samtools faidx" compatible FASTA indexing in pure python.
+
+::
+
+    usage: faidx [-h] [-n] fasta [regions [regions ...]]
+
+    Fetch sequence from faidx-indexed FASTA
+
+    positional arguments:
+      fasta       FASTA file
+      regions     space separated regions of sequence to fetch e.g. chr1:1-1000
+
+    optional arguments:
+      -h, --help  show this help message and exit
+      -n, --name  print sequence names
+
+Acknowledgements
+----------------
+
+This project is freely licensed by the author, `Matthew
+Shirley <http://mattshirley.com>`__, and was completed under the
+mentorship and financial support of Drs. `Sarah
+Wheelan <http://sjwheelan.som.jhmi.edu>`__ and `Vasan
+Yegnasubramanian <http://yegnalab.onc.jhmi.edu>`__ at the Sidney Kimmel
+Comprehensive Cancer Center in the Department of Oncology.
+
+.. |Build Status| image:: https://travis-ci.org/mdshw5/pyfaidx.png?branch=master
+   :target: https://travis-ci.org/mdshw5/pyfaidx
