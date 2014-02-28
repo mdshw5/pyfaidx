@@ -10,7 +10,10 @@ file in to memory.
 
 Pyfaidx provides an interface for creating and using this index for fast
 random access of **DNA** subsequences from huge fasta files in a
-"pythonic" manner. For example:
+"pythonic" manner. Indexing speed is comparable to samtools, and in some 
+cases sequence retrieval is much faster (benchmark_). For example:
+
+.. _benchmark: http://www.biostars.org/p/93364/#93390
 
 .. code:: python
 
