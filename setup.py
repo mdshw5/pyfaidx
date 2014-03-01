@@ -1,11 +1,7 @@
 from setuptools import setup, Extension
 import distutils.core
-from distutils.dir_util import mkpath, copy_tree
 import sys
 import os
-
-mkpath('build/docs')
-copy_tree('docs/build/html', 'build/docs')
 
 setup(
         name = 'pyfaidx',
