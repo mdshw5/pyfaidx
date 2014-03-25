@@ -1,6 +1,4 @@
-.. image:: https://travis-ci.org/mdshw5/pyfaidx.svg?branch=v0.1.3   :target: https://travis-ci.org/mdshw5/pyfaidx
-
-.. image:: https://img.shields.io/pypi/v/pyfaidx.svg   :target: https://pypi.python.org/pypi/pyfaidx
+|Travis| |PyPI|
 
 Please cite `dx.doi.org/10.5281/zenodo.8548`__.
 
@@ -164,3 +162,7 @@ mentorship and financial support of Drs. `Sarah
 Wheelan <http://sjwheelan.som.jhmi.edu>`__ and `Vasan
 Yegnasubramanian <http://yegnalab.onc.jhmi.edu>`__ at the Sidney Kimmel
 Comprehensive Cancer Center in the Department of Oncology.
+
+.. |Travis| image:: https://travis-ci.org/mdshw5/pyfaidx.svg?branch=v0.1.3   :target: https://travis-ci.org/mdshw5/pyfaidx
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/pyfaidx.svg   :target: https://pypi.python.org/pypi/pyfaidx
