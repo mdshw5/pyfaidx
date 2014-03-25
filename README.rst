@@ -165,6 +165,6 @@ Comprehensive Cancer Center in the Department of Oncology.
 .. |Build Status| image:: https://travis-ci.org/mdshw5/pyfaidx.png?branch=master
    :target: https://travis-ci.org/mdshw5/pyfaidx
 
-.. |PyPI| image:: http://img.shields.io/pypi/.svg
+.. |PyPI| image:: http://img.shields.io/pypi/v/pyfaidx.svg
 
 .. _DOI: http://dx.doi.org/10.5281/zenodo.8548
