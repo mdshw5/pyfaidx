@@ -1,6 +1,7 @@
 .. image:: https://travis-ci.org/mdshw5/pyfaidx.png?branch=master
     :target: https://travis-ci.org/mdshw5/pyfaidx
-.. image:: http://img.shields.io/pypi/v/pyfaidx.svg
+
+.. image:: https://img.shields.io/pypi/v/pyfaidx.svg
     :target: https://pypi.python.org/pypi/pyfaidx
 
 Please cite `dx.doi.org/10.5281/zenodo.8548`__.
