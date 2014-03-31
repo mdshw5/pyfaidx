@@ -159,6 +159,8 @@ class Faidx(object):
                             blen = line_blen
                         ## only one short line should be allowed
                         ## before we hit the next header
+                        elif line_clen == 0:
+                            sys.stderr.write("Warning: blank line in >{0} at line {1:n}.".format(rname, line_number + 1))
                         elif blen > line_blen:
                             short_lines.append(line_number)
                             if len(short_lines) > 1:
