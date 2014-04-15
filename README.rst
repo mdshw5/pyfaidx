@@ -1,8 +1,10 @@
 |Travis| |PyPI|
 
-Please cite `dx.doi.org/10.5281/zenodo.8548`__.
+Please cite `Shirley, Matthew (2014): pyfaidx: "samtools faidx"
+ compatible FASTA indexing in pure python. figshare.
+ http://dx.doi.org/10.6084/m9.figshare.972933`__.
 
-.. __: http://dx.doi.org/10.5281/zenodo.8548
+.. __: http://dx.doi.org/10.6084/m9.figshare.972933
 
 
 Description
