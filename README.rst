@@ -1,8 +1,7 @@
 |Travis| |PyPI|
 
-Please cite `Shirley, Matthew (2014): pyfaidx: "samtools faidx"
-compatible FASTA indexing in pure python. figshare. DOI:
-10.6084/m9.figshare.972933`__.
+Please cite `Shirley, Matthew (2014): pyfaidx: efficient pythonic random
+access to fasta subsequences. figshare. DOI:10.6084/m9.figshare.972933`__.
 
 .. __: http://dx.doi.org/10.6084/m9.figshare.972933
 
