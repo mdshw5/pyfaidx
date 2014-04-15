@@ -20,7 +20,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
 import sys
-from pyfaidx import *
+from pyfaidx import Fasta
+
 
 def fetch(args):
     with Fasta(args.fasta) as fasta:
@@ -35,13 +36,18 @@ def fetch(args):
                 sys.stdout.write(str(sequence))
                 sys.stdout.write('\n')
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Fetch sequence from faidx-indexed FASTA')
+    parser = argparse.ArgumentParser(description="Fetch sequence from "
+                                                 "faidx-indexed FASTA")
     parser.add_argument('fasta', type=str, help='FASTA file')
-    parser.add_argument('regions', type=str, nargs='*', help='space separated regions of sequence to fetch e.g. chr1:1-1000')
-    parser.add_argument('-n', '--name', action="store_true", default=True, help='print sequence names')
+    parser.add_argument('regions', type=str, nargs='*',
+                        help="space separated regions of sequence to "
+                        "fetch e.g. chr1:1-1000")
+    parser.add_argument('-n', '--name', action="store_true", default=True,
+                        help="print sequence names")
     args = parser.parse_args()
     fetch(args)
-    
+
 if __name__ == "__main__":
     main()
