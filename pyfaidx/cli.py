@@ -25,10 +25,23 @@ from pyfaidx import Fasta
 
 def fetch(args):
     with Fasta(args.fasta) as fasta:
-        for region in args.regions:
-            rname, interval = region.split(':')
-            start, end = interval.split('-')
-            sequence = fasta[rname][int(start) - 1:int(end)]
+        regions = args.regions
+        if args.list:
+            with args.list as listfile:
+                for region in listfile:
+                    regions.append(region.rstrip())
+        for region in regions:
+            region = region.split()[0]
+            try:
+                rname, interval = region.split(':')
+            except ValueError:
+                rname = region
+                interval = None
+            try:
+                start, end = interval.split('-')
+                sequence = fasta[rname][int(start) - 1:int(end)]
+            except (AttributeError, ValueError):
+                sequence = fasta[rname][:]
             if args.name:
                 sys.stdout.write(sequence.__repr__())
                 sys.stdout.write('\n')
@@ -44,6 +57,7 @@ def main():
     parser.add_argument('regions', type=str, nargs='*',
                         help="space separated regions of sequence to "
                         "fetch e.g. chr1:1-1000")
+    parser.add_argument('-l', '--list', type=argparse.FileType('r'), help="list of regions, one per line")
     parser.add_argument('-n', '--name', action="store_true", default=True,
                         help="print sequence names")
     args = parser.parse_args()
