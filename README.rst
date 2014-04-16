@@ -55,6 +55,9 @@ Acts like a dictionary.
     >>> genes['NM_001282543.1'][200:230].end
     230
 
+    >>> len(genes['NM_001282543.1'])
+    5466
+
 Slices just like a string:
 
 .. code:: python
@@ -70,6 +73,10 @@ Slices just like a string:
     >>> genes['NM_001282543.1'][200:230][::3]
     NM_001282543.1:201-230
     CGCCCCTACA
+
+    >>> genes['NM_001282543.1'][:]
+    NM_001282543.1:1-5466
+    CCCCGCCCCT........
 
 Complements and reverse complements just like DNA
 
@@ -96,7 +103,14 @@ cli script: faidx
     >NM_001282543.1:300-320
     GTAATTGTGTAAGTGACTGCA
 
-Same syntax as ``samtools faidx``
+    $ faidx tests/data/genes.fasta NM_001282543.1
+    >NM_001282543.1:1-5466
+    CCCCGCCCCT........
+
+    $ faidx tests/data/genes.fasta --list regions.txt
+    ...
+
+Similar syntax as ``samtools faidx``
 
 
 A lower-level Faidx class is also available:
