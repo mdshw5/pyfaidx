@@ -156,17 +156,19 @@ CLI Usage
 
 ::
 
-    usage: faidx [-h] [-n] fasta [regions [regions ...]]
+    usage: cli.py [-h] [-l LIST] [-n] fasta [regions [regions ...]]
 
     Fetch sequence from faidx-indexed FASTA
 
     positional arguments:
-      fasta       FASTA file
-      regions     space separated regions of sequence to fetch e.g. chr1:1-1000
+      fasta                 FASTA file
+      regions               space separated regions of sequence to fetch e.g.
+                            chr1:1-1000
 
     optional arguments:
-      -h, --help  show this help message and exit
-      -n, --name  print sequence names
+      -h, --help            show this help message and exit
+      -l LIST, --list LIST  list of regions, one per line
+      -n, --name            print sequence names
 
 Acknowledgements
 ----------------
