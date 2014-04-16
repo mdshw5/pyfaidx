@@ -150,7 +150,7 @@ class Faidx(object):
         faidx index is in the format:
         rname\trlen\toffset\tlen\tblen """
         with open(outfile, 'w') as indexfile:
-            with open(filename, 'rb') as fastafile:
+            with open(filename, 'r') as fastafile:
                 rname = None  # reference sequence name
                 offset = 0  # binary offset of end of current line
                 rlen = 0  # reference character length
