@@ -3,11 +3,12 @@ from setuptools import setup
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version="0.1.4",
+    version='0.1.5',
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
-    description='"samtools faidx" compatible FASTA indexing in pure python',
+    description='pyfaidx: efficient pythonic random '
+                'access to fasta subsequences',
     license='MIT',
     packages=['pyfaidx'],
     install_requires=['six'],
