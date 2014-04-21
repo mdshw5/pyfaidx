@@ -50,13 +50,19 @@ class Sequence(object):
                 stop = start
             else:
                 stop = len(self) - stop
-            return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
+            if self.start and self.end:
+                return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
                                   self.start + start, self.end - stop)
+            else:
+                return self.__class__(self.name, self.seq[n.start:n.stop:n.step])
         elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
-            return self.__class__(self.name, self.seq[n], self.start + n,
+            if self.start:
+                return self.__class__(self.name, self.seq[n], self.start + n,
                                   self.start + n)
+            else:
+                return self.__class__(self.name, self.seq[n])
 
     def __str__(self):
         return self.seq
