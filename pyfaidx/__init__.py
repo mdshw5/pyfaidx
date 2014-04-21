@@ -106,6 +106,16 @@ class Sequence(object):
         return comp
 
     @property
+    def reverse(self):
+        """ Returns the reverse of self.
+        >>> x = Sequence(name='chr1', seq='ATCGTA')
+        >>> x.reverse
+        >chr1
+        ATGCTA
+        """
+        return self[::-1]
+
+    @property
     def gc(self):
         """ Return the GC content of seq as a float
         >>> x = Sequence(name='chr1', seq='ATCGTA')

@@ -86,8 +86,12 @@ Complements and reverse complements just like DNA
     NM_001282543.1 (complement):201-230
     GAGCAAGGCGCGGGCGGTACCTTGGCCTAC
 
-    >>> genes['NM_001282543.1'][200:230]
-    NM_001282543.1 (complement):230-201
+    >>> genes['NM_001282543.1'][200:230].reverse
+    NM_001282543.1:230-201
+    GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
+
+    >>> -genes['NM_001282543.1'][200:230]
+    >NM_001282543.1 (complement):230-201
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
 
 It also provides a command-line script:
