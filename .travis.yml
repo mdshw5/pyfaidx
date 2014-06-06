@@ -1,12 +1,13 @@
 language: python
 python:
+- '3.4'
 - '3.3'
 - '3.2'
 - '2.7'
 - '2.6'
 - pypy
 install:
-- pip install -e . 
+- pip install -e .
 script: nosetests
 deploy:
   provider: pypi
