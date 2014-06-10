@@ -184,6 +184,6 @@ Wheelan <http://sjwheelan.som.jhmi.edu>`__ and `Vasan
 Yegnasubramanian <http://yegnalab.onc.jhmi.edu>`__ at the Sidney Kimmel
 Comprehensive Cancer Center in the Department of Oncology.
 
-.. |Travis| image:: https://travis-ci.org/mdshw5/pyfaidx.svg?   :target: https://travis-ci.org/mdshw5/pyfaidx
+.. |Travis| image:: https://travis-ci.org/mdshw5/pyfaidx.svg   :target: https://travis-ci.org/mdshw5/pyfaidx
 
-.. |PyPI| image:: https://img.shields.io/pypi/v/pyfaidx.svg?   :target: https://pypi.python.org/pypi/pyfaidx
+.. |PyPI| image:: https://img.shields.io/pypi/v/pyfaidx.svg   :target: https://pypi.python.org/pypi/pyfaidx
