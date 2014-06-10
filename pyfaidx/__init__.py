@@ -138,16 +138,24 @@ class Sequence(object):
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename):
+    def __init__(self, filename, key_function=None):
+        """
+        filename: name of fasta file
+        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname. 
+        """
         self.filename = filename
         self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
+        self.key_function = key_function if key_function else lambda rname: rname
         if os.path.exists(self.indexname):
             self.index = {}
             with open(self.indexname) as index:
                 for line in index:
                     line = line.strip()
                     rname, rlen, offset, lenc, lenb = line.split('\t')
+                    rname = self.key_function(rname)
+                    if rname in self.index:
+                        raise ValueError('Duplicate key "%s"'%rname)
                     self.index[rname] = {'rlen': int(rlen),
                                          'offset': int(offset),
                                          'lenc': int(lenc),
@@ -155,7 +163,7 @@ class Faidx(object):
 
         else:
             self.build_fai(self.filename, self.indexname)
-            self.__init__(filename)
+            self.__init__(filename, key_function)
 
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
@@ -313,15 +321,15 @@ class FastaRecord(object):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None):
+    def __init__(self, filename, default_seq=None, key_function=None):
         """
         An object that provides a pygr compatible interface.
-        filename: fasta file
-        default_seq: if given, this base will always be returned if
-            region is unavailable.
+        filename: name of fasta file
+        default_seq: if given, this base will always be returned if region is unavailable.
+        key_function: optional callback function which should return a unique key for the self._records dictionary when given rname. 
         """
         self.filename = filename
-        self.faidx = Faidx(filename)
+        self.faidx = Faidx(filename, key_function=key_function)
         self._records = dict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
