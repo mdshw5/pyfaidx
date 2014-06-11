@@ -141,7 +141,7 @@ class Faidx(object):
     def __init__(self, filename, key_function=None):
         """
         filename: name of fasta file
-        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname. 
+        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.
         """
         self.filename = filename
         self.file = open(filename, 'rb')
@@ -242,7 +242,7 @@ class Faidx(object):
                                                       thisoffset, clen,
                                                       blen))
 
-    def fetch(self, rname, start, end):
+    def fetch(self, rname, start, end, strict_bounds=False):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
         1. Count newlines before start
         2. Count newlines to end
@@ -273,6 +273,9 @@ class Faidx(object):
             return Sequence(name=rname, start=0, end=0)
         if bstart + seq_blen <= bend:
             s = self.file.read(seq_blen)
+        elif strict_bounds:
+            raise FetchError("Requested end coordinate is outside of {}. Set "
+                             "strict_bounds=False to ignore.\n".format(rname))
         else:
             s = self.file.read(bend - bstart)
         seq = s.decode('utf-8')
@@ -326,7 +329,7 @@ class Fasta(object):
         An object that provides a pygr compatible interface.
         filename: name of fasta file
         default_seq: if given, this base will always be returned if region is unavailable.
-        key_function: optional callback function which should return a unique key for the self._records dictionary when given rname. 
+        key_function: optional callback function which should return a unique key for the self._records dictionary when given rname.
         """
         self.filename = filename
         self.faidx = Faidx(filename, key_function=key_function)
