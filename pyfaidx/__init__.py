@@ -5,7 +5,6 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 from __future__ import division
 import sys
 import os
-import itertools
 from six import PY2, PY3, string_types
 
 if PY2:
@@ -102,11 +101,7 @@ class Sequence(object):
         >chr1 (complement)
         TAGCAT
         """
-        if PY3:
-            table = str.maketrans('ACTGNactg', 'TGACNtgac')
-        elif PY2:
-            table = string.maketrans('ACTGNactg', 'TGACNtgac')
-        comp = self.__class__(self.name, str(self.seq).translate(table),
+        comp = self.__class__(self.name, complement(self.seq),
                               start=self.start, end=self.end)
         comp.comp = False if self.comp else True
         return comp
@@ -366,6 +361,20 @@ class Fasta(object):
 
     def __exit__(self, *args):
         self.faidx.__exit__(*args)
+
+
+def complement(seq):
+    """ Returns the compliment of seq.
+    >>> seq = 'ATCGTA'
+    >>> complement(seq)
+    TAGCAT
+    """
+    if PY3:
+        table = str.maketrans('ACTGNactg', 'TGACNtgac')
+    elif PY2:
+        table = string.maketrans('ACTGNactg', 'TGACNtgac')
+    return str(seq).translate(table)
+
 
 if __name__ == "__main__":
     import doctest
