@@ -367,7 +367,7 @@ def complement(seq):
     """ Returns the compliment of seq.
     >>> seq = 'ATCGTA'
     >>> complement(seq)
-    TAGCAT
+    'TAGCAT'
     """
     if PY3:
         table = str.maketrans('ACTGNactg', 'TGACNtgac')
