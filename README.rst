@@ -98,6 +98,8 @@ Complements and reverse complements just like DNA
 
 Custom key functions provide cleaner access:
 
+.. code:: python
+
     >>> from pyfaidx import Fasta
     >>> genes = Fasta('tests/data/genes.fasta', key_function = lambda x: x.split('.')[0])
     >>> genes.keys()
@@ -201,11 +203,13 @@ Changes
 -------
 
 *New in version 0.1.9*:
+
 - line wrapping of ``faidx`` is set based on the wrapping of the indexed
 fasta file
 - added ``--reverse`` and ``--complement`` arguments to ``faidx``
 
 *New in version 0.1.8*:
+
 - ``key_function`` keyword argument to ``Fasta`` allows lookup based on function
 output
 
