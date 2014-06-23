@@ -6,6 +6,7 @@ from __future__ import division
 import sys
 import os
 from six import PY2, PY3, string_types
+from six.moves import zip_longest
 
 if PY2:
     import string
@@ -356,11 +357,20 @@ class Fasta(object):
         # Get sequence from real genome object and save result.
         return self.faidx.fetch(chrom, start, end)
 
+    def close(self):
+        self.__exit__()
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.faidx.__exit__(*args)
+
+
+def wrap_sequence(n, sequence, fillvalue=''):
+    args = [iter(sequence)] * n
+    for line in zip_longest(fillvalue=fillvalue, *args):
+        yield ''.join(line + ("\n",))
 
 
 def complement(seq):
@@ -374,6 +384,15 @@ def complement(seq):
     elif PY2:
         table = string.maketrans('ACTGNactg', 'TGACNtgac')
     return str(seq).translate(table)
+
+
+def translate_chr_name(from_name, to_name):
+    chr_name_map = dict(zip(from_name, to_name))
+
+    def map_to_function(rname):
+        return chr_name_map[rname]
+
+    return map_to_function
 
 
 if __name__ == "__main__":
