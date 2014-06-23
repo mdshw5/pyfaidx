@@ -205,13 +205,13 @@ Changes
 *New in version 0.1.9*:
 
 - line wrapping of ``faidx`` is set based on the wrapping of the indexed
-fasta file
+  fasta file
 - added ``--reverse`` and ``--complement`` arguments to ``faidx``
 
 *New in version 0.1.8*:
 
 - ``key_function`` keyword argument to ``Fasta`` allows lookup based on function
-output
+  output
 
 Acknowledgements
 ----------------
