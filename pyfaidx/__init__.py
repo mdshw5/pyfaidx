@@ -137,7 +137,8 @@ class Faidx(object):
     def __init__(self, filename, key_function=None):
         """
         filename: name of fasta file
-        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.
+        key_function: optional callback function which should return a unique
+          key for the self.index dictionary when given rname.
         """
         self.filename = filename
         self.file = open(filename, 'rb')
@@ -317,6 +318,9 @@ class FastaRecord(object):
     def __len__(self):
         """ Return length of chromosome """
         return self._fa.faidx.index[self.name]['rlen']
+
+    def __str__(self):
+        return self[:]
 
 
 class Fasta(object):
