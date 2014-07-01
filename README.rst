@@ -108,6 +108,18 @@ Custom key functions provide cleaner access:
     >NR_104212:1-10
     CCCCGCCCCT
 
+Or just get a Python string:
+
+.. code:: python
+
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta', as_raw=True)
+    >>> genes
+    Fasta("tests/data/genes.fasta", as_raw=True)
+
+    >>> genes['NM_001282543.1'][200:230]
+    CTCGTTCCGCGCCCGCCATGGAACCGGATG
+
 It also provides a command-line script:
 
 cli script: faidx
@@ -144,7 +156,7 @@ A lower-level Faidx class is also available:
 .. code:: python
 
     >>> from pyfaidx import Faidx
-    >>> fa = Faidx('T7.fa')
+    >>> fa = Faidx('T7.fa')  # can return str with as_raw=True
     >>> fa.build('T7.fa', 'T7.fa.fai')
     >>> fa.index
     {'EM_PHG:V01146': {'lenc': 60, 'lenb': 61, 'rlen': 39937, 'offset': 40571}, 'EM_PHG:GU071091': {'lenc': 60, 'lenb': 61, 'rlen': 39778, 'offset': 74}}
@@ -201,6 +213,11 @@ CLI Usage
 
 Changes
 -------
+
+*New in version 0.2.0*:
+
+- `as_raw` keyword arg for `Faidx` and `Fasta` allows a simple string return type
+- `__str__` method for `FastaRecord` returns entire contig sequence
 
 *New in version 0.1.9*:
 
