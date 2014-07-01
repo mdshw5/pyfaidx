@@ -20,34 +20,41 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
 import sys
-from pyfaidx import Fasta
+from pyfaidx import Fasta, wrap_sequence
 
 
 def fetch(args):
-    with Fasta(args.fasta) as fasta:
-        regions = args.regions
-        if args.list:
-            with args.list as listfile:
-                for region in listfile:
-                    regions.append(region.rstrip())
-        for region in regions:
-            region = region.split()[0]
-            try:
-                rname, interval = region.split(':')
-            except ValueError:
-                rname = region
-                interval = None
-            try:
-                start, end = interval.split('-')
-                sequence = fasta[rname][int(start) - 1:int(end)]
-            except (AttributeError, ValueError):
-                sequence = fasta[rname][:]
-            if args.name:
-                sys.stdout.write(sequence.__repr__())
-                sys.stdout.write('\n')
-            else:
-                sys.stdout.write(str(sequence))
-                sys.stdout.write('\n')
+    fasta = Fasta(args.fasta)
+    regions = args.regions
+    if args.list:
+        with args.list as listfile:
+            for region in listfile:
+                regions.append(region.rstrip())
+    for region in regions:
+        region = region.split()[0]
+        try:
+            rname, interval = region.split(':')
+        except ValueError:
+            rname = region
+            interval = None
+        try:
+            start, end = interval.split('-')
+            sequence = fasta[rname][int(start) - 1:int(end)]
+        except (AttributeError, ValueError):
+            sequence = fasta[rname][:]
+        if args.complement:
+            sequence = sequence.complement
+        if args.reverse:
+            sequence = sequence.reverse
+        line_len = fasta[rname]._fa.faidx.index[rname]['lenc']
+        if args.name:
+            sys.stdout.write('>' + sequence.name + '\n')
+            for line in wrap_sequence(line_len, sequence.seq):
+                sys.stdout.write(line)
+        else:
+            for line in wrap_sequence(line_len, sequence.seq):
+                sys.stdout.write(line)
+    fasta.close()
 
 
 def main():
@@ -59,7 +66,11 @@ def main():
                         "fetch e.g. chr1:1-1000")
     parser.add_argument('-l', '--list', type=argparse.FileType('r'), help="list of regions, one per line")
     parser.add_argument('-n', '--name', action="store_true", default=True,
-                        help="print sequence names")
+                        help="print sequence names. default: %(default)s")
+    parser.add_argument('--complement', action="store_true", default=False,
+                        help="comlement the sequence. default: %(default)s")
+    parser.add_argument('--reverse', action="store_true", default=False,
+                        help="reverse the sequence. default: %(default)s")
     args = parser.parse_args()
     fetch(args)
 

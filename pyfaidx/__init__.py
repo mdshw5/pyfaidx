@@ -5,8 +5,8 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 from __future__ import division
 import sys
 import os
-import itertools
 from six import PY2, PY3, string_types
+from six.moves import zip_longest
 
 if PY2:
     import string
@@ -102,11 +102,7 @@ class Sequence(object):
         >chr1 (complement)
         TAGCAT
         """
-        if PY3:
-            table = str.maketrans('ACTGNactg', 'TGACNtgac')
-        elif PY2:
-            table = string.maketrans('ACTGNactg', 'TGACNtgac')
-        comp = self.__class__(self.name, str(self.seq).translate(table),
+        comp = self.__class__(self.name, complement(self.seq),
                               start=self.start, end=self.end)
         comp.comp = False if self.comp else True
         return comp
@@ -143,7 +139,6 @@ class Faidx(object):
         filename: name of fasta file
         key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.                
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
-
         """
         self.filename = filename
         self.file = open(filename, 'rb')
@@ -245,7 +240,7 @@ class Faidx(object):
                                                       thisoffset, clen,
                                                       blen))
 
-    def fetch(self, rname, start, end):
+    def fetch(self, rname, start, end, strict_bounds=False):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
         1. Count newlines before start
         2. Count newlines to end
@@ -277,6 +272,9 @@ class Faidx(object):
             return Sequence(name=rname, start=0, end=0)
         if bstart + seq_blen <= bend:
             s = self.file.read(seq_blen)
+        elif strict_bounds:
+            raise FetchError("Requested end coordinate is outside of {}. Set "
+                             "strict_bounds=False to ignore.\n".format(rname))
         else:
             s = self.file.read(bend - bstart)
         seq = s.decode('utf-8')
@@ -327,6 +325,9 @@ class FastaRecord(object):
         """ Return length of chromosome """
         return self._fa.faidx.index[self.name]['rlen']
 
+    def __str__(self):
+        return self[:]
+
 
 class Fasta(object):
     def __init__(self, filename, default_seq=None, key_function=None, as_raw=False):
@@ -367,11 +368,43 @@ class Fasta(object):
         # Get sequence from real genome object and save result.
         return self.faidx.fetch(chrom, start, end)
 
+    def close(self):
+        self.__exit__()
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.faidx.__exit__(*args)
+
+
+def wrap_sequence(n, sequence, fillvalue=''):
+    args = [iter(sequence)] * n
+    for line in zip_longest(fillvalue=fillvalue, *args):
+        yield ''.join(line + ("\n",))
+
+
+def complement(seq):
+    """ Returns the compliment of seq.
+    >>> seq = 'ATCGTA'
+    >>> complement(seq)
+    'TAGCAT'
+    """
+    if PY3:
+        table = str.maketrans('ACTGNactg', 'TGACNtgac')
+    elif PY2:
+        table = string.maketrans('ACTGNactg', 'TGACNtgac')
+    return str(seq).translate(table)
+
+
+def translate_chr_name(from_name, to_name):
+    chr_name_map = dict(zip(from_name, to_name))
+
+    def map_to_function(rname):
+        return chr_name_map[rname]
+
+    return map_to_function
+
 
 if __name__ == "__main__":
     import doctest

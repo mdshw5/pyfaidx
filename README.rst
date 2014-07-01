@@ -40,7 +40,7 @@ Acts like a dictionary.
     'XM_005265507.1', 'KF435149.1', 'NM_000465.3']
 
     >>> genes['NM_001282543.1'][200:230]
-    NM_001282543.1:201-230
+    >NM_001282543.1:201-230
     CTCGTTCCGCGCCCGCCATGGAACCGGATG
 
     >>> genes['NM_001282543.1'][200:230].seq
@@ -63,36 +63,50 @@ Slices just like a string:
 .. code:: python
 
     >>> genes['NM_001282543.1'][200:230][:10]
-    NM_001282543.1:201-210
+    >NM_001282543.1:201-210
     CTCGTTCCGC
 
     >>> genes['NM_001282543.1'][200:230][::-1]
-    NM_001282543.1:230-201
+    >NM_001282543.1:230-201
     GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
 
     >>> genes['NM_001282543.1'][200:230][::3]
-    NM_001282543.1:201-230
+    >NM_001282543.1:201-230
     CGCCCCTACA
 
     >>> genes['NM_001282543.1'][:]
-    NM_001282543.1:1-5466
+    >NM_001282543.1:1-5466
     CCCCGCCCCT........
+
+- Start and end coordinates are 0-based, just like Python.
 
 Complements and reverse complements just like DNA
 
 .. code:: python
 
     >>> genes['NM_001282543.1'][200:230].complement
-    NM_001282543.1 (complement):201-230
+    >NM_001282543.1 (complement):201-230
     GAGCAAGGCGCGGGCGGTACCTTGGCCTAC
 
     >>> genes['NM_001282543.1'][200:230].reverse
-    NM_001282543.1:230-201
+    >NM_001282543.1:230-201
     GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
 
     >>> -genes['NM_001282543.1'][200:230]
     >NM_001282543.1 (complement):230-201
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
+
+Custom key functions provide cleaner access:
+
+.. code:: python
+
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta', key_function = lambda x: x.split('.')[0])
+    >>> genes.keys()
+    dict_keys(['NR_104212', 'NM_001282543', 'XM_005249644', 'XM_005249645', 'NR_104216', 'XM_005249643', 'NR_104215', 'KF435150', 'AB821309', 'NM_001282549', 'XR_241081', 'KF435149', 'XR_241079', 'NM_000465', 'XM_005265508', 'XR_241080', 'XM_005249642', 'NM_001282545', 'XM_005265507', 'NM_001282548'])
+    >>> genes['NR_104212'][:10]
+    >NR_104212:1-10
+    CCCCGCCCCT
 
 It also provides a command-line script:
 
@@ -102,13 +116,21 @@ cli script: faidx
 .. code:: shell
 
     $ faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
-    >NM_001282543.1:201-210
+    >NM_001282543.1
     CTCGTTCCGC
-    >NM_001282543.1:300-320
+    >NM_001282543.1
     GTAATTGTGTAAGTGACTGCA
 
+    $ faidx --complement tests/data/genes.fasta NM_001282543.1:201-210
+    >NM_001282543.1
+    GAGCAAGGCG
+
+    $ faidx --reverse tests/data/genes.fasta NM_001282543.1:201-210
+    >NM_001282543.1
+    CGCCTTGCTC
+
     $ faidx tests/data/genes.fasta NM_001282543.1
-    >NM_001282543.1:1-5466
+    >NM_001282543.1
     CCCCGCCCCT........
 
     $ faidx tests/data/genes.fasta --list regions.txt
@@ -160,7 +182,8 @@ CLI Usage
 
 ::
 
-    usage: cli.py [-h] [-l LIST] [-n] fasta [regions [regions ...]]
+    usage: faidx [-h] [-l LIST] [-n] [--complement] [--reverse]
+                 fasta [regions [regions ...]]
 
     Fetch sequence from faidx-indexed FASTA
 
@@ -172,7 +195,23 @@ CLI Usage
     optional arguments:
       -h, --help            show this help message and exit
       -l LIST, --list LIST  list of regions, one per line
-      -n, --name            print sequence names
+      -n, --name            print sequence names. default: True
+      --complement          comlement the sequence. default: False
+      --reverse             reverse the sequence. default: False
+
+Changes
+-------
+
+*New in version 0.1.9*:
+
+- line wrapping of ``faidx`` is set based on the wrapping of the indexed
+  fasta file
+- added ``--reverse`` and ``--complement`` arguments to ``faidx``
+
+*New in version 0.1.8*:
+
+- ``key_function`` keyword argument to ``Fasta`` allows lookup based on function
+  output
 
 Acknowledgements
 ----------------
