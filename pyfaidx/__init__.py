@@ -134,16 +134,17 @@ class Sequence(object):
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename, key_function=None):
+    def __init__(self, filename, key_function=None, as_raw=False):
         """
         filename: name of fasta file
-        key_function: optional callback function which should return a unique
-          key for the self.index dictionary when given rname.
+        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.                
+        as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
         self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
         self.key_function = key_function if key_function else lambda rname: rname
+        self.as_raw = as_raw
         if os.path.exists(self.indexname):
             self.index = {}
             with open(self.indexname) as index:
@@ -245,7 +246,8 @@ class Faidx(object):
         2. Count newlines to end
         3. Difference of 1 and 2 is number of newlines in [start:end]
         4. Seek to start position, taking newlines into account
-        5. Read to end position, return sequence without newlines """
+        5. Read to end position, return sequence without newlines
+        """
         try:
             entry = self.index[rname]
         except KeyError:
@@ -276,8 +278,12 @@ class Faidx(object):
         else:
             s = self.file.read(bend - bstart)
         seq = s.decode('utf-8')
+
+        if self.as_raw: 
+            return seq.replace('\n', '')           
         return Sequence(name=rname, start=int(start + 1),
                         end=int(end), seq=seq.replace('\n', ''))
+
 
     def __enter__(self):
         return self
@@ -324,15 +330,16 @@ class FastaRecord(object):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
         default_seq: if given, this base will always be returned if region is unavailable.
         key_function: optional callback function which should return a unique key for the self._records dictionary when given rname.
+        as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        self.faidx = Faidx(filename, key_function=key_function)
+        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw)
         self._records = dict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
