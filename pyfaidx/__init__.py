@@ -137,7 +137,7 @@ class Faidx(object):
     def __init__(self, filename, key_function=None, as_raw=False):
         """
         filename: name of fasta file
-        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.                
+        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
@@ -279,8 +279,8 @@ class Faidx(object):
             s = self.file.read(bend - bstart)
         seq = s.decode('utf-8')
 
-        if self.as_raw: 
-            return seq.replace('\n', '')           
+        if self.as_raw:
+            return seq.replace('\n', '')
         return Sequence(name=rname, start=int(start + 1),
                         end=int(end), seq=seq.replace('\n', ''))
 
@@ -355,7 +355,10 @@ class Fasta(object):
         return self._records[record]
 
     def __repr__(self):
-        return 'Fasta("%s")' % (self.filename)
+        if self.faidx.as_raw:
+            return 'Fasta("%s", as_raw=True)' % (self.filename)
+        else:
+            return 'Fasta("%s")' % (self.filename)
 
     def keys(self):
         return self._records.keys()
