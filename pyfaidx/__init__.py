@@ -138,15 +138,18 @@ class Sequence(object):
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename, key_function=None):
+    def __init__(self, filename, key_function=None, as_raw=False):
         """
         filename: name of fasta file
-        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname. 
+        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.                
+        as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
+
         """
         self.filename = filename
         self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
         self.key_function = key_function if key_function else lambda rname: rname
+        self.as_raw = as_raw
         if os.path.exists(self.indexname):
             self.index = {}
             with open(self.indexname) as index:
@@ -242,15 +245,13 @@ class Faidx(object):
                                                       thisoffset, clen,
                                                       blen))
 
-    def fetch(self, rname, start, end, as_raw=False):
+    def fetch(self, rname, start, end):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
         1. Count newlines before start
         2. Count newlines to end
         3. Difference of 1 and 2 is number of newlines in [start:end]
         4. Seek to start position, taking newlines into account
         5. Read to end position, return sequence without newlines
-        
-        as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         try:
             entry = self.index[rname]
@@ -280,7 +281,7 @@ class Faidx(object):
             s = self.file.read(bend - bstart)
         seq = s.decode('utf-8')
 
-        if as_raw: 
+        if self.as_raw: 
             return seq.replace('\n', '')           
         return Sequence(name=rname, start=int(start + 1),
                         end=int(end), seq=seq.replace('\n', ''))
@@ -337,11 +338,10 @@ class Fasta(object):
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        self.faidx = Faidx(filename, key_function=key_function)
+        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw)
         self._records = dict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
-        self._as_raw = as_raw
 
     def __contains__(self, record):
         """Return True if genome contains record."""
@@ -365,7 +365,7 @@ class Fasta(object):
         Coordinates are 0-based, end-exclusive.
         """
         # Get sequence from real genome object and save result.
-        return self.faidx.fetch(chrom, start, end, as_raw=self._as_raw)
+        return self.faidx.fetch(chrom, start, end)
 
     def __enter__(self):
         return self
