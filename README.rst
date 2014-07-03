@@ -213,6 +213,10 @@ CLI Usage
 
 Changes
 -------
+*New in version 0.2.1*:
+
+- `FastaRecord` str attribute returns a string
+- `Fasta` is now an iterator
 
 *New in version 0.2.0*:
 
