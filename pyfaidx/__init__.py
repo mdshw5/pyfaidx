@@ -326,7 +326,7 @@ class FastaRecord(object):
         return self._fa.faidx.index[self.name]['rlen']
 
     def __str__(self):
-        return self[:]
+        return str(self[:])
 
 
 class Fasta(object):
@@ -359,6 +359,10 @@ class Fasta(object):
             return 'Fasta("%s", as_raw=True)' % (self.filename)
         else:
             return 'Fasta("%s")' % (self.filename)
+
+    def __iter__(self):
+        for key in self.keys():
+            yield self[key]
 
     def keys(self):
         return self._records.keys()

@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version='0.2.0',
+    version='0.2.1',
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
