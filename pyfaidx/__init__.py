@@ -339,10 +339,11 @@ class Fasta(object):
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw, strict_bounds=strict_bounds)
+        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw)
         self._records = dict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
+        self.strict_bounds=strict_bounds
 
     def __contains__(self, record):
         """Return True if genome contains record."""
@@ -373,7 +374,7 @@ class Fasta(object):
         Coordinates are 0-based, end-exclusive.
         """
         # Get sequence from real genome object and save result.
-        return self.faidx.fetch(chrom, start, end)
+        return self.faidx.fetch(chrom, start, end, self.strict_bounds)
 
     def close(self):
         self.__exit__()
