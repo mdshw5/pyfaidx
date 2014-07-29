@@ -1,5 +1,6 @@
 import os
 from pyfaidx import *
+from nose.tools import raises
 
 path = os.path.dirname(__file__)
 os.chdir(path)
