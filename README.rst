@@ -26,7 +26,7 @@ cases sequence retrieval is much faster (benchmark_). For example:
     >>> from pyfaidx import Fasta
     >>> genes = Fasta('tests/data/genes.fasta')
     >>> genes
-    Fasta("tests/data/genes.fasta")
+    Fasta("tests/data/genes.fasta")  # set strict_bounds=True for bounds checking
 
 Acts like a dictionary.
 
@@ -213,6 +213,10 @@ CLI Usage
 
 Changes
 -------
+*New in version 0.2.2*:
+
+- `Fasta` can receive the `strict_bounds` argument
+
 *New in version 0.2.1*:
 
 - `FastaRecord` str attribute returns a string

@@ -330,7 +330,7 @@ class FastaRecord(object):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
@@ -339,7 +339,7 @@ class Fasta(object):
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw)
+        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw, strict_bounds=strict_bounds)
         self._records = dict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
