@@ -273,7 +273,7 @@ class Faidx(object):
         if bstart + seq_blen <= bend:
             s = self.file.read(seq_blen)
         elif strict_bounds:
-            raise FetchError("Requested end coordinate is outside of {}. Set "
+            raise FetchError("Requested end coordinate is outside of {0}. Set "
                              "strict_bounds=False to ignore.\n".format(rname))
         else:
             s = self.file.read(bend - bstart)

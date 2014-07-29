@@ -213,6 +213,10 @@ CLI Usage
 
 Changes
 -------
+*New in version 0.2.3*:
+
+- Fixed a bug affecting Python 2.6
+
 *New in version 0.2.2*:
 
 - `Fasta` can receive the `strict_bounds` argument
