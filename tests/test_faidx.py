@@ -13,7 +13,7 @@ class TestFaidx:
         self.expect = os.path.join(path, 'data/expect/genes.fasta.fai')
         self.samtools = os.path.join(path, 'data/expect/genes.fasta.fai.samtools')
         self.fasta = os.path.join(path, 'data/genes.fasta')
-        self.faidx = Faidx(self.fasta, strict_bounds=True)
+        self.faidx = Faidx(self.fasta)
 
     def teardownclass(self):
         if DEBUG:
@@ -77,4 +77,4 @@ class TestFaidx:
         """ Fetch past the end of a gene entry """
         expect = 'TC'
         result = self.faidx.fetch('KF435150.1',
-                             480, 5000)
+                             480, 5000, strict_bounds=True)
