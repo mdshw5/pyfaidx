@@ -47,7 +47,7 @@ class TestFaidx:
 
     def testorder(self):
         genes = [x.split()[0] for x in open(self.fai)]
-        assert genes == self.faidx.index.keys()
+        assert genes == list(self.faidx.index.keys())
 
     def test_fetch_middle(self):
         """ Fetch the middle of a gene entry """
