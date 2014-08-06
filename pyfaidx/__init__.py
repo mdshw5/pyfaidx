@@ -7,6 +7,11 @@ import sys
 import os
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
+try:
+    from collections import OrderedDict
+except ImportError: #python 2.6
+    from ordereddict import OrderedDict
+
 
 if PY2:
     import string
@@ -146,7 +151,7 @@ class Faidx(object):
         self.key_function = key_function if key_function else lambda rname: rname
         self.as_raw = as_raw
         if os.path.exists(self.indexname):
-            self.index = {}
+            self.index = OrderedDict()
             with open(self.indexname) as index:
                 for line in index:
                     line = line.strip()
@@ -340,7 +345,7 @@ class Fasta(object):
         """
         self.filename = filename
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw)
-        self._records = dict((rname, FastaRecord(rname, self)) for
+        self._records = OrderedDict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
         self.strict_bounds=strict_bounds

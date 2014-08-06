@@ -45,6 +45,10 @@ class TestFaidx:
                              1, 482)
         assert str(result) == expect
 
+    def testorder(self):
+        genes = [x.split()[0] for x in open(self.fai)]
+        assert genes == list(self.faidx.index.keys())
+
     def test_fetch_middle(self):
         """ Fetch the middle of a gene entry """
         expect = 'TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA'

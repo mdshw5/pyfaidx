@@ -1,4 +1,10 @@
 from setuptools import setup
+import sys
+
+install_requires = ['six']
+if sys.version_info[0] == 2 and sys.version_info[1] == 6:
+    install_requires.append('ordereddict')
+
 
 setup(
     name='pyfaidx',
@@ -11,7 +17,7 @@ setup(
                 'access to fasta subsequences',
     license='MIT',
     packages=['pyfaidx'],
-    install_requires=['six'],
+    install_requires=install_requires,
     entry_points={'console_scripts': ['faidx = pyfaidx.cli:main']},
     classifiers=[
             "Development Status :: 4 - Beta",
