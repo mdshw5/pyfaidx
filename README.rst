@@ -213,6 +213,11 @@ CLI Usage
 
 Changes
 -------
+
+*New in version 0.2.4*:
+
+- Faidx index order is stable and non-random
+
 *New in version 0.2.3*:
 
 - Fixed a bug affecting Python 2.6
