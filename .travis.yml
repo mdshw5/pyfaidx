@@ -15,6 +15,6 @@ deploy:
   password:
     secure: WaAW6Vk1yjC851PKaeiJGNyZ6wZ2baqlixUSvRDXoT673yFrlp32IMHofmP/TwVxnLMfQxhAb3r7dYYDYnNw4n3vPInJ+Yy35RG1WQ2XUOpOEZ8n2fWczxKfkJjQ5ob03DCSFPeL5h+FYfyHRAfPb9K8OtEawKRvCfaUXE0teko=
   on:
-    branch: master
+    all_branches: true
     tags: true
     repo: mdshw5/pyfaidx
