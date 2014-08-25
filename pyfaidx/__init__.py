@@ -39,12 +39,12 @@ class Sequence(object):
     start, end = coordinates of subsequence (optional)
     comp = boolean switch for complement property
     """
-    def __init__(self, name='', seq='', start=None, end=None):
+    def __init__(self, name='', seq='', start=None, end=None, comp=False):
         self.name = name
         self.seq = seq
         self.start = start
         self.end = end
-        self.comp = False
+        self.comp = comp
         assert isinstance(name, string_types)
         assert isinstance(seq, string_types)
 
@@ -57,17 +57,17 @@ class Sequence(object):
                 stop = len(self) - stop
             if self.start and self.end:
                 return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
-                                  self.start + start, self.end - stop)
+                                  self.start + start, self.end - stop, self.comp)
             else:
-                return self.__class__(self.name, self.seq[n.start:n.stop:n.step])
+                return self.__class__(self.name, self.seq[n.start:n.stop:n.step], self.comp)
         elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
             if self.start:
                 return self.__class__(self.name, self.seq[n], self.start + n,
-                                  self.start + n)
+                                  self.start + n, self.comp)
             else:
-                return self.__class__(self.name, self.seq[n])
+                return self.__class__(self.name, self.seq[n], self.comp)
 
     def __str__(self):
         return self.seq
