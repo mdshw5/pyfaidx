@@ -1,5 +1,5 @@
 import os
-from pyfaidx import *
+from pyfaidx import Faidx, Fasta
 from nose.tools import raises
 
 path = os.path.dirname(__file__)
