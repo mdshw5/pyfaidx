@@ -139,7 +139,8 @@ class Sequence(object):
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename, key_function=None, as_raw=False):
+    def __init__(self, filename, default_seq=None, key_function=None,
+                 as_raw=False, strict_bounds=False):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.
@@ -150,6 +151,8 @@ class Faidx(object):
         self.indexname = filename + '.fai'
         self.key_function = key_function if key_function else lambda rname: rname
         self.as_raw = as_raw
+        self.default_seq = default_seq
+        self.strict_bounds = strict_bounds
         if os.path.exists(self.indexname):
             self.index = OrderedDict()
             with open(self.indexname) as index:
@@ -246,6 +249,7 @@ class Faidx(object):
                                                       blen))
 
     def fetch(self, rname, start, end, strict_bounds=False):
+    def fetch(self, rname, start, end):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
         1. Count newlines before start
         2. Count newlines to end
@@ -273,21 +277,32 @@ class Faidx(object):
         bstart = offset + newlines_before + start
         bend = offset + newlines_total + rlen
         self.file.seek(bstart)
-        if seq_blen < 0:
+        if seq_blen < 0 and not self.strict_bounds:
             return Sequence(name=rname, start=0, end=0)
-        if bstart + seq_blen <= bend:
-            s = self.file.read(seq_blen)
-        elif strict_bounds:
-            raise FetchError("Requested end coordinate is outside of {0}. Set "
-                             "strict_bounds=False to ignore.\n".format(rname))
-        else:
-            s = self.file.read(bend - bstart)
-        seq = s.decode('utf-8')
+        elif self.strict_bounds:
+            raise FetchError("Requested coordinates start={0:n} end={1:n} are "
+                             "invalid. Set strict_bounds=False to "
+                             "ignore.\n".format(start + 1, end))
+        if bstart + seq_blen >= bend and not self.strict_bounds:
+            seq_blen = bend - bstart
+        elif self.strict_bounds:
+            raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                             "Set strict_bounds=False to "
+                             "ignore.\n".format(end, rname))
+
+        seq = self.file.read(seq_blen).decode().replace('\n', '')
+
+        if len(seq) < end - start and self.default_seq:  # Pad missing positions with default_seq
+            pad_len = end - start - len(seq)
+            seq = ''.join([seq, pad_len * self.default_seq])
+        else:  # Return less than requested range
+            end = start + len(seq)
 
         if self.as_raw:
-            return seq.replace('\n', '')
-        return Sequence(name=rname, start=int(start + 1),
-                        end=int(end), seq=seq.replace('\n', ''))
+            return seq
+        else:
+            return Sequence(name=rname, start=int(start + 1),
+                            end=int(end), seq=seq)
 
 
     def __enter__(self):
@@ -344,7 +359,8 @@ class Fasta(object):
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw)
+        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
+                           strict_bounds=strict_bounds)
         self._records = OrderedDict((rname, FastaRecord(rname, self)) for
                              rname in self.faidx.index.keys())
         self._default_seq = default_seq
@@ -379,7 +395,7 @@ class Fasta(object):
         Coordinates are 0-based, end-exclusive.
         """
         # Get sequence from real genome object and save result.
-        return self.faidx.fetch(chrom, start, end, self.strict_bounds)
+        return self.faidx.fetch(chrom, start, end)
 
     def close(self):
         self.__exit__()
