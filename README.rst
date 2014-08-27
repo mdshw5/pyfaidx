@@ -170,7 +170,8 @@ A lower-level Faidx class is also available:
     GGTTGGGGATGACCCTTGGGT
 
 -  If the FASTA file is not indexed, when ``Faidx`` is initialized the
-   ``build`` method will automatically run, producing "filename.fa.fai"
+   ``rebuild_index()`` method will automatically run, and
+   the index will be written to "filename.fa.fai" with ``write_fai()``.
    where "filename.fa" is the original FASTA file.
 -  Start and end coordinates are 1-based.
 

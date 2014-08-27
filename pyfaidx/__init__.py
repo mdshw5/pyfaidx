@@ -168,7 +168,7 @@ class Faidx(object):
                                          'lenb': int(lenb)}
 
         else:
-            self.raw_index = self.build_fai(self.filename)
+            self.rebuild_index()
             self.write_fai()
             self.__init__(filename, key_function)
 
@@ -254,6 +254,9 @@ class Faidx(object):
         with open(self.indexname, 'w') as outfile:
             for line in self.raw_index:
                 outfile.write(line)
+
+    def rebuild_index(self):
+        self.raw_index = self.build_fai(self.filename)
 
     def fetch(self, rname, start, end):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
