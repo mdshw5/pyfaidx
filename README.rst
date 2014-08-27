@@ -215,6 +215,16 @@ CLI Usage
 Changes
 -------
 
+*New in version 0.2.5*:
+
+- Fasta and Faidx can take `default_seq` in addition to `as_raw`, `key_function`,
+  and `strict_bounds` parameters.
+- Fixed issue [#20](https://github.com/mdshw5/pyfaidx/issues/20)
+- Faidx has attribute `raw_index` which is a list representing the fai file.
+- Faidx has `rebuild_index` and `write_fai` functions for building and writing
+  `raw_index` to file.
+- Extra test cases, and test cases against Biopython SeqIO
+
 *New in version 0.2.4*:
 
 - Faidx index order is stable and non-random
