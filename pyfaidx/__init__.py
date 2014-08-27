@@ -170,7 +170,9 @@ class Faidx(object):
         else:
             self.rebuild_index()
             self.write_fai()
-            self.__init__(filename, key_function)
+            self.__init__(filename, key_function=key_function,
+                          as_raw=as_raw,
+                          strict_bounds=strict_bounds)
 
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
