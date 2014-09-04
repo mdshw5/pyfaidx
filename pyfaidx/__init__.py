@@ -155,8 +155,11 @@ class Faidx(object):
                  as_raw=False, strict_bounds=False):
         """
         filename: name of fasta file
-        key_function: optional callback function which should return a unique key for the self.index dictionary when given rname.
-        as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
+        key_function: optional callback function which should return a unique
+          key for the self.index dictionary when given rname.
+        as_raw: optional parameter to specify whether to return sequences as a
+          Sequence() object or as a raw string.
+          Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
         self.file = open(filename, 'rb')
@@ -186,8 +189,11 @@ class Faidx(object):
                 rname, rlen, offset, lenc, lenb = line.split('\t')
                 rname = self.key_function(rname)
                 if rname in self.index:
-                    raise ValueError('Duplicate key "%s"'%rname)
-                self.index[rname] = IndexRecord(*map(int, (rlen, offset, lenc, lenb)))
+                    raise ValueError('Duplicate key "%s"' % rname)
+                self.index[rname] = IndexRecord(*map(int, (rlen,
+                                                           offset,
+                                                           lenc,
+                                                           lenb)))
 
     def build_index(self):
         with open(self.filename, 'r') as fastafile:

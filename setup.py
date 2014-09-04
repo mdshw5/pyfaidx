@@ -3,13 +3,13 @@ import sys
 
 install_requires = ['six']
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
-    install_requires.append('ordereddict')
+    install_requires.extend(['ordereddict', 'argparse'])
 
 
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version='0.2.5',
+    version='0.2.6',
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
