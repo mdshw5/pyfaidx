@@ -12,21 +12,25 @@ class TestIndexing:
         self.fasta = os.path.join(path, 'data/genes.fasta')
         self.faidx = Faidx(self.fasta)
 
+    def teardownclass(self):
+        os.remove(self.faidx.indexname)
+
     def test_build(self):
         with open(self.expect, 'r') as fai:
             expect = fai.read()
-        index = Faidx.build_fai(self.fasta)
-        result = ''.join(index)
+        with open(self.faidx.indexname, 'r') as fai:
+            result = fai.read()
         assert result == expect
 
     def test_samtools_compare(self):
         with open(self.samtools, 'r') as expect:
             expect = expect.read()
-        index = Faidx.build_fai(self.fasta)
-        result = ''.join(index)
+        with open(self.faidx.indexname, 'r') as fai:
+            result = fai.read()
         assert result == expect
 
     def test_order(self):
-        index = Faidx.build_fai(self.fasta)
-        genes = [x.split()[0] for x in index]
-        assert genes == list(self.faidx.index.keys())
+        with open(self.expect, 'r') as fai:
+            expect = [line.split()[0] for line in fai]
+        result = list(self.faidx.index.keys())
+        assert result == expect

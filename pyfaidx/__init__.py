@@ -11,7 +11,7 @@ try:
     from collections import OrderedDict
 except ImportError: #python 2.6
     from ordereddict import OrderedDict
-
+from collections import namedtuple
 
 if PY2:
     import string
@@ -137,6 +137,18 @@ class Sequence(object):
         return (g + c) / len(self.seq)
 
 
+class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb'])):
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        if type(key) == str:
+            return getattr(self, key)
+        return tuple.__getitem__(self, key)
+
+    def __str__(self):
+        return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(**self._asdict())
+
+
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
@@ -153,37 +165,32 @@ class Faidx(object):
         self.as_raw = as_raw
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
+        self.index = OrderedDict()
         if os.path.exists(self.indexname):
-            self.index = OrderedDict()
-            with open(self.indexname) as index:
-                for line in index:
-                    line = line.strip()
-                    rname, rlen, offset, lenc, lenb = line.split('\t')
-                    rname = self.key_function(rname)
-                    if rname in self.index:
-                        raise ValueError('Duplicate key "%s"'%rname)
-                    self.index[rname] = {'rlen': int(rlen),
-                                         'offset': int(offset),
-                                         'lenc': int(lenc),
-                                         'lenb': int(lenb)}
-
+            self.read_fai()
         else:
-            self.rebuild_index()
+            self.build_index()
             self.write_fai()
-            self.__init__(filename, key_function=key_function,
-                          as_raw=as_raw,
-                          strict_bounds=strict_bounds)
 
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
 
-    @staticmethod
-    def build_fai(filename):
+    def read_fai(self):
+        with open(self.indexname) as index:
+            for line in index:
+                line = line.strip()
+                rname, rlen, offset, lenc, lenb = line.split('\t')
+                rname = self.key_function(rname)
+                if rname in self.index:
+                    raise ValueError('Duplicate key "%s"'%rname)
+                self.index[rname] = IndexRecord(*map(int, (rlen, offset, lenc, lenb)))
+
+    def build_index(self):
         """ Build faidx index and return as string.
         faidx index is in the format:
-        rname\trlen\toffset\tlen\tblen """
-        index = []
-        with open(filename, 'r') as fastafile:
+        rname\trlen\toffset\tlen\tblen"""
+        self.index = OrderedDict()
+        with open(self.filename, 'r') as fastafile:
             rname = None  # reference sequence name
             offset = 0  # binary offset of end of current line
             rlen = 0  # reference character length
@@ -232,12 +239,7 @@ class Faidx(object):
                         clen = line_clen
                     rlen += line_clen
                 elif (line[0] == '>') and (rname is not None):
-                    index.append("{0}\t{1}\t"
-                                 "{2}\t{3}\t{4}\n".format(rname,
-                                                          rlen,
-                                                          thisoffset,
-                                                          clen,
-                                                          blen))
+                    self.index[rname] = IndexRecord(*map(int, (rlen, thisoffset, clen, blen)))
                     blen = 0
                     rlen = 0
                     clen = 0
@@ -246,19 +248,12 @@ class Faidx(object):
                     offset += line_blen
                     thisoffset = offset
                 line_number += 1
-            index.append("{0}\t{1}\t{2}"
-                         "\t{3}\t{4}\n".format(rname, rlen,
-                                               thisoffset, clen,
-                                               blen))
-            return index
+            self.index[rname] = IndexRecord(*map(int, (rlen, thisoffset, clen, blen)))
 
     def write_fai(self):
         with open(self.indexname, 'w') as outfile:
-            for line in self.raw_index:
-                outfile.write(line)
-
-    def rebuild_index(self):
-        self.raw_index = self.build_fai(self.filename)
+            for k, v in self.index.items():
+                outfile.write('\t'.join([k, str(v)]))
 
     def fetch(self, rname, start, end):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
@@ -269,24 +264,20 @@ class Faidx(object):
         5. Read to end position, return sequence without newlines
         """
         try:
-            entry = self.index[rname]
+            i = self.index[rname]
         except KeyError:
             raise FetchError("Requested rname {0} does not exist! "
                              "Please check your FASTA file.".format(rname))
         start = start - 1  # make coordinates [0,1)
-        offset = entry.get('offset')
-        rlen = entry.get('rlen')
-        line_len = entry.get('lenc')
-        line_blen = entry.get('lenb')
         seq_len = end - start
-        newlines_total = int(rlen / line_len * (line_blen - line_len))
-        newlines_before = int((start - 1) / line_len *
-                              (line_blen - line_len)) if start > 0 else 0
-        newlines_to_end = int(end / line_len * (line_blen - line_len))
+        newlines_total = int(i.rlen / i.lenc * (i.lenb - i.lenc))
+        newlines_before = int((start - 1) / i.lenc *
+                              (i.lenb - i.lenc)) if start > 0 else 0
+        newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
-        bstart = offset + newlines_before + start
-        bend = offset + newlines_total + rlen
+        bstart = i.offset + newlines_before + start
+        bend = i.offset + newlines_total + i.rlen
         self.file.seek(bstart)
         if seq_blen < 0 and not self.strict_bounds:
             return Sequence(name=rname, start=0, end=0)
@@ -354,7 +345,7 @@ class FastaRecord(object):
 
     def __len__(self):
         """ Return length of chromosome """
-        return self._fa.faidx.index[self.name]['rlen']
+        return self._fa.faidx.index[self.name].rlen
 
     def __str__(self):
         return str(self[:])
