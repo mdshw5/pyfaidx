@@ -169,8 +169,12 @@ class Faidx(object):
         if os.path.exists(self.indexname):
             self.read_fai()
         else:
-            self.build_index()
-            self.write_fai()
+            try:
+                self.build_index()
+            except FastaIndexingError as e:
+                os.remove(self.indexname)
+                raise FastaIndexingError(e)
+            self.read_fai()
 
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
@@ -186,69 +190,64 @@ class Faidx(object):
                 self.index[rname] = IndexRecord(*map(int, (rlen, offset, lenc, lenb)))
 
     def build_index(self):
-        """ Build faidx index and return as string.
-        faidx index is in the format:
-        rname\trlen\toffset\tlen\tblen"""
-        self.index = OrderedDict()
         with open(self.filename, 'r') as fastafile:
-            rname = None  # reference sequence name
-            offset = 0  # binary offset of end of current line
-            rlen = 0  # reference character length
-            blen = 0  # binary line length (includes newline)
-            clen = 0  # character line length
-            short_lines = []  # lines shorter than blen
-            line_number = 0
-            for line in fastafile:
-                line_blen = len(line)
-                line_clen = len(line.rstrip('\n\r'))
-                if (line[0] == '>') and (rname is None):
-                    rname = line.rstrip()[1:].split()[0]
-                    offset += line_blen
-                    thisoffset = offset
-                elif line[0] != '>':
-                    if blen == 0:
-                        blen = line_blen
-                    # only one short line should be allowed
-                    # before we hit the next header
-                    elif line_clen == 0:
-                        sys.stderr.write("Warning: blank line in >{0} at "
-                                         "line {1:n}.".format(rname,
-                                                              line_number +
-                                                              1))
-                    elif blen > line_blen:
-                        short_lines.append(line_number)
-                        if len(short_lines) > 1:
-                            indexfile.close()
-                            os.remove(indexfile.name)
-                            raise FastaIndexingError("Line length of fasta"
-                                                     " file is not "
-                                                     "consistent! "
-                                "Early short line found in >{0} at "
-                                "line {1:n}.".format(rname,
-                                                     short_lines[0] + 1))
-                    elif blen < line_blen:
-                        raise FastaIndexingError("Line length of fasta "
-                                                 "file is not consistent! "
-                                                 "Long line found in >{0} "
-                                                 "at line {1:n}."
-                                                 "".format(rname,
-                                                           line_number +
-                                                           1))
-                    offset += line_blen
-                    if clen == 0:
-                        clen = line_clen
-                    rlen += line_clen
-                elif (line[0] == '>') and (rname is not None):
-                    self.index[rname] = IndexRecord(*map(int, (rlen, thisoffset, clen, blen)))
-                    blen = 0
-                    rlen = 0
-                    clen = 0
-                    short_lines = []
-                    rname = line.rstrip()[1:].split()[0]
-                    offset += line_blen
-                    thisoffset = offset
-                line_number += 1
-            self.index[rname] = IndexRecord(*map(int, (rlen, thisoffset, clen, blen)))
+            with open(self.indexname, 'w') as indexfile:
+                rname = None  # reference sequence name
+                offset = 0  # binary offset of end of current line
+                rlen = 0  # reference character length
+                blen = 0  # binary line length (includes newline)
+                clen = 0  # character line length
+                short_lines = []  # lines shorter than blen
+                line_number = 0
+                for line in fastafile:
+                    line_blen = len(line)
+                    line_clen = len(line.rstrip('\n\r'))
+                    if (line[0] == '>') and (rname is None):
+                        rname = line.rstrip()[1:].split()[0]
+                        offset += line_blen
+                        thisoffset = offset
+                    elif line[0] != '>':
+                        if blen == 0:
+                            blen = line_blen
+                        # only one short line should be allowed
+                        # before we hit the next header
+                        elif line_clen == 0:
+                            sys.stderr.write("Warning: blank line in >{0} at "
+                                             "line {1:n}.".format(rname,
+                                                                  line_number +
+                                                                  1))
+                        elif blen > line_blen:
+                            short_lines.append(line_number)
+                            if len(short_lines) > 1:
+                                raise FastaIndexingError("Line length of fasta"
+                                                         " file is not "
+                                                         "consistent! "
+                                    "Early short line found in >{0} at "
+                                    "line {1:n}.".format(rname,
+                                                         short_lines[0] + 1))
+                        elif blen < line_blen:
+                            raise FastaIndexingError("Line length of fasta "
+                                                     "file is not consistent! "
+                                                     "Long line found in >{0} "
+                                                     "at line {1:n}."
+                                                     "".format(rname,
+                                                               line_number +
+                                                               1))
+                        offset += line_blen
+                        if clen == 0:
+                            clen = line_clen
+                        rlen += line_clen
+                    elif (line[0] == '>') and (rname is not None):
+                        indexfile.write("{rname}\t{rlen:n}\t{thisoffset:n}\t{clen:n}\t{blen:n}\n".format(**locals()))
+                        blen = 0
+                        rlen = 0
+                        clen = 0
+                        short_lines = []
+                        rname = line.rstrip()[1:].split()[0]
+                        offset += line_blen
+                        thisoffset = offset
+                    line_number += 1
+                indexfile.write("{rname}\t{rlen:n}\t{thisoffset:n}\t{clen:n}\t{blen:n}\n".format(**locals()))
 
     def write_fai(self):
         with open(self.indexname, 'w') as outfile:
