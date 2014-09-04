@@ -215,6 +215,13 @@ CLI Usage
 Changes
 -------
 
+*New in version 0.2.6*:
+
+- Faidx no longer has `raw_index` attribute or `rebuild_index` method (reduce memory footprint)
+- Faidx index memory usage decreased by 31-40%
+- *.fai creation is streaming, performance increase for very large indices
+- Possible speed regression when performing many small queries using `Fasta` class
+
 *New in version 0.2.5*:
 
 - Fasta and Faidx can take `default_seq` in addition to `as_raw`, `key_function`,
