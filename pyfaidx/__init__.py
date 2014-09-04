@@ -362,20 +362,16 @@ class Fasta(object):
         self.filename = filename
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            strict_bounds=strict_bounds)
-        self._records = OrderedDict((rname, FastaRecord(rname, self)) for
-                             rname in self.faidx.index.keys())
         self._default_seq = default_seq
         self.strict_bounds=strict_bounds
 
-    def __contains__(self, record):
+    def __contains__(self, rname):
         """Return True if genome contains record."""
-        return record in self._records
+        return rname in self.keys()
 
-    def __getitem__(self, record):
+    def __getitem__(self, rname):
         """Return a chromosome by its name."""
-        if record not in self._records:
-            self._records[record] = FastaRecord(record, self)
-        return self._records[record]
+        return FastaRecord(rname, self)
 
     def __repr__(self):
         if self.faidx.as_raw:
@@ -387,8 +383,13 @@ class Fasta(object):
         for key in self.keys():
             yield self[key]
 
+    @property
+    def _records(self):
+        return OrderedDict((rname, FastaRecord(rname, self)) for
+                            rname in self.keys())
+
     def keys(self):
-        return self._records.keys()
+        return self.faidx.index.keys()
 
     def get_seq(self, chrom, start, end):
         """Return a sequence by record name and interval [start, end).
