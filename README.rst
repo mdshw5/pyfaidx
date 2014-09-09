@@ -156,21 +156,20 @@ A lower-level Faidx class is also available:
 .. code:: python
 
     >>> from pyfaidx import Faidx
-    >>> fa = Faidx('T7.fa')  # can return str with as_raw=True
-    >>> fa.build('T7.fa', 'T7.fa.fai')
+    >>> fa = Faidx('genes.fa')  # can return str with as_raw=True
     >>> fa.index
-    {'EM_PHG:V01146': {'lenc': 60, 'lenb': 61, 'rlen': 39937, 'offset': 40571}, 'EM_PHG:GU071091': {'lenc': 60, 'lenb': 61, 'rlen': 39778, 'offset': 74}}
+    OrderedDict([('AB821309.1', IndexRecord(rlen=3510, offset=12, lenc=70, lenb=71)), ('KF435150.1', IndexRecord(rlen=481, offset=3585, lenc=70, lenb=71)),... ])
 
-    >>> fa.fetch('EM_PHG:V01146', 1, 10)
-    EM_PHG:V01146
-    TCTCACAGTG
+    >>> fa.index['AB821309.1'].rlen
+    3510
 
-    >>> fa.fetch('EM_PHG:V01146', 100, 120)
-    >EM_PHG:V01146
-    GGTTGGGGATGACCCTTGGGT
+    fa.fetch('AB821309.1', 1, 10)
+    >AB821309.1:1-10
+    ATGGTCAGCT
+
 
 -  If the FASTA file is not indexed, when ``Faidx`` is initialized the
-   ``rebuild_index()`` method will automatically run, and
+   ``build_index`` method will automatically run, and
    the index will be written to "filename.fa.fai" with ``write_fai()``.
    where "filename.fa" is the original FASTA file.
 -  Start and end coordinates are 1-based.
@@ -178,7 +177,7 @@ A lower-level Faidx class is also available:
 Installation
 ------------
 
-This package is tested under Python 3.3, 3.2, 2.7, 2.6, and pypy.
+This package is tested under Python 3.4, 3.3, 2.7, 2.6, and pypy.
 
 ::
 
@@ -191,11 +190,10 @@ This package is tested under Python 3.3, 3.2, 2.7, 2.6, and pypy.
 CLI Usage
 ---------
 
-"samtools faidx" compatible FASTA indexing in pure python.
-
 ::
 
-    usage: faidx [-h] [-l LIST] [-n] [--complement] [--reverse]
+    usage: faidx [-h] [-b BED] [-n] [--default_seq DEFAULT_SEQ] [--lazy]
+                 [--complement] [--reverse]
                  fasta [regions [regions ...]]
 
     Fetch sequence from faidx-indexed FASTA
@@ -207,13 +205,23 @@ CLI Usage
 
     optional arguments:
       -h, --help            show this help message and exit
-      -l LIST, --list LIST  list of regions, one per line
+      -b BED, --bed BED     bed file of regions
       -n, --name            print sequence names. default: True
+      --default_seq DEFAULT_SEQ
+                            default base for missing positions. default: N
+      --lazy                lazy region bounds checking - fill in default_seq for
+                            missing ranges. default: False
       --complement          comlement the sequence. default: False
       --reverse             reverse the sequence. default: False
 
 Changes
 -------
+
+*New in version 0.2.7*:
+
+- Faidx and Fasta `strict_bounds` bounds checking logic is more correct
+- Fasta `default_seq` parameter now works
+- CLI script `faidx` now takes a BED file for fetching regions from a fasta
 
 *New in version 0.2.6*:
 
