@@ -286,16 +286,14 @@ class Faidx(object):
         self.file.seek(bstart)
         if seq_blen < 0 and not self.strict_bounds:
             return Sequence(name=rname, start=0, end=0)
-        elif self.strict_bounds:
+        elif seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
-                             "invalid. Set strict_bounds=False to "
-                             "ignore.\n".format(start + 1, end))
-        if bstart + seq_blen >= bend and not self.strict_bounds:
+                             "invalid.\n".format(start + 1, end))
+        elif bstart + seq_blen > bend and not self.strict_bounds:
             seq_blen = bend - bstart
-        elif self.strict_bounds:
+        elif bstart + seq_blen > bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
-                             "Set strict_bounds=False to "
-                             "ignore.\n".format(end, rname))
+                             "\n".format(end, rname))
 
         seq = self.file.read(seq_blen).decode().replace('\n', '')
 
@@ -367,9 +365,7 @@ class Fasta(object):
         """
         self.filename = filename
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
-                           strict_bounds=strict_bounds)
-        self._default_seq = default_seq
-        self.strict_bounds=strict_bounds
+                           default_seq=default_seq, strict_bounds=strict_bounds)
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
