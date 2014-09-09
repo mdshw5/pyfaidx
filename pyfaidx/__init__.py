@@ -32,6 +32,22 @@ class FetchError(Exception):
         return repr(self.msg)
 
 
+class BedError(Exception):
+    def __init__(self, msg=None):
+        self.msg = 'Malformed BED entry!\n' if not msg else msg
+
+    def __str__(self):
+        return repr(self.msg)
+
+
+class RegionError(Exception):
+    def __init__(self, msg=None):
+        self.msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
+
+    def __str__(self):
+        return repr(self.msg)
+
+
 class Sequence(object):
     """
     name = FASTA entry name

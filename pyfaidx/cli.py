@@ -20,7 +20,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
 import sys
-from pyfaidx import Fasta, wrap_sequence, FetchError
+from pyfaidx import Fasta, wrap_sequence, FetchError, BedError, RegionError
 
 
 def write_sequence(args):
@@ -42,7 +42,10 @@ def write_sequence(args):
 
 
 def bed_split(bed_entry):
-    rname, start, end = bed_entry.rstrip().split()[:3]
+    try:
+        rname, start, end = bed_entry.rstrip().split()[:3]
+    except IndexError:
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
     start, end = (int(start), int(end))
     return (rname, start, end)
 
