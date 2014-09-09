@@ -79,7 +79,7 @@ def main():
     parser = argparse.ArgumentParser(description="Fetch sequence from "
                                                  "faidx-indexed FASTA")
     parser.add_argument('fasta', type=str, help='FASTA file')
-    parser.add_argument('regions', type=str, nargs='*',
+    parser.add_argument('regions', type=str, nargs='?',
                         help="space separated regions of sequence to "
                         "fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
