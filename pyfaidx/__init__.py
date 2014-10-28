@@ -455,6 +455,30 @@ def translate_chr_name(from_name, to_name):
     return map_to_function
 
 
+def bed_split(bed_entry):
+    try:
+        rname, start, end = bed_entry.rstrip().split()[:3]
+    except IndexError:
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    start, end = (int(start), int(end))
+    return (rname, start, end)
+
+
+def ucsc_split(region):
+    region = region.split()[0]
+    try:
+        rname, interval = region.split(':')
+    except ValueError:
+        rname = region
+        interval = None
+    try:
+        start, end = interval.split('-')
+        start, end = (int(start) - 1, int(end))
+    except (AttributeError, ValueError):
+        start, end = (None, None)
+    return (rname, start, end)
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

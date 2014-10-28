@@ -20,7 +20,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
 import sys
-from pyfaidx import Fasta, wrap_sequence, FetchError, BedError, RegionError
+from pyfaidx import Fasta, wrap_sequence, FetchError, BedError, RegionError, ucsc_split, bed_split
 
 
 def write_sequence(args):
@@ -39,30 +39,6 @@ def write_sequence(args):
         except FetchError as e:
             sys.stderr.write("Error! {0} Try setting --lazy.\n".format(e.msg.rstrip()))
     fasta.__exit__()
-
-
-def bed_split(bed_entry):
-    try:
-        rname, start, end = bed_entry.rstrip().split()[:3]
-    except IndexError:
-        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
-    start, end = (int(start), int(end))
-    return (rname, start, end)
-
-
-def ucsc_split(region):
-    region = region.split()[0]
-    try:
-        rname, interval = region.split(':')
-    except ValueError:
-        rname = region
-        interval = None
-    try:
-        start, end = interval.split('-')
-        start, end = (int(start) - 1, int(end))
-    except (AttributeError, ValueError):
-        start, end = (None, None)
-    return (rname, start, end)
 
 
 def fetch_sequence(args, fasta, rname, start=None, end=None):

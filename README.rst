@@ -218,6 +218,10 @@ A lower-level Faidx class is also available:
 Changes
 -------
 
+*New in version 0.2.8*:
+
+- Small internal refactoring
+
 *New in version 0.2.7*:
 
 - Faidx and Fasta `strict_bounds` bounds checking logic is more correct
