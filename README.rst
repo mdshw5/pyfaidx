@@ -1,9 +1,9 @@
 |Travis| |PyPI|
 
 Please cite `Shirley, Matthew (2014): pyfaidx: efficient pythonic random
-access to fasta subsequences. figshare. DOI:10.6084/m9.figshare.972933`__.
+access to fasta subsequences. figshare. DOI:10.6084/m9.figshare.972933`_.
 
-.. __: http://dx.doi.org/10.6084/m9.figshare.972933
+.. _: http://dx.doi.org/10.6084/m9.figshare.972933
 
 
 Description
@@ -234,7 +234,7 @@ Changes
 
 *New in version 0.2.9*:
 
-- Added read-ahead buffer for fast sequential sequence access (`#26 <https://github.com/mdshw5/pyfaidx/issues/26>`__)
+- Added read-ahead buffer for fast sequential sequence access (`#26 <https://github.com/mdshw5/pyfaidx/issues/26>`_)
 
 *New in version 0.2.8*:
 
@@ -257,7 +257,7 @@ Changes
 
 - Fasta and Faidx can take `default_seq` in addition to `as_raw`, `key_function`,
   and `strict_bounds` parameters.
-- Fixed issue `#20 <https://github.com/mdshw5/pyfaidx/issues/20>`__
+- Fixed issue `#20 <https://github.com/mdshw5/pyfaidx/issues/20>`_
 - Faidx has attribute `raw_index` which is a list representing the fai file.
 - Faidx has `rebuild_index` and `write_fai` functions for building and writing
   `raw_index` to file.
@@ -300,10 +300,10 @@ Acknowledgements
 ----------------
 
 This project is freely licensed by the author, `Matthew
-Shirley <http://mattshirley.com>`__, and was completed under the
+Shirley <http://mattshirley.com>`_, and was completed under the
 mentorship and financial support of Drs. `Sarah
-Wheelan <http://sjwheelan.som.jhmi.edu>`__ and `Vasan
-Yegnasubramanian <http://yegnalab.onc.jhmi.edu>`__ at the Sidney Kimmel
+Wheelan <http://sjwheelan.som.jhmi.edu>`_ and `Vasan
+Yegnasubramanian <http://yegnalab.onc.jhmi.edu>`_ at the Sidney Kimmel
 Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Travis| image:: https://travis-ci.org/mdshw5/pyfaidx.svg?branch=master
