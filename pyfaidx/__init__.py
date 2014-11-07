@@ -364,7 +364,7 @@ class Faidx(object):
         elif bstart + seq_blen > bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
-        elif seq_blen =< 0:
+        elif seq_blen <= 0:
             if self.strict_bounds:
                 raise FetchError("Requested read length is negative.")
             else:
