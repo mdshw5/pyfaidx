@@ -120,6 +120,20 @@ Slices just like a string:
 
 - Start and end coordinates are 0-based, just like Python.
 
+Sequence can be buffered in memory using a read-ahead buffer:
+
+.. code:: python
+
+    >>> genes = Fasta('tests/data/genes.fasta' read_ahead=100)
+
+    >>> genes['NM_001282543.1'][200:230][::-1]
+    >NM_001282543.1:230-201
+    GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
+
+    >>> len(genes.buffer)
+    100
+
+
 Complements and reverse complements just like DNA
 
 .. code:: python
@@ -217,6 +231,10 @@ A lower-level Faidx class is also available:
 
 Changes
 -------
+
+*New in version 0.2.9*:
+
+- Added read-ahead buffer for fast sequential sequence access (`#26 <https://github.com/mdshw5/pyfaidx/issues/26>`__)
 
 *New in version 0.2.8*:
 
