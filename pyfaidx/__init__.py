@@ -368,8 +368,9 @@ class Faidx(object):
             if self.strict_bounds:
                 raise FetchError("Requested read length is negative.")
             else:
-                seq_blen = 0
-        seq = self.file.read(seq_blen).decode().replace('\n', '')
+                seq = ''
+        elif seq_blen > 0:
+                seq = self.file.read(seq_blen).decode().replace('\n', '')
 
         if len(seq) < end - start and self.default_seq:  # Pad missing positions with default_seq
             pad_len = end - start - len(seq)
