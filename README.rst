@@ -232,6 +232,7 @@ Changes
 *New in version 0.2.9*:
 
 - Added read-ahead buffer for fast sequential sequence access (`#26 <https://github.com/mdshw5/pyfaidx/issues/26>`_)
+- Fixed a condition where `as_raw` parameter was not respected (`#27 <https://github.com/mdshw5/pyfaidx/issues/27>`_)
 
 *New in version 0.2.8*:
 
