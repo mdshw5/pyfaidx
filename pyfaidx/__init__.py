@@ -364,7 +364,11 @@ class Faidx(object):
         elif bstart + seq_blen > bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
-
+        elif seq_blen < 0:
+            if self.strict_bounds:
+                raise FetchError("Requested read length is negative.")
+            else:
+                seq_blen = 0
         seq = self.file.read(seq_blen).decode().replace('\n', '')
 
         if len(seq) < end - start and self.default_seq:  # Pad missing positions with default_seq
