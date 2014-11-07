@@ -1,10 +1,7 @@
 |Travis| |PyPI|
 
 Please cite `Shirley, Matthew (2014): pyfaidx: efficient pythonic random
-access to fasta subsequences. figshare. DOI:10.6084/m9.figshare.972933`_.
-
-.. _: http://dx.doi.org/10.6084/m9.figshare.972933
-
+access to fasta subsequences. figshare. DOI:10.6084/m9.figshare.972933 <http://dx.doi.org/10.6084/m9.figshare.972933>`_.
 
 Description
 -----------
@@ -179,7 +176,7 @@ It also provides a command-line script:
 cli script: faidx
 ~~~~~~~~~~~~~~~~~
 
-.. code:: shell
+.. code:: bash
 
     $ faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
     >NM_001282543.1
@@ -250,7 +247,7 @@ Changes
 
 - Faidx no longer has `raw_index` attribute or `rebuild_index` method (reduce memory footprint)
 - Faidx index memory usage decreased by 31-40%
-- *.fai creation is streaming, performance increase for very large indices
+- .fai creation is streaming, performance increase for very large indices
 - Possible speed regression when performing many small queries using `Fasta` class
 
 *New in version 0.2.5*:

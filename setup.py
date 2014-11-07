@@ -15,6 +15,7 @@ setup(
     url='http://mattshirley.com',
     description='pyfaidx: efficient pythonic random '
                 'access to fasta subsequences',
+    long_description=open('README.rst').read(),
     license='MIT',
     packages=['pyfaidx'],
     install_requires=install_requires,
