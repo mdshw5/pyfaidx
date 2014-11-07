@@ -28,3 +28,8 @@ class TestFeatureSequenceAsRaw:
     @raises(AttributeError)
     def test_as_raw_true_error(self):
         result = self.genes_as_raw['KF435150.1'][100-1:150].seq.lower()
+
+    def test_as_raw_type_when_blen_lt_0(self):
+        expect = ''
+        result = self.genes_as_raw.faidx.fetch('KF435150.1', 10, 0)
+        assert result == expect

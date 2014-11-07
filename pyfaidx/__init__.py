@@ -213,31 +213,6 @@ class Faidx(object):
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
 
-    def from_buffer(self, name, start, end):
-        if name != self.buffer.name:
-            raise ValueError("Buffered sequence name does not match {0}.".format(name))
-        i_start = start - self.buffer.start
-        i_end = end - self.buffer.start + 1
-        if self.as_raw:
-            return self.buffer[i_start:i_end].seq
-        else:
-            return self.buffer[i_start:i_end]
-
-    def fill_buffer(self, name, start, end):
-        q_len = end - start
-        if q_len > self.read_ahead:
-            return self.from_file(name, start, end)
-        try:
-            seq = self.from_file(name, start, start + self.read_ahead)
-            if not self.as_raw:
-                self.buffer = seq
-            elif self.as_raw:
-                self.buffer = Sequence(name=name, start=int(start),
-                                       end=int(end), seq=seq)
-            return self.from_buffer(name, start, end)
-        except FetchError:
-            return self.from_file(name, start, end)
-
     def read_fai(self):
         with open(self.indexname) as index:
             for line in index:
@@ -316,6 +291,31 @@ class Faidx(object):
             for k, v in self.index.items():
                 outfile.write('\t'.join([k, str(v)]))
 
+    def from_buffer(self, name, start, end):
+        if name != self.buffer.name:
+            raise ValueError("Buffered sequence name does not match {0}.".format(name))
+        i_start = start - self.buffer.start
+        i_end = end - self.buffer.start + 1
+        if self.as_raw:
+            return self.buffer[i_start:i_end].seq
+        else:
+            return self.buffer[i_start:i_end]
+
+    def fill_buffer(self, name, start, end):
+        q_len = end - start
+        if q_len > self.read_ahead:
+            return self.from_file(name, start, end)
+        try:
+            seq = self.from_file(name, start, start + self.read_ahead)
+            if not self.as_raw:
+                self.buffer = seq
+            elif self.as_raw:
+                self.buffer = Sequence(name=name, start=int(start),
+                                       end=int(end), seq=seq)
+            return self.from_buffer(name, start, end)
+        except FetchError:
+            return self.from_file(name, start, end)
+
     def fetch(self, name, start, end):
         if not self.read_ahead:
             return self.from_file(name, start, end)
@@ -352,7 +352,10 @@ class Faidx(object):
         self.file.seek(bstart)
 
         if seq_blen < 0 and not self.strict_bounds:
-            return Sequence(name=rname, start=0, end=0)
+            if self.as_raw:
+                return ''
+            else:
+                return Sequence(name=rname, start=0, end=0)
         elif seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start + 1, end))
