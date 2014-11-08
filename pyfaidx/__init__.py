@@ -351,12 +351,12 @@ class Faidx(object):
         bend = i.offset + newlines_total + i.rlen
         self.file.seek(bstart)
 
-        if seq_blen < 0 and not self.strict_bounds:
+        if seq_blen =< 0 and not self.strict_bounds:
             if self.as_raw:
                 return ''
             else:
                 return Sequence(name=rname, start=0, end=0)
-        elif seq_blen < 0 and self.strict_bounds:
+        elif seq_blen =< 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start + 1, end))
         elif bstart + seq_blen > bend and not self.strict_bounds:
@@ -364,11 +364,6 @@ class Faidx(object):
         elif bstart + seq_blen > bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
-        elif seq_blen <= 0:
-            if self.strict_bounds:
-                raise FetchError("Requested read length is negative.")
-            else:
-                seq = ''
         elif seq_blen > 0:
                 seq = self.file.read(seq_blen).decode().replace('\n', '')
 
