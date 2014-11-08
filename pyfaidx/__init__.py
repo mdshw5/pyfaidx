@@ -356,6 +356,8 @@ class Faidx(object):
         elif bstart + seq_blen > bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
+        if seq_blen > 0:
+            seq = self.file.read(seq_blen).decode().replace('\n', '')
         elif seq_blen <= 0 and not self.strict_bounds:
             if self.as_raw:
                 return ''
@@ -364,8 +366,6 @@ class Faidx(object):
         elif seq_blen <= 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start + 1, end))
-        elif seq_blen > 0:
-                seq = self.file.read(seq_blen).decode().replace('\n', '')
 
         if len(seq) < end - start and self.default_seq:  # Pad missing positions with default_seq
             pad_len = end - start - len(seq)
