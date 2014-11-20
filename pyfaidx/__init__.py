@@ -6,6 +6,7 @@ from __future__ import division
 import sys
 import os
 import re
+import warnings
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
 try:
@@ -182,6 +183,7 @@ class Faidx(object):
         self.filename = filename
         if mutable:
             self.file = open(filename, 'rb+')
+            warnings.warn("FASTA mutability is experimental. Use it carefully!", FutureWarning)
         else:
             self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'

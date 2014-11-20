@@ -171,6 +171,40 @@ Or just get a Python string:
     >>> genes['NM_001282543.1'][200:230]
     CTCGTTCCGCGCCCGCCATGGAACCGGATG
 
+You can also perform line-based iteration, receiving the sequence lines as they appear in the FASTA file:
+
+.. code:: python
+
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta')
+    >>> for line in genes['NM_001282543.1']:
+    ...   print(line)
+    CCCCGCCCCTCTGGCGGCCCGCCGTCCCAGACGCGGGAAGAGCTTGGCCGGTTTCGAGTCGCTGGCCTGC
+    AGCTTCCCTGTGGTTTCCCGAGGCTTCCTTGCTTCCCGCTCTGCGAGGAGCCTTTCATCCGAAGGCGGGA
+    CGATGCCGGATAATCGGCAGCCGAGGAACCGGCAGCCGAGGATCCGCTCCGGGAACGAGCCTCGTTCCGC
+    ...
+
+.. role:: red
+
+If you want to modify the contents of your FASTA file in-place, you can use the `mutable` argument.
+Any portion of the FastaRecord can be replaced with an equivalent-length string.
+:red:`Warning`: *This will change the contents of your file immediately and permanently:*
+
+.. code:: python
+
+    >>> genes = Fasta('tests/data/genes.fasta', mutable=True)
+    >>> type(genes['NM_001282543.1'])
+    <class 'pyfaidx.MutableFastaRecord'>
+
+    >>> genes['NM_001282543.1'][:10]
+    >NM_001282543.1:1-10
+    CCCCGCCCCT
+    >>> genes['NM_001282543.1'][:10] = 'NNNNNNNNNN'
+    >>> genes['NM_001282543.1'][:15]
+    >NM_001282543.1:1-15
+    NNNNNNNNNNCTGGC
+
+
 It also provides a command-line script:
 
 cli script: faidx
@@ -228,6 +262,10 @@ A lower-level Faidx class is also available:
 
 Changes
 -------
+*New in version 0.3.0*:
+
+- FastaRecord now works as a line-based iterator (`#30 <https://github.com/mdshw5/pyfaidx/issues/30>`_)
+- Added MutableFastaRecord class that allows same-length in-place replacement for FASTA (`#29 <https://github.com/mdshw5/pyfaidx/issues/29>`_)
 
 *New in version 0.2.9*:
 
