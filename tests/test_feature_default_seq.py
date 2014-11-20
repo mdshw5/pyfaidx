@@ -4,7 +4,7 @@ from pyfaidx import Faidx
 path = os.path.dirname(__file__)
 os.chdir(path)
 
-class TestFeatureBoundsCheck:
+class TestFeatureDefaultSeq:
     def __init__(self):
         self.fasta = os.path.join(path, 'data/genes.fasta')
         self.faidx = Faidx(self.fasta, default_seq='N')

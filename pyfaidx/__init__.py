@@ -5,6 +5,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 from __future__ import division
 import sys
 import os
+import re
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
 try:
@@ -168,7 +169,8 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb']))
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
-                 as_raw=False, strict_bounds=False, read_ahead=None):
+                 as_raw=False, strict_bounds=False, read_ahead=None,
+                 mutable=False):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -178,7 +180,10 @@ class Faidx(object):
           Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        self.file = open(filename, 'rb')
+        if mutable:
+            self.file = open(filename, 'rb+')
+        else:
+            self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
         self.key_function = key_function if key_function else lambda rname: rname
         self.as_raw = as_raw
@@ -187,6 +192,7 @@ class Faidx(object):
         self.index = OrderedDict()
         self.buffer = None
         self.read_ahead = read_ahead
+        self.mutable = mutable
 
         if os.path.exists(self.indexname):
             self.read_fai()
@@ -304,9 +310,9 @@ class Faidx(object):
     def fill_buffer(self, name, start, end):
         q_len = end - start
         if q_len > self.read_ahead:
-            return self.from_file(name, start, end)
+            return self.format_seq(name, start, end)
         try:
-            seq = self.from_file(name, start, start + self.read_ahead)
+            seq = self.format_seq(name, start, start + self.read_ahead)
             if not self.as_raw:
                 self.buffer = seq
             elif self.as_raw:
@@ -314,40 +320,40 @@ class Faidx(object):
                                        end=int(end), seq=seq)
             return self.from_buffer(name, start, end)
         except FetchError:
-            return self.from_file(name, start, end)
+            return self.format_seq(name, start, end)
 
     def fetch(self, name, start, end):
         if not self.read_ahead:
-            return self.from_file(name, start, end)
+            return self.format_seq(name, start, end)
         # get sequence from read-ahead buffer if it exists
         if self.read_ahead and (name, start, end) in self:
             return self.from_buffer(name, start, end)
         elif self.read_ahead:
             return self.fill_buffer(name, start, end)
 
-    def from_file(self, rname, start, end):
+    def from_file(self, rname, start, end, internals=False):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
         1. Count newlines before start
         2. Count newlines to end
         3. Difference of 1 and 2 is number of newlines in [start:end]
         4. Seek to start position, taking newlines into account
-        5. Read to end position, return sequence without newlines
+        5. Read to end position, return sequence
         """
         try:
             i = self.index[rname]
         except KeyError:
             raise FetchError("Requested rname {0} does not exist! "
                              "Please check your FASTA file.".format(rname))
-        start = start - 1  # make coordinates [0,1)
-        seq_len = end - start
+        start0 = start - 1  # make coordinates [0,1)
+        seq_len = end - start0
 
         newlines_total = int(i.rlen / i.lenc * (i.lenb - i.lenc))
-        newlines_before = int((start - 1) / i.lenc *
-                              (i.lenb - i.lenc)) if start > 0 else 0
+        newlines_before = int((start0 - 1) / i.lenc *
+                              (i.lenb - i.lenc)) if start0 > 0 else 0
         newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
-        bstart = i.offset + newlines_before + start
+        bstart = i.offset + newlines_before + start0
         bend = i.offset + newlines_total + i.rlen
         self.file.seek(bstart)
 
@@ -357,28 +363,46 @@ class Faidx(object):
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
         if seq_blen > 0:
-            seq = self.file.read(seq_blen).decode().replace('\n', '')
+            seq = self.file.read(seq_blen).decode()
         elif seq_blen <= 0 and not self.strict_bounds:
-            if self.as_raw:
-                return ''
-            else:
-                return Sequence(name=rname, start=0, end=0)
+            seq = ''
         elif seq_blen <= 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
-                             "invalid.\n".format(start + 1, end))
+                             "invalid.\n".format(start, end))
+        if not internals:
+            return seq
+        else:
+            return (seq, locals())
 
-        if len(seq) < end - start and self.default_seq:  # Pad missing positions with default_seq
-            pad_len = end - start - len(seq)
+    def format_seq(self, rname, start, end):
+        seq = self.from_file(rname, start, end).replace('\n', '')
+        start0 = start - 1
+        if len(seq) < end - start0 and self.default_seq:  # Pad missing positions with default_seq
+            pad_len = end - start0 - len(seq)
             seq = ''.join([seq, pad_len * self.default_seq])
         else:  # Return less than requested range
-            end = start + len(seq)
+            end = start0 + len(seq)
 
         if self.as_raw:
             return seq
         else:
-            return Sequence(name=rname, start=int(start + 1),
+            return Sequence(name=rname, start=int(start),
                             end=int(end), seq=seq)
 
+    def to_file(self, rname, start, end, seq):
+        """ Write sequence in region from start-end, overwriting current
+        contents of the FASTA file. """
+        if not self.mutable:
+            raise IOError("Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA.")
+        file_seq, internals = self.from_file(rname, start, end, internals=True)
+        file_newline_pos = [match.start() for match in re.finditer('\n', file_seq)]
+        seq = list(seq)
+        if len(seq) != len(file_seq) - len(file_newline_pos):
+            raise IOError("Specified replacement sequence needs to have the same length as original.")
+        elif len(seq) == len(file_seq) - len(file_newline_pos):
+            any(seq.insert(i, '\n') for i in file_newline_pos)
+            self.file.seek(internals['bstart'])
+            self.file.write(''.join(seq).encode())
 
     def __enter__(self):
         return self
@@ -439,19 +463,51 @@ class FastaRecord(object):
         return str(self[:])
 
 
+class MutableFastaRecord(FastaRecord):
+    def __init__(self, name, fa):
+        super(MutableFastaRecord, self).__init__(name, fa)
+
+    def __setitem__(self, n, value):
+        """Mutate sequence in region [start, end)
+        to value.
+        Coordinates are 0-based, end-exclusive."""
+        try:
+            if isinstance(n, slice):
+                start, stop, step = n.start, n.stop, n.step
+                if step:
+                    raise IndexError("Step operator is not implemented.")
+                if not start:
+                    start = 0
+                if not stop:
+                    stop = len(self)
+                if stop < 0:
+                    stop = len(self) + stop
+                if start < 0:
+                    start = len(self) + start
+                self._fa.faidx.to_file(self.name, start + 1, stop, value)
+
+            elif isinstance(n, int):
+                if n < 0:
+                    n = len(self) + n
+                return self._fa.faidx.to_file(self.name, n + 1, n + 1, value)
+        except (FetchError, IOError):
+            raise
+
+
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
         default_seq: if given, this base will always be returned if region is unavailable.
-        key_function: optional callback function which should return a unique key for the self._records dictionary when given rname.
+        key_function: optional callback function which should return a unique key when given rname.
         as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
+        self.mutable = mutable
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            default_seq=default_seq, strict_bounds=strict_bounds,
-                           read_ahead=read_ahead)
+                           read_ahead=read_ahead, mutable=mutable)
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
@@ -459,22 +515,20 @@ class Fasta(object):
 
     def __getitem__(self, rname):
         """Return a chromosome by its name."""
-        return FastaRecord(rname, self)
+        if rname in self:
+            if not self.mutable:
+                return FastaRecord(rname, self)
+            else:
+                return MutableFastaRecord(rname, self)
+        else:
+            raise KeyError("{0} not in {1}.".format(rname, self.filename))
 
     def __repr__(self):
-        if self.faidx.as_raw:
-            return 'Fasta("%s", as_raw=True)' % (self.filename)
-        else:
-            return 'Fasta("%s")' % (self.filename)
+        return 'Fasta("%s")' % (self.filename)
 
     def __iter__(self):
         for key in self.keys():
             yield self[key]
-
-    @property
-    def _records(self):
-        return OrderedDict((rname, FastaRecord(rname, self)) for
-                            rname in self.keys())
 
     def keys(self):
         return self.faidx.index.keys()
