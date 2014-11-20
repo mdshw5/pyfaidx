@@ -19,7 +19,12 @@ class TestMutableFastaRecord:
     def teardown(self):
         self.genes_copy.close()  # deletes temporary file
 
-    def test_mutate_fasta(self):
+    def test_mutate_fasta_to_same(self):
         chunk = self.fasta['KF435150.1'][0:100]
         self.mutable_fasta['KF435150.1'][0:100] = chunk.seq
         assert str(self.fasta['KF435150.1']) == str(self.mutable_fasta['KF435150.1'])
+
+    def test_mutate_fasta_to_N(self):
+        chunk = 100 * 'N'
+        self.mutable_fasta['KF435150.1'][0:100] = chunk
+        assert self.mutable_fasta['KF435150.1'][0:100].seq == chunk

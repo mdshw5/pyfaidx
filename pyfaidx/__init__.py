@@ -281,7 +281,7 @@ class Faidx(object):
                             clen = line_clen
                         rlen += line_clen
                     elif (line[0] == '>') and (rname is not None):
-                        indexfile.write("{rname}\t{rlen:n}\t{thisoffset:n}\t{clen:n}\t{blen:n}\n".format(**locals()))
+                        indexfile.write("{rname}\t{rlen:d}\t{thisoffset:d}\t{clen:d}\t{blen:d}\n".format(**locals()))
                         blen = 0
                         rlen = 0
                         clen = 0
@@ -290,7 +290,7 @@ class Faidx(object):
                         offset += line_blen
                         thisoffset = offset
                     line_number += 1
-                indexfile.write("{rname}\t{rlen:n}\t{thisoffset:n}\t{clen:n}\t{blen:n}\n".format(**locals()))
+                indexfile.write("{rname}\t{rlen:d}\t{thisoffset:d}\t{clen:d}\t{blen:d}\n".format(**locals()))
 
     def write_fai(self):
         with open(self.indexname, 'w') as outfile:
