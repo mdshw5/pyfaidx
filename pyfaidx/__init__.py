@@ -391,6 +391,7 @@ class FastaRecord(object):
     def __init__(self, name, fa):
         self.name = name
         self._fa = fa
+        self._len = self._fa.faidx.index[self.name].rlen
 
     def __getitem__(self, n):
         """Return sequence from region [start, end)
@@ -416,12 +417,23 @@ class FastaRecord(object):
         except FetchError:
             raise
 
+    def __iter__(self):
+        line_len = self._fa.faidx.index[self.name].lenc
+        start = 0
+        while True:
+            end = start + line_len
+            if end < len(self):
+                yield self[start:end]
+            else:
+                yield self[start:]
+                raise StopIteration
+            start += line_len
+
     def __repr__(self):
         return 'FastaRecord("%s")' % (self.name)
 
     def __len__(self):
-        """ Return length of chromosome """
-        return self._fa.faidx.index[self.name].rlen
+        return self._len
 
     def __str__(self):
         return str(self[:])
