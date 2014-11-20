@@ -345,6 +345,8 @@ class Faidx(object):
             raise FetchError("Requested rname {0} does not exist! "
                              "Please check your FASTA file.".format(rname))
         start0 = start - 1  # make coordinates [0,1)
+        if start0 < 0:
+            raise FetchError("Requested start coordinate must be greater than 1.")
         seq_len = end - start0
 
         newlines_total = int(i.rlen / i.lenc * (i.lenb - i.lenc))
