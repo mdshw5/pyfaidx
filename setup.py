@@ -9,7 +9,7 @@ if sys.version_info[0] == 2 and sys.version_info[1] == 6:
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version='0.2.9',
+    version='0.3.0',
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
@@ -27,9 +27,10 @@ setup(
             "Intended Audience :: Science/Research",
             "Natural Language :: English",
             "Operating System :: Unix",
-            "Programming Language :: Python :: 2.7",
-            "Programming Language :: Python :: 3.3",
             "Programming Language :: Python :: 3.4",
+            "Programming Language :: Python :: 3.3",
+            "Programming Language :: Python :: 3.2",
+            "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 2.6",
             "Programming Language :: Python :: Implementation :: PyPy",
             "Topic :: Scientific/Engineering :: Bio-Informatics"
