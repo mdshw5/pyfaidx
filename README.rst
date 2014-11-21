@@ -21,6 +21,8 @@ This package is tested under Python 3.2-3.4, 2.7, 2.6, and pypy.
 
     python setup.py install
 
+Usage
+-----
 
 .. _benchmark: http://www.biostars.org/p/93364/#93390
 
