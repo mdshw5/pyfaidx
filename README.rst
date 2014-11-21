@@ -1,8 +1,5 @@
 |Travis| |PyPI|
 
-Please cite `Shirley, Matthew (2014): pyfaidx: efficient pythonic random
-access to fasta subsequences. figshare. DOI:10.6084/m9.figshare.972933 <http://dx.doi.org/10.6084/m9.figshare.972933>`_.
-
 Description
 -----------
 
@@ -14,7 +11,7 @@ file in to memory.
 Installation
 ------------
 
-This package is tested under Python 3.4, 3.3, 2.7, 2.6, and pypy.
+This package is tested under Python 3.2-3.4, 2.7, 2.6, and pypy.
 
 ::
 
@@ -24,37 +21,6 @@ This package is tested under Python 3.4, 3.3, 2.7, 2.6, and pypy.
 
     python setup.py install
 
-CLI Usage
----------
-
-::
-
-    usage: faidx [-h] [-b BED] [-n] [--default_seq DEFAULT_SEQ] [--lazy]
-                 [--complement] [--reverse]
-                 fasta [regions [regions ...]]
-
-    Fetch sequence from faidx-indexed FASTA
-
-    positional arguments:
-      fasta                 FASTA file
-      regions               space separated regions of sequence to fetch e.g.
-                            chr1:1-1000
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -b BED, --bed BED     bed file of regions
-      -n, --name            print sequence names. default: True
-      --default_seq DEFAULT_SEQ
-                            default base for missing positions. default: N
-      --lazy                lazy region bounds checking - fill in default_seq for
-                            missing ranges. default: False
-      --complement          comlement the sequence. default: False
-      --reverse             reverse the sequence. default: False
-
-Pyfaidx provides an interface for creating and using this index for fast
-random access of **DNA** subsequences from huge fasta files in a
-"pythonic" manner. Indexing speed is comparable to samtools, and in some
-cases sequence retrieval is much faster (benchmark_). For example:
 
 .. _benchmark: http://www.biostars.org/p/93364/#93390
 
@@ -209,6 +175,8 @@ It also provides a command-line script:
 
 cli script: faidx
 ~~~~~~~~~~~~~~~~~
+
+For usage type ``faidx -h``.
 
 .. code:: bash
 
