@@ -399,14 +399,24 @@ class Faidx(object):
         if not self.mutable:
             raise IOError("Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA.")
         file_seq, internals = self.from_file(rname, start, end, internals=True)
-        file_newline_pos = [match.start() for match in re.finditer('\n', file_seq)]
-        seq = list(seq)
-        if len(seq) != len(file_seq) - len(file_newline_pos):
+        file_newlines = file_seq.count('\n')
+        if file_newlines > 0:
+            file_newline_index = file_seq.index('\n')
+        if len(seq) != len(file_seq) - file_newlines:
             raise IOError("Specified replacement sequence needs to have the same length as original.")
-        elif len(seq) == len(file_seq) - len(file_newline_pos):
-            any(seq.insert(i, '\n') for i in file_newline_pos)
+        elif len(seq) == len(file_seq) - file_newlines:
+            line_len = internals['i'].lenc
             self.file.seek(internals['bstart'])
-            self.file.write(''.join(seq).encode())
+            if file_newlines == 0:
+                self.file.write(seq.encode())
+            elif file_newlines > 0:
+                n = 0
+                m = file_newline_index
+                while m < len(seq):
+                    self.file.write(''.join([seq[n:m], '\n']).encode())
+                    n = m
+                    m += line_len
+                self.file.write(seq[n:].encode())
 
     def __enter__(self):
         return self
