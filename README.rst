@@ -37,12 +37,7 @@ Acts like a dictionary.
 
 .. code:: python
 
-    >>> genes.keys() ['NR_104215.1',
-    'KF435150.1', 'NM_001282548.1', 'NM_001282549.1', 'XM_005249644.1',
-    'NM_001282543.1', 'NR_104216.1', 'XM_005265508.1', 'XR_241079.1',
-    'AB821309.1', 'XM_005249645.1', 'XR_241081.1', 'XM_005249643.1',
-    'XM_005249642.1', 'NM_001282545.1', 'NR_104212.1', 'XR_241080.1',
-    'XM_005265507.1', 'KF435149.1', 'NM_000465.3']
+    >>> genes.keys() ('AB821309.1', 'KF435150.1', 'KF435149.1', 'NR_104216.1', 'NR_104215.1', 'NR_104212.1', 'NM_001282545.1', 'NM_001282543.1', 'NM_000465.3', 'NM_001282549.1', 'NM_001282548.1', 'XM_005249645.1', 'XM_005249644.1', 'XM_005249643.1', 'XM_005249642.1', 'XM_005265508.1', 'XM_005265507.1', 'XR_241081.1', 'XR_241080.1', 'XR_241079.1')
 
     >>> genes['NM_001282543.1'][200:230]
     >NM_001282543.1:201-230
@@ -62,6 +57,14 @@ Acts like a dictionary.
 
     >>> len(genes['NM_001282543.1'])
     5466
+
+Indexes like a list:
+
+.. code:: python
+
+    >>> genes[0][:50]
+    >AB821309.1:1-50
+    ATGGTCAGCTGGGGTCGTTTCATCTGCCTGGTCGTGGTCACCATGGCAAC
 
 Slices just like a string:
 
@@ -232,6 +235,10 @@ A lower-level Faidx class is also available:
 
 Changes
 -------
+*New in version 0.3.1*:
+
+- Fasta can now accept an integer index in addition to string keys.
+
 *New in version 0.3.0*:
 
 - FastaRecord now works as a line-based iterator (`#30 <https://github.com/mdshw5/pyfaidx/issues/30>`_)

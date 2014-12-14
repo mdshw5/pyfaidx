@@ -5,7 +5,6 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 from __future__ import division
 import sys
 import os
-import re
 import warnings
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
@@ -182,7 +181,7 @@ class Faidx(object):
         """
         self.filename = filename
         if mutable:
-            self.file = open(filename, 'rb+')
+            self.file = open(filename, 'r+b')
             warnings.warn("FASTA mutability is experimental. Use it carefully!", FutureWarning)
         else:
             self.file = open(filename, 'rb')
@@ -528,7 +527,9 @@ class Fasta(object):
         return rname in self.keys()
 
     def __getitem__(self, rname):
-        """Return a chromosome by its name."""
+        """Return a chromosome by its name, or its numerical index."""
+        if isinstance(rname, int):
+            rname = tuple(self.keys())[rname]
         if rname in self:
             if not self.mutable:
                 return FastaRecord(rname, self)

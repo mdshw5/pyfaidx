@@ -1,5 +1,4 @@
 import argparse
-import sys
 from pyfaidx import Fasta, bed_split
 
 
