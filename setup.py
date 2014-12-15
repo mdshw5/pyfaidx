@@ -9,7 +9,7 @@ if sys.version_info[0] == 2 and sys.version_info[1] == 6:
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version='0.3.0',
+    version='0.3.1',
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
@@ -21,7 +21,7 @@ setup(
     install_requires=install_requires,
     entry_points={'console_scripts': ['faidx = pyfaidx.cli:main', 'bedmask = pyfaidx.bedmask:main']},
     classifiers=[
-            "Development Status :: 4 - Beta",
+            "Development Status :: 5 - Production/Stable",
             "License :: OSI Approved :: MIT License",
             "Environment :: Console",
             "Intended Audience :: Science/Research",
