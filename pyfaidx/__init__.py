@@ -315,9 +315,9 @@ class Faidx(object):
             pass
 
     def fetch(self, name, start, end):
-        if self.read_ahead:
+        if self.read_ahead and not (name, start, end) in self:
             self.fill_buffer(name, start, end + self.read_ahead)
-        if self.cache_last_entry and not (name, start, end) in self:
+        elif self.cache_last_entry and not (name, start, end) in self:
             self.fill_buffer(name, 1, self.index[name].rlen)
 
         if (name, start, end) in self:
