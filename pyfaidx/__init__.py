@@ -1,3 +1,5 @@
+# pylint: disable=R0913, R0914
+
 """
 Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
@@ -207,14 +209,11 @@ class Faidx(object):
             self.read_fai()
 
     def __contains__(self, region):
-        if not self.buffer['seq']:
-            return False
         name, start, end = region
-        if self.buffer['name'] == name:
-            if self.buffer['start'] <= start and self.buffer['end'] >= end:
-                return True
-            else:
-                return False
+        if not self.buffer['name']:
+            return False
+        elif self.buffer['name'] == name and self.buffer['start'] <= start and self.buffer['end'] >= end:
+            return True
         else:
             return False
 
@@ -283,7 +282,7 @@ class Faidx(object):
                             clen = line_clen
                         rlen += line_clen
                     elif (line[0] == '>') and (rname is not None):
-                        indexfile.write("{rname}\t{rlen:d}\t{thisoffset:d}\t{clen:d}\t{blen:d}\n".format(**locals()))
+                        indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
                         blen = 0
                         rlen = 0
                         clen = 0
@@ -292,14 +291,14 @@ class Faidx(object):
                         offset += line_blen
                         thisoffset = offset
                     line_number += 1
-                indexfile.write("{rname}\t{rlen:d}\t{thisoffset:d}\t{clen:d}\t{blen:d}\n".format(**locals()))
+                indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def write_fai(self):
         with open(self.indexname, 'w') as outfile:
             for k, v in self.index.items():
                 outfile.write('\t'.join([k, str(v)]))
 
-    def from_buffer(self, name, start, end):
+    def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
         i_end = end - self.buffer['start'] + 1
         return self.buffer['seq'][i_start:i_end]
@@ -321,7 +320,7 @@ class Faidx(object):
             self.fill_buffer(name, 1, self.index[name].rlen)
 
         if (name, start, end) in self:
-            seq = self.from_buffer(name, start, end)
+            seq = self.from_buffer(start, end)
         else:
             seq = self.from_file(name, start, end)
 
@@ -503,41 +502,37 @@ class Fasta(object):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
-        default_seq: if given, this base will always be returned if region is unavailable.
-        key_function: optional callback function which should return a unique key when given rname.
-        as_raw: optional parameter to specify whether to return sequences as a Sequence() object or as a raw string. Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            default_seq=default_seq, strict_bounds=strict_bounds,
                            read_ahead=read_ahead, mutable=mutable)
+        self.keys = self.faidx.index.keys
+        if not self.mutable:
+            self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
+        elif self.mutable:
+            self.records = dict([(rname, MutableFastaRecord(rname, self)) for rname in self.keys()])
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
-        return rname in self.keys()
+        return rname in self.faidx.index
 
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
         if isinstance(rname, int):
             rname = tuple(self.keys())[rname]
-        if rname in self:
-            if not self.mutable:
-                return FastaRecord(rname, self)
-            else:
-                return MutableFastaRecord(rname, self)
-        else:
+        try:
+            return self.records[rname]
+        except KeyError:
             raise KeyError("{0} not in {1}.".format(rname, self.filename))
 
     def __repr__(self):
         return 'Fasta("%s")' % (self.filename)
 
     def __iter__(self):
-        for key in self.keys():
-            yield self[key]
-
-    def keys(self):
-        return self.faidx.index.keys()
+        for rname in self.keys():
+            yield self[rname]
 
     def get_seq(self, name, start, end):
         """Return a sequence by record name and interval [start, end).

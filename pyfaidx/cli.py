@@ -20,7 +20,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
 import sys
-from pyfaidx import Fasta, wrap_sequence, FetchError, BedError, ucsc_split, bed_split
+from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
 
 
 def write_sequence(args):
