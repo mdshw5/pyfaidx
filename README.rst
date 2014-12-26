@@ -5,8 +5,9 @@ Description
 
 Samtools provides a function "faidx" (FAsta InDeX), which creates a
 small flat index file ".fai" allowing for fast random access to any
-subsequence in the indexed fasta, while loading a minimal amount of the
-file in to memory.
+subsequence in the indexed FASTA file, while loading a minimal amount of the
+file in to memory. This python module implements pure Python classes for
+indexing, retrieval, and in-place modification of FASTA files. 
 
 Installation
 ------------
