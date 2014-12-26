@@ -172,7 +172,7 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, cache_last_entry=False):
+                 mutable=False):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -196,7 +196,6 @@ class Faidx(object):
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
         self.read_ahead = read_ahead
         self.mutable = mutable
-        self.cache_last_entry = cache_last_entry
 
         if os.path.exists(self.indexname):
             self.read_fai()
@@ -209,10 +208,10 @@ class Faidx(object):
             self.read_fai()
 
     def __contains__(self, region):
-        name, start, end = region
         if not self.buffer['name']:
             return False
-        elif self.buffer['name'] == name and self.buffer['start'] <= start and self.buffer['end'] >= end:
+        name, start, end = region
+        if self.buffer['name'] == name and self.buffer['start'] <= start and self.buffer['end'] >= end:
             return True
         else:
             return False
@@ -316,8 +315,6 @@ class Faidx(object):
     def fetch(self, name, start, end):
         if self.read_ahead and not (name, start, end) in self:
             self.fill_buffer(name, start, end + self.read_ahead)
-        elif self.cache_last_entry and not (name, start, end) in self:
-            self.fill_buffer(name, 1, self.index[name].rlen)
 
         if (name, start, end) in self:
             seq = self.from_buffer(start, end)
