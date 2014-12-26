@@ -235,6 +235,11 @@ A lower-level Faidx class is also available:
 
 Changes
 -------
+*New in version 0.3.2*:
+
+- Fasta `__getitem__` no longer initializes new FastaRecord classes
+- Faidx `read_ahead` attribute implementaion avoids unnecessary disk hits (`#34 <https://github.com/mdshw5/pyfaidx/issues/34>`_)
+
 *New in version 0.3.1*:
 
 - Fasta can now accept an integer index in addition to string keys.
