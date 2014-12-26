@@ -170,7 +170,7 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False):
+                 mutable=False, cache_last_entry=False):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -191,9 +191,10 @@ class Faidx(object):
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
         self.index = OrderedDict()
-        self.buffer = None
+        self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
         self.read_ahead = read_ahead
         self.mutable = mutable
+        self.cache_last_entry = cache_last_entry
 
         if os.path.exists(self.indexname):
             self.read_fai()
@@ -206,11 +207,11 @@ class Faidx(object):
             self.read_fai()
 
     def __contains__(self, region):
-        if not self.buffer:
+        if not self.buffer['seq']:
             return False
         name, start, end = region
-        if self.buffer.name == name:
-            if self.buffer.start <= start and self.buffer.end >= end:
+        if self.buffer['name'] == name:
+            if self.buffer['start'] <= start and self.buffer['end'] >= end:
                 return True
             else:
                 return False
@@ -299,38 +300,32 @@ class Faidx(object):
                 outfile.write('\t'.join([k, str(v)]))
 
     def from_buffer(self, name, start, end):
-        if name != self.buffer.name:
-            raise ValueError("Buffered sequence name does not match {0}.".format(name))
-        i_start = start - self.buffer.start
-        i_end = end - self.buffer.start + 1
-        if self.as_raw:
-            return self.buffer[i_start:i_end].seq
-        else:
-            return self.buffer[i_start:i_end]
+        i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
+        i_end = end - self.buffer['start'] + 1
+        return self.buffer['seq'][i_start:i_end]
 
     def fill_buffer(self, name, start, end):
-        q_len = end - start
-        if q_len > self.read_ahead:
-            return self.format_seq(name, start, end)
         try:
-            seq = self.format_seq(name, start, start + self.read_ahead)
-            if not self.as_raw:
-                self.buffer = seq
-            elif self.as_raw:
-                self.buffer = Sequence(name=name, start=int(start),
-                                       end=int(end), seq=seq)
-            return self.from_buffer(name, start, end)
+            seq = self.from_file(name, start, end)
+            self.buffer['seq'] = seq
+            self.buffer['start'] = start
+            self.buffer['end'] = end
+            self.buffer['name'] = name
         except FetchError:
-            return self.format_seq(name, start, end)
+            pass
 
     def fetch(self, name, start, end):
-        if not self.read_ahead:
-            return self.format_seq(name, start, end)
-        # get sequence from read-ahead buffer if it exists
-        if self.read_ahead and (name, start, end) in self:
-            return self.from_buffer(name, start, end)
-        elif self.read_ahead:
-            return self.fill_buffer(name, start, end)
+        if self.read_ahead:
+            self.fill_buffer(name, start, end + self.read_ahead)
+        if self.cache_last_entry and not (name, start, end) in self:
+            self.fill_buffer(name, 1, self.index[name].rlen)
+
+        if (name, start, end) in self:
+            seq = self.from_buffer(name, start, end)
+        else:
+            seq = self.from_file(name, start, end)
+
+        return self.format_seq(seq, name, start, end)
 
     def from_file(self, rname, start, end, internals=False):
         """ Fetch the sequence ``[start:end]`` from ``rname`` using 1-based coordinates
@@ -373,12 +368,11 @@ class Faidx(object):
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
         if not internals:
-            return seq
+            return seq.replace('\n', '')
         else:
             return (seq, locals())
 
-    def format_seq(self, rname, start, end):
-        seq = self.from_file(rname, start, end).replace('\n', '')
+    def format_seq(self, seq, rname, start, end):
         start0 = start - 1
         if len(seq) < end - start0 and self.default_seq:  # Pad missing positions with default_seq
             pad_len = end - start0 - len(seq)
@@ -398,19 +392,16 @@ class Faidx(object):
         if not self.mutable:
             raise IOError("Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA.")
         file_seq, internals = self.from_file(rname, start, end, internals=True)
-        file_newlines = file_seq.count('\n')
-        if file_newlines > 0:
-            file_newline_index = file_seq.index('\n')
-        if len(seq) != len(file_seq) - file_newlines:
+        if len(seq) != len(file_seq) - internals['newlines_inside']:
             raise IOError("Specified replacement sequence needs to have the same length as original.")
-        elif len(seq) == len(file_seq) - file_newlines:
+        elif len(seq) == len(file_seq) - internals['newlines_inside']:
             line_len = internals['i'].lenc
             self.file.seek(internals['bstart'])
-            if file_newlines == 0:
+            if internals['newlines_inside'] == 0:
                 self.file.write(seq.encode())
-            elif file_newlines > 0:
+            elif internals['newlines_inside'] > 0:
                 n = 0
-                m = file_newline_index
+                m = file_seq.index('\n')
                 while m < len(seq):
                     self.file.write(''.join([seq[n:m], '\n']).encode())
                     n = m
