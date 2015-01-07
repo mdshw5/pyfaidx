@@ -112,6 +112,11 @@ class Sequence(object):
 
     @property
     def longname(self):
+        """ Return the fancy name for the sequence, including start, end, and complementation.
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
+        >>> x.longname
+        chr1:6-1 (complement)
+        """
         name = self.name
         if self.start and self.end:
             name = ':'.join([name, '-'.join([str(self.start), str(self.end)])])
