@@ -101,7 +101,7 @@ class Sequence(object):
         return self[::-1].complement
 
     def __repr__(self):
-        return '\n'.join([self.longname, self.seq])
+        return '\n'.join(['>', self.longname, self.seq])
 
     def __len__(self):
         """
