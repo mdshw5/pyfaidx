@@ -37,47 +37,55 @@ def write_sequence(args):
     else:
         regions_to_fetch = args.regions
         split_function = ucsc_split
+        if not regions_to_fetch:
+            regions_to_fetch = tuple(fasta.keys())
+
     for region in regions_to_fetch:
-        rname, start, end = split_function(region)
+        name, start, end = split_function(region)
+        if args.split_files:  # open output file based on sequence name
+            filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
+            filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
+            outfile = open(filename, 'w')
+        else:
+            outfile = sys.stdout
         try:
-            for line in fetch_sequence(args, fasta, rname, start, end):
-                sys.stdout.write(line)
+            for line in fetch_sequence(args, fasta, name, start, end):
+                outfile.write(line)
         except FetchError as e:
             sys.stderr.write("Error! {0} Try setting --lazy.\n".format(e.msg.rstrip()))
+        if args.split_files:
+            outfile.close()
     fasta.__exit__()
 
 
-def fetch_sequence(args, fasta, rname, start=None, end=None):
-    line_len = fasta.faidx.index[rname].lenc
-    sequence = fasta[rname][start:end]
+def fetch_sequence(args, fasta, name, start=None, end=None):
+    line_len = fasta.faidx.index[name].lenc
+    sequence = fasta[name][start:end]
     if args.complement:
         sequence = sequence.complement
     if args.reverse:
         sequence = sequence.reverse
-    if args.name:
+    if not args.no_names:
         yield ''.join(['>', sequence.name, '\n'])
     for line in wrap_sequence(line_len, sequence.seq):
         yield line
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fetch sequence from "
-                                                 "faidx-indexed FASTA")
+    parser = argparse.ArgumentParser(description="Fetch sequences from FASTA. If no regions are specified, all entries in the input file are returned. Input FASTA file must be consistently line-wrapped, and line wrapping of output is based on input line lengths.")
     parser.add_argument('fasta', type=str, help='FASTA file')
-    parser.add_argument('regions', type=str, nargs='?',
-                        help="space separated regions of sequence to "
-                        "fetch e.g. chr1:1-1000")
+    parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
-    parser.add_argument('-n', '--name', action="store_true", default=True,
-                        help="print sequence names. default: %(default)s")
-    parser.add_argument('--default_seq', type=str, default='N',
-                        help='default base for missing positions. default: %(default)s')
-    parser.add_argument('--lazy', action="store_true", default=False,
-                        help="lazy region bounds checking - fill in default_seq for missing ranges. default: %(default)s")
-    parser.add_argument('--complement', action="store_true", default=False,
-                        help="comlement the sequence. default: %(default)s")
-    parser.add_argument('--reverse', action="store_true", default=False,
-                        help="reverse the sequence. default: %(default)s")
+    parser.add_argument('--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
+    parser.add_argument('--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
+    parser.add_argument('--no_names', action="store_true", default=False, help="print sequences without names. default: %(default)s")
+    parser.add_argument('--split_files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
+    parser.add_argument('--lazy', action="store_true", default=False, help="lazy region bounds checking - fill in default_seq for missing ranges. default: %(default)s")
+    parser.add_argument('--default_seq', type=str, default='N', help='default base for missing positions. default: %(default)s')
+    # print help usage if no arguments are supplied
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
     args = parser.parse_args()
     write_sequence(args)
 
