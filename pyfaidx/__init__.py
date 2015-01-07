@@ -95,7 +95,7 @@ class Sequence(object):
         """ Returns the reverse compliment of sequence
         >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
         >>> -x
-        >chr1 (complement):6-1
+        >chr1:6-1 (complement)
         TACGAT
         """
         return self[::-1].complement
