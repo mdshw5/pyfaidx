@@ -113,7 +113,7 @@ class Sequence(object):
     @property
     def longname(self):
         """ Return the fancy name for the sequence, including start, end, and complementation.
-        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6).complement()
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
         >>> x.longname
         chr1:1-6 (complement)
         """
