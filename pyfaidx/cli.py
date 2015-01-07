@@ -21,7 +21,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 import argparse
 import sys
 import os.path
-from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
+from pyfaidx import Faidx, Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
 
 keepcharacters = (' ', '.', '_')
 
@@ -31,6 +31,7 @@ def write_sequence(args):
     if ext:
         ext = ext[1:]  # remove the dot from extension
     fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy)
+
     if args.bed:
         regions_to_fetch = args.bed
         split_function = bed_split
@@ -66,7 +67,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.reverse:
         sequence = sequence.reverse
     if not args.no_names:
-        yield ''.join(['>', sequence.name, '\n'])
+        yield ''.join(['>', sequence.longname   , '\n'])
     for line in wrap_sequence(line_len, sequence.seq):
         yield line
 
@@ -76,6 +77,7 @@ def main():
     parser.add_argument('fasta', type=str, help='FASTA file')
     parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
+    parser.add_argument('--stats', action="store_true", default=False, help="print basic stats about the file. default: %(default)s")
     parser.add_argument('--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
     parser.add_argument('--no_names', action="store_true", default=False, help="print sequences without names. default: %(default)s")
@@ -87,6 +89,12 @@ def main():
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
+
+    if args.stats:
+        for key, value in Faidx(args.fasta).index.items():
+            sys.stdout.write("{name}\t{length}\n".format(name=key, length=value['rlen']))
+        sys.exit(0)
+
     write_sequence(args)
 
 if __name__ == "__main__":

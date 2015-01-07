@@ -51,13 +51,16 @@ Acts like a dictionary.
     'CTCGTTCCGCGCCCGCCATGGAACCGGATG'
 
     >>> genes['NM_001282543.1'][200:230].name
-    'NM_001282543.1:201-230'
+    'NM_001282543.1'
 
     >>> genes['NM_001282543.1'][200:230].start
     201
 
     >>> genes['NM_001282543.1'][200:230].end
     230
+
+    >>> genes['NM_001282543.1'][200:230].longname
+    'NM_001282543.1:201-230'
 
     >>> len(genes['NM_001282543.1'])
     5466
@@ -92,19 +95,25 @@ Slices just like a string:
 
 - Start and end coordinates are 0-based, just like Python.
 
-Sequence can be buffered in memory using a read-ahead buffer:
+Sequence can be buffered in memory using a read-ahead buffer
+for fast sequential access:
 
 .. code:: python
 
-    >>> genes = Fasta('tests/data/genes.fasta' read_ahead=100)
+    >>> from timeit import timeit
+    >>> fetch = "genes['NM_001282543.1'][200:230]"
+    >>> read_ahead = "import pyfaidx; genes = pyfaidx.Fasta('tests/data/genes.fasta', read_ahead=10000)"
+    >>> no_read_ahead = "import pyfaidx; genes = pyfaidx.Fasta('tests/data/genes.fasta')"
+    >>> string_slicing = "genes = {}; genes['NM_001282543.1'] = 'N'*10000"
 
-    >>> genes['NM_001282543.1'][200:230][::-1]
-    >NM_001282543.1:230-201
-    GTAGGCCAAGGTACCGCCCGCGCCTTGCTC
+    >>> timeit(fetch, no_read_ahead, number=10000)
+    0.2204863309962093
+    >>> timeit(fetch, read_ahead, number=10000)
+    0.1121859749982832
+    >>> timeit(fetch, string_slicing, number=10000)
+    0.0033553699977346696
 
-    >>> len(genes.buffer)
-    100
-
+Read-ahead buffering can reduce runtime by 1/2 for sequential accesses to buffered regions.
 
 Complements and reverse complements just like DNA
 
@@ -190,25 +199,66 @@ For usage type ``faidx -h``.
 .. code:: bash
 
     $ faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
-    >NM_001282543.1
+    >NM_001282543.1:201-210
     CTCGTTCCGC
-    >NM_001282543.1
+    >NM_001282543.1:300-320
+    GTAATTGTGTAAGTGACTGCA
+
+    $ faidx --no_names tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
+    CTCGTTCCGC
     GTAATTGTGTAAGTGACTGCA
 
     $ faidx --complement tests/data/genes.fasta NM_001282543.1:201-210
-    >NM_001282543.1
+    >NM_001282543.1:201-210 (complement)
     GAGCAAGGCG
 
     $ faidx --reverse tests/data/genes.fasta NM_001282543.1:201-210
-    >NM_001282543.1
+    >NM_001282543.1:210-201
     CGCCTTGCTC
 
-    $ faidx tests/data/genes.fasta NM_001282543.1
-    >NM_001282543.1
-    CCCCGCCCCT........
+    $ faidx --reverse --complement tests/data/genes.fasta NM_001282543.1:201-210
+    >NM_001282543.1:210-201 (complement)
+    GCGGAACGAG
 
-    $ faidx tests/data/genes.fasta --list regions.txt
+    $ faidx tests/data/genes.fasta NM_001282543.1
+    >NM_001282543.1:1-5466
+    CCCCGCCCCT........
+    ..................
+    ..................
+    ..................
+
+    $ faidx --lazy tests/data/genes.fasta NM_001282543.1:5460-5480
+    >NM_001282543.1:5460-5480
+    AAAAAAANNNNNNNNNNNNNN
+
+    $ faidx --lazy --default_seq='Q' tests/data/genes.fasta NM_001282543.1:5460-5480
+    >NM_001282543.1:5460-5480
+    AAAAAAAQQQQQQQQQQQQQQ
+
+    $ faidx tests/data/genes.fasta --bed regions.bed
     ...
+
+    faidx --stats tests/data/genes.fasta
+    AB821309.1	3510
+    KF435150.1	481
+    KF435149.1	642
+    NR_104216.1	4573
+    NR_104215.1	5317
+    NR_104212.1	5374
+    NM_001282545.1	4170
+    NM_001282543.1	5466
+    NM_000465.3	5523
+    NM_001282549.1	3984
+    NM_001282548.1	4113
+    XM_005249645.1	2752
+    XM_005249644.1	3004
+    XM_005249643.1	3109
+    XM_005249642.1	3097
+    XM_005265508.1	2794
+    XM_005265507.1	2848
+    XR_241081.1	1009
+    XR_241080.1	4884
+    XR_241079.1	2819
 
 Similar syntax as ``samtools faidx``
 
@@ -225,7 +275,7 @@ A lower-level Faidx class is also available:
     >>> fa.index['AB821309.1'].rlen
     3510
 
-    fa.fetch('AB821309.1', 1, 10)
+    fa.fetch('AB821309.1', 1, 10)  # these are 1-based genomic coordinates
     >AB821309.1:1-10
     ATGGTCAGCT
 
@@ -239,6 +289,13 @@ A lower-level Faidx class is also available:
 
 Changes
 -------
+*New in version 0.3.3*:
+
+- `--split_files` option writes each returned sequence to an individual file. Names are generated based on the sequence name and region coordinates.
+- `--stats` option prints the name and sequence length for each entry, suitable for use as a UCSC-style [chrom.sizes](http://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes) file.
+- Sequence `longname` attribute allows access to "chr:start-end (complement)" formatted names
+
+
 *New in version 0.3.2*:
 
 - Fasta `__getitem__` no longer initializes new FastaRecord classes

@@ -101,15 +101,7 @@ class Sequence(object):
         return self[::-1].complement
 
     def __repr__(self):
-        if self.comp:
-            name = '{rname} (complement)'.format(rname=self.name)
-        else:
-            name = self.name
-        if self.start:
-            return '\n'.join(['>{name}:{start}-{end}'.format(name=name,
-                              start=self.start, end=self.end), self.seq])
-        else:
-            return '\n'.join(['>{name}'.format(name=name), self.seq])
+        return '\n'.join([self.longname, self.seq])
 
     def __len__(self):
         """
@@ -117,6 +109,16 @@ class Sequence(object):
         3
         """
         return len(self.seq)
+
+    @property
+    def longname(self):
+        name = self.name
+        if self.start and self.end:
+            name = ':'.join([name, '-'.join([str(self.start), str(self.end)])])
+        if self.comp:
+            name += ' (complement)'
+        return name
+
 
     @property
     def complement(self):
@@ -442,6 +444,7 @@ class FastaRecord(object):
             raise
 
     def __iter__(self):
+        """ Construct a line-based iterator that respects the original line lengths. """
         line_len = self._fa.faidx.index[self.name].lenc
         start = 0
         while True:
