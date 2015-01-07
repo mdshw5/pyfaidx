@@ -238,7 +238,7 @@ For usage type ``faidx -h``.
     $ faidx tests/data/genes.fasta --bed regions.bed
     ...
 
-    faidx --stats tests/data/genes.fasta
+    $ faidx --stats tests/data/genes.fasta
     AB821309.1	3510
     KF435150.1	481
     KF435149.1	642
@@ -259,6 +259,16 @@ For usage type ``faidx -h``.
     XR_241081.1	1009
     XR_241080.1	4884
     XR_241079.1	2819
+
+    $ faidx --split_files tests/data/genes.fasta
+    $ ls
+    AB821309.1.fasta	NM_001282549.1.fasta	XM_005249645.1.fasta
+    KF435149.1.fasta	NR_104212.1.fasta	XM_005265507.1.fasta
+    KF435150.1.fasta	NR_104215.1.fasta	XM_005265508.1.fasta
+    NM_000465.3.fasta	NR_104216.1.fasta	XR_241079.1.fasta
+    NM_001282543.1.fasta	XM_005249642.1.fasta	XR_241080.1.fasta
+    NM_001282545.1.fasta	XM_005249643.1.fasta	XR_241081.1.fasta
+    NM_001282548.1.fasta	XM_005249644.1.fasta
 
 Similar syntax as ``samtools faidx``
 

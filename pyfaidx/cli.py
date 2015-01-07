@@ -67,7 +67,10 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.reverse:
         sequence = sequence.reverse
     if not args.no_names:
-        yield ''.join(['>', sequence.longname   , '\n'])
+        if start or end:
+            yield ''.join(['>', sequence.longname, '\n'])
+        else:
+            yield ''.join(['>', sequence.name, '\n'])
     for line in wrap_sequence(line_len, sequence.seq):
         yield line
 
