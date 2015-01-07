@@ -587,7 +587,6 @@ def bed_split(bed_entry):
 
 
 def ucsc_split(region):
-    region = region.split()[0]
     try:
         rname, interval = region.split(':')
     except ValueError:

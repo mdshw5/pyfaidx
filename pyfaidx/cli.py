@@ -20,10 +20,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 import argparse
 import sys
+import os.path
 from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
+
+keepcharacters = (' ', '.', '_')
 
 
 def write_sequence(args):
+    _, ext = os.path.splitext(args.fasta)
+    if ext:
+        ext = ext[1:]  # remove the dot from extension
     fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy)
     if args.bed:
         regions_to_fetch = args.bed
