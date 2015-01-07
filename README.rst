@@ -204,7 +204,7 @@ For usage type ``faidx -h``.
     >NM_001282543.1:300-320
     GTAATTGTGTAAGTGACTGCA
 
-    $ faidx --no_names tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
+    $ faidx --no-names tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
     CTCGTTCCGC
     GTAATTGTGTAAGTGACTGCA
 
@@ -231,7 +231,7 @@ For usage type ``faidx -h``.
     >NM_001282543.1:5460-5480
     AAAAAAANNNNNNNNNNNNNN
 
-    $ faidx --lazy --default_seq='Q' tests/data/genes.fasta NM_001282543.1:5460-5480
+    $ faidx --lazy --default-seq='Q' tests/data/genes.fasta NM_001282543.1:5460-5480
     >NM_001282543.1:5460-5480
     AAAAAAAQQQQQQQQQQQQQQ
 
@@ -260,7 +260,7 @@ For usage type ``faidx -h``.
     XR_241080.1	4884
     XR_241079.1	2819
 
-    $ faidx --split_files tests/data/genes.fasta
+    $ faidx --split-files tests/data/genes.fasta
     $ ls
     AB821309.1.fasta	NM_001282549.1.fasta	XM_005249645.1.fasta
     KF435149.1.fasta	NR_104212.1.fasta	XM_005265507.1.fasta
@@ -301,7 +301,7 @@ Changes
 -------
 *New in version 0.3.3*:
 
-- `--split_files` option writes each returned sequence to an individual file. Names are generated based on the sequence name and region coordinates.
+- `--split-files` option writes each returned sequence to an individual file. Names are generated based on the sequence name and region coordinates.
 - `--stats` option prints the name and sequence length for each entry, suitable for use as a UCSC-style [chrom.sizes](http://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes) file.
 - Sequence `longname` attribute allows access to "chr:start-end (complement)" formatted names
 
@@ -332,7 +332,7 @@ Changes
 *New in version 0.2.7*:
 
 - Faidx and Fasta `strict_bounds` bounds checking logic is more correct
-- Fasta `default_seq` parameter now works
+- Fasta `default-seq` parameter now works
 - CLI script `faidx` now takes a BED file for fetching regions from a fasta
 
 *New in version 0.2.6*:
@@ -344,7 +344,7 @@ Changes
 
 *New in version 0.2.5*:
 
-- Fasta and Faidx can take `default_seq` in addition to `as_raw`, `key_function`,
+- Fasta and Faidx can take `default-seq` in addition to `as_raw`, `key_function`,
   and `strict_bounds` parameters.
 - Fixed issue `#20 <https://github.com/mdshw5/pyfaidx/issues/20>`_
 - Faidx has attribute `raw_index` which is a list representing the fai file.

@@ -44,7 +44,7 @@ def write_sequence(args):
     for region in regions_to_fetch:
         name, start, end = split_function(region)
         if args.split_files:  # open output file based on sequence name
-            filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
+            filename = '.'.join(str(e) for e in (name, start + 1, end, ext) if e)
             filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
             outfile = open(filename, 'w')
         else:
@@ -81,12 +81,12 @@ def main():
     parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
     parser.add_argument('--stats', action="store_true", default=False, help="print basic stats about the file. default: %(default)s")
-    parser.add_argument('--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
-    parser.add_argument('--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
-    parser.add_argument('--no_names', action="store_true", default=False, help="print sequences without names. default: %(default)s")
-    parser.add_argument('--split_files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
+    parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
+    parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
+    parser.add_argument('-n', '--no-names', action="store_true", default=False, help="print sequences without names. default: %(default)s")
+    parser.add_argument('--split-files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
     parser.add_argument('--lazy', action="store_true", default=False, help="lazy region bounds checking - fill in default_seq for missing ranges. default: %(default)s")
-    parser.add_argument('--default_seq', type=str, default='N', help='default base for missing positions. default: %(default)s')
+    parser.add_argument('--default-seq', type=str, default='N', help='default base for missing positions. default: %(default)s')
     # print help usage if no arguments are supplied
     if len(sys.argv)==1:
         parser.print_help()
