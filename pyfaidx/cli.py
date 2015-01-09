@@ -107,8 +107,8 @@ def main():
     parser.add_argument('--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')
     parser.add_argument('-d', '--delimiter', type=str, default=None, help='delimiter for splitting names to multiple values (duplicate names will be discarded). default: %(default)s')
     masking = parser.add_mutually_exclusive_group()
-    masking.add_argument('--mask-with-default-seq', action="store_true", default=False help="mask the FASTA file using `--default-seq` default: %(default)s")
-    masking.add_argument('--mask-by-case', action="store_true", default=False help="mask the FASTA file by changing to lowercase. default: %(default)s")
+    masking.add_argument('--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using `--default-seq` default: %(default)s")
+    masking.add_argument('--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
     # print help usage if no arguments are supplied
     if len(sys.argv)==1:
         parser.print_help()
