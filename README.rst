@@ -270,6 +270,13 @@ For usage type ``faidx -h``.
     NM_001282545.1.fasta	XM_005249643.1.fasta	XR_241081.1.fasta
     NM_001282548.1.fasta	XM_005249644.1.fasta
 
+    $ faidx --delimiter='_' tests/data/genes.fasta 000465.3
+    >000465.3
+    CCCCGCCCCTCTGGCGGCCCGCCGTCCCAGACGCGGGAAGAGCTTGGCCGGTTTCGAGTCGCTGGCCTGC
+    AGCTTCCCTGTGGTTTCCCGAGGCTTCCTTGCTTCCCGCTCTGCGAGGAGCCTTTCATCCGAAGGCGGGA
+    .......
+
+
 Similar syntax as ``samtools faidx``
 
 
