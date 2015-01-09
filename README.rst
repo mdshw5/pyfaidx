@@ -299,6 +299,10 @@ A lower-level Faidx class is also available:
 
 Changes
 -------
+*New in version 0.3.4*:
+
+- `--delimiter` option for cli script and `split_char` argument for `Fasta` and `Faidx`
+
 *New in version 0.3.3*:
 
 - `--split-files` option writes each returned sequence to an individual file. Names are generated based on the sequence name and region coordinates.
