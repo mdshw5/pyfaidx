@@ -513,7 +513,7 @@ class Fasta(object):
         self.mutable = mutable
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            default_seq=default_seq, strict_bounds=strict_bounds,
-                           read_ahead=read_ahead, mutable=mutable)
+                           read_ahead=read_ahead, mutable=mutable, split_char=split_char)
         self.keys = self.faidx.index.keys
         if not self.mutable:
             self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
