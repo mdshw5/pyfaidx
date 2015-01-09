@@ -179,7 +179,7 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False):
+                 mutable=False, split_char=None):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -205,14 +205,14 @@ class Faidx(object):
         self.mutable = mutable
 
         if os.path.exists(self.indexname):
-            self.read_fai()
+            self.read_fai(split_char)
         else:
             try:
                 self.build_index()
             except FastaIndexingError as e:
                 os.remove(self.indexname)
                 raise FastaIndexingError(e)
-            self.read_fai()
+            self.read_fai(split_char)
 
     def __contains__(self, region):
         if not self.buffer['name']:
@@ -226,18 +226,19 @@ class Faidx(object):
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
 
-    def read_fai(self):
+    def read_fai(self, split_char):
         with open(self.indexname) as index:
             for line in index:
                 line = line.strip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
-                rname = self.key_function(rname)
-                if rname in self.index:
-                    raise ValueError('Duplicate key "%s"' % rname)
-                self.index[rname] = IndexRecord(*map(int, (rlen,
-                                                           offset,
-                                                           lenc,
-                                                           lenb)))
+                rname = self.key_function(rname).split(split_char)
+                for key in rname:
+                    if key in self.index and not split_char:
+                        raise ValueError('Duplicate key "%s"' % rname)
+                    self.index[key] = IndexRecord(*map(int, (rlen,
+                                                               offset,
+                                                               lenc,
+                                                               lenb)))
 
     def build_index(self):
         with open(self.filename, 'r') as fastafile:
@@ -503,7 +504,7 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False, split_char=None):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file

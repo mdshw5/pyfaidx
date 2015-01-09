@@ -30,7 +30,7 @@ def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
     if ext:
         ext = ext[1:]  # remove the dot from extension
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy)
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy, split_char=args.delimiter)
 
     if args.bed:
         regions_to_fetch = args.bed
@@ -87,6 +87,7 @@ def main():
     parser.add_argument('--split-files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
     parser.add_argument('--lazy', action="store_true", default=False, help="lazy region bounds checking - fill in default_seq for missing ranges. default: %(default)s")
     parser.add_argument('--default-seq', type=str, default='N', help='default base for missing positions. default: %(default)s')
+    parser.add_argument('-d', '--delimiter', type=str, default=None, help='delimiter for splitting names to multiple values. default: %(default)s')
     # print help usage if no arguments are supplied
     if len(sys.argv)==1:
         parser.print_help()
