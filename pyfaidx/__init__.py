@@ -236,7 +236,7 @@ class Faidx(object):
                 for key in rname:
                     if key in self.index and not split_char:
                         raise ValueError('Duplicate key "%s"' % rname)
-                    elif split_char:
+                    elif key in self.index and split_char:
                         duplicate_ids.append(key)
                         continue
                     else:
