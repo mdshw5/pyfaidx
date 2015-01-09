@@ -19,7 +19,7 @@ setup(
     license='MIT',
     packages=['pyfaidx'],
     install_requires=install_requires,
-    entry_points={'console_scripts': ['faidx = pyfaidx.cli:main', 'bedmask = pyfaidx.bedmask:main']},
+    entry_points={'console_scripts': ['faidx = pyfaidx.cli:main']},
     classifiers=[
             "Development Status :: 5 - Production/Stable",
             "License :: OSI Approved :: MIT License",
