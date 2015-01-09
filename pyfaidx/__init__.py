@@ -227,6 +227,7 @@ class Faidx(object):
         return 'Faidx("%s")' % (self.filename)
 
     def read_fai(self, split_char):
+        duplicate_ids = []
         with open(self.indexname) as index:
             for line in index:
                 line = line.strip()
@@ -235,10 +236,16 @@ class Faidx(object):
                 for key in rname:
                     if key in self.index and not split_char:
                         raise ValueError('Duplicate key "%s"' % rname)
-                    self.index[key] = IndexRecord(*map(int, (rlen,
-                                                               offset,
-                                                               lenc,
-                                                               lenb)))
+                    elif split_char:
+                        duplicate_ids.append(key)
+                        continue
+                    else:
+                        self.index[key] = IndexRecord(*map(int, (rlen,
+                                                                   offset,
+                                                                   lenc,
+                                                                   lenb)))
+            for dup in duplicate_ids:
+                self.index.pop(dup, None)
 
     def build_index(self):
         with open(self.filename, 'r') as fastafile:
