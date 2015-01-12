@@ -15,9 +15,13 @@ try:
 except ImportError: #python 2.6
     from ordereddict import OrderedDict
 from collections import namedtuple
+import re
 
 if PY2:
     import string
+
+dna_bases = re.compile(r'([ACTGNactgYRWSKMDVHBXyrwskmdvhbx]+)')
+
 
 class FastaIndexingError(Exception):
     def __init__(self, msg):
@@ -578,10 +582,14 @@ def complement(seq):
     'TAGCAT'
     """
     if PY3:
-        table = str.maketrans('ACTGNactg', 'TGACNtgac')
+        table = str.maketrans('ACTGNactgYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacRYWSMKHBDVXrywsmkhbdvx')
     elif PY2:
-        table = string.maketrans('ACTGNactg', 'TGACNtgac')
-    return str(seq).translate(table)
+        table = string.maketrans('ACTGNactgYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacRYWSMKHBDVXrywsmkhbdvx')
+    if len(re.findall(dna_bases, seq)) == 1:  # finds invalid characters if > 1
+        return str(seq).translate(table)
+    else:
+        raise ValueError("Sequence contains non-DNA characters: \n {0}".format(''.join(wrap_sequence(70, seq))))
+
 
 
 def translate_chr_name(from_name, to_name):
