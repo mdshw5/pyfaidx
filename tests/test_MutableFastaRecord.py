@@ -13,11 +13,11 @@ class TestMutableFastaRecord:
     def setup(self):
         self.genes_copy = NamedTemporaryFile(mode='wb', delete=False)
         self.genes_copy.write(open(self.genes, 'rb').read())
-        dup_name = self.genes_copy.name
         self.genes_copy.close()
         self.mutable_fasta = Fasta(self.genes_copy.name, mutable=True)
 
     def teardown(self):
+        self.mutable_fasta.__exit__()
         os.remove(self.mutable_fasta.filename)  # deletes temporary file
 
     def test_mutate_fasta_to_same(self):
