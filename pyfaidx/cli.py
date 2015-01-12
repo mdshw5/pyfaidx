@@ -76,9 +76,15 @@ def mask_sequence(args):
     regions_to_fetch, split_function = split_regions(args)
 
     for region in regions_to_fetch:
-        rname, start, end = split_function(line)
+        rname, start, end = split_function(region)
         if args.mask_with_default_seq:
-            fasta[rname][start:end] = (end - start) * args.default_seq
+            if start and end:
+                span = end - start
+            elif not start and not end:
+                span = len(fasta[rname])
+            else:
+                span = len(fasta[rname][start:end])
+            fasta[rname][start:end] = span * args.default_seq
         elif args.mask_by_case:
             fasta[rname][start:end] = fasta[rname][start:end].lowercase()
 
