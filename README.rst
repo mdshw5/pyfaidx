@@ -15,7 +15,7 @@ currently under preparation.
 Installation
 ------------
 
-This package is tested under Python 3.2-3.4, 2.7, 2.6, and pypy.
+This package is tested under Linux, MacOS, and Windows using Python 3.2-3.4, 2.7, 2.6, and pypy.
 
 ::
 
