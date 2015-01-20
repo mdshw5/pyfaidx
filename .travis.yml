@@ -22,3 +22,5 @@ deploy:
     python: 2.6
     tags: true
     repo: mdshw5/pyfaidx
+after_success:
+    - coveralls
