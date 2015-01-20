@@ -1,16 +1,23 @@
 from setuptools import setup
 import sys
-from pyfaidx import __version__
 
 install_requires = ['six']
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
     install_requires.extend(['ordereddict', 'argparse'])
 
 
+def get_version(string):
+    """ Parse the version number variable __version__ from a script. """
+    import re
+    version_re = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    version_str = re.search(version_re, string, re.M).group(1)
+    return version_str
+
+
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version=__version__,
+    version=get_version(open('pyfaidx/__init__.py').read()),
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
