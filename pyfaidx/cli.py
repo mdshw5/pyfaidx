@@ -39,7 +39,7 @@ def write_sequence(args):
     for region in regions_to_fetch:
         name, start, end = split_function(region)
         if args.split_files:  # open output file based on sequence name
-            filename = '.'.join(str(e) for e in (name, start + 1, end, ext) if e)
+            filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
             outfile = open(filename, 'w')
         else:
@@ -48,7 +48,7 @@ def write_sequence(args):
             for line in fetch_sequence(args, fasta, name, start, end):
                 outfile.write(line)
         except FetchError as e:
-            sys.stderr.write("Error! {0} Try setting --lazy.\n".format(e.msg.rstrip()))
+            raise FetchError(e.msg.rstrip() + "Try setting --lazy.\n")
         if args.split_files:
             outfile.close()
     fasta.__exit__()
