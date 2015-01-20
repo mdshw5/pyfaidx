@@ -5,9 +5,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
 
 from __future__ import division
-import sys
 import os
-import warnings
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
 try:
@@ -269,6 +267,7 @@ class Faidx(object):
                 blen = None  # binary line length (includes newline)
                 clen = None  # character line length
                 bad_lines = []  # lines > || < than blen
+                thisoffset = offset
                 for i, line in enumerate(fastafile):
                     line_blen = len(line)
                     line_clen = len(line.rstrip('\n\r'))
