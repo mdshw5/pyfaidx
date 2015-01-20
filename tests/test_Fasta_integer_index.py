@@ -7,7 +7,12 @@ os.chdir(path)
 class TestFastaIntIndex:
     fasta = Fasta(os.path.join(path, 'data/genes.fasta'))
 
-    def test_integer_index(self):
+    def test_integer_slice(self):
         expect = self.fasta['AB821309.1'][:100].seq
         result = self.fasta[0][:100].seq
+        assert expect == result
+
+    def test_integer_index(self):
+        expect = self.fasta['AB821309.1'][100].seq
+        result = self.fasta[0][100].seq
         assert expect == result
