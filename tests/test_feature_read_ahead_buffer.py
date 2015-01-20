@@ -29,3 +29,7 @@ class TestFeatureBuffer:
     @raises(FetchError)
     def test_bounds_error(self):
         result = self.genes_buffer['KF435150.1'][100-1:15000].seq.lower()
+
+    @raises(ValueError)
+    def test_buffer_value(self):
+        Fasta(self.fasta, read_ahead = 0.5)
