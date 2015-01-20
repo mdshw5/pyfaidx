@@ -100,6 +100,7 @@ def split_regions(args):
 
 
 def main():
+    from pyfaidx import __version__
     parser = argparse.ArgumentParser(description="Fetch sequences from FASTA. If no regions are specified, all entries in the input file are returned. Input FASTA file must be consistently line-wrapped, and line wrapping of output is based on input line lengths.")
     parser.add_argument('fasta', type=str, help='FASTA file')
     parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
@@ -115,17 +116,12 @@ def main():
     masking = parser.add_mutually_exclusive_group()
     masking.add_argument('--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using `--default-seq` default: %(default)s")
     masking.add_argument('--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
-    parser.add_argument('--version', type="store_true", default=False, help="print pyfaidx version number")
+    parser.add_argument('--version', action="version", version=__version__, help="print pyfaidx version number")
     # print help usage if no arguments are supplied
     if len(sys.argv)==1:
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
-
-    if args.version:
-        from pyfaidx import __version__
-        print(__version__)
-        sys.exit(0)
 
     if args.stats:
         for key, value in Faidx(args.fasta).index.items():
