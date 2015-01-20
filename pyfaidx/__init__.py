@@ -209,7 +209,7 @@ class Faidx(object):
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
         if read_ahead and isinstance(read_ahead, int):
             self.read_ahead = read_ahead
-        elif isinstance(read_ahead, int):
+        elif not isinstance(read_ahead, int):
             raise ValueError("read_ahead value must be int, not {0}".format(type(read_ahead)))
         elif not read_ahead:
             self.read_ahead = None
