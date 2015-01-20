@@ -1,5 +1,6 @@
 from setuptools import setup
 import sys
+from pyfaidx import __version__
 
 install_requires = ['six']
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
@@ -9,7 +10,7 @@ if sys.version_info[0] == 2 and sys.version_info[1] == 6:
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version='0.3.4',
+    version=__version__,
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',

@@ -22,6 +22,8 @@ if PY2:
 
 dna_bases = re.compile(r'([ACTGNactgYRWSKMDVHBXyrwskmdvhbx]+)')
 
+__version__ = '0.3.4'
+
 
 class FastaIndexingError(Exception):
     def __init__(self, msg):
@@ -350,6 +352,8 @@ class Faidx(object):
         4. Seek to start position, taking newlines into account
         5. Read to end position, return sequence
         """
+        assert isinstance(start, int)
+        assert isinstance(end, int)
         try:
             i = self.index[rname]
         except KeyError:
@@ -360,6 +364,8 @@ class Faidx(object):
             raise FetchError("Requested start coordinate must be greater than 1.")
         seq_len = end - start0
 
+
+        # Calculate offset (https://github.com/samtools/htslib/blob/20238f354894775ed22156cdd077bc0d544fa933/faidx.c#L398)
         newlines_total = int(i.rlen / i.lenc * (i.lenb - i.lenc))
         newlines_before = int((start0 - 1) / i.lenc *
                               (i.lenb - i.lenc)) if start0 > 0 else 0
