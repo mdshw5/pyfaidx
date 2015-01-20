@@ -29,32 +29,20 @@ class FastaIndexingError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
-    def __str__(self):
-        return repr(self.msg)
-
 
 class FetchError(Exception):
     def __init__(self, msg):
         self.msg = msg
-
-    def __str__(self):
-        return repr(self.msg)
 
 
 class BedError(Exception):
     def __init__(self, msg=None):
         self.msg = 'Malformed BED entry!\n' if not msg else msg
 
-    def __str__(self):
-        return repr(self.msg)
-
 
 class RegionError(Exception):
     def __init__(self, msg=None):
         self.msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
-
-    def __str__(self):
-        return repr(self.msg)
 
 
 class Sequence(object):
@@ -197,7 +185,6 @@ class Faidx(object):
         self.filename = filename
         if mutable:
             self.file = open(filename, 'r+b')
-            warnings.warn("FASTA mutability is experimental. Use it carefully!", FutureWarning)
         else:
             self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
@@ -258,63 +245,60 @@ class Faidx(object):
                 self.index.pop(dup, None)
 
     def build_index(self):
+
+        def check_bad_lines(rname, bad_lines, i):
+            if len(bad_lines) > 1:
+                raise FastaIndexingError("Line length of fasta"
+                                         " file is not "
+                                         "consistent! "
+                    "Inconsistent line found in >{0} at "
+                    "line {1:n}.".format(rname, bad_lines[0] + 1))
+            elif len(bad_lines) == 1:  # check that the line is previous line
+                if bad_lines[0] + 1 != i:
+                    raise FastaIndexingError("Line length of fasta"
+                                             " file is not "
+                                             "consistent! "
+                        "Inconsistent line found in >{0} at "
+                        "line {1:n}.".format(rname, bad_lines[0] + 1))
+
         with open(self.filename, 'r') as fastafile:
             with open(self.indexname, 'w') as indexfile:
                 rname = None  # reference sequence name
                 offset = 0  # binary offset of end of current line
                 rlen = 0  # reference character length
-                blen = 0  # binary line length (includes newline)
-                clen = 0  # character line length
-                short_lines = []  # lines shorter than blen
-                line_number = 0
-                for line in fastafile:
+                blen = None  # binary line length (includes newline)
+                clen = None  # character line length
+                bad_lines = []  # lines > || < than blen
+                for i, line in enumerate(fastafile):
                     line_blen = len(line)
                     line_clen = len(line.rstrip('\n\r'))
-                    if (line[0] == '>') and (rname is None):
-                        rname = line.rstrip()[1:].split()[0]
-                        offset += line_blen
-                        thisoffset = offset
-                    elif line[0] != '>':
-                        if blen == 0:
-                            blen = line_blen
-                        # only one short line should be allowed
-                        # before we hit the next header
-                        elif line_clen == 0:
-                            sys.stderr.write("Warning: blank line in >{0} at "
-                                             "line {1:n}.".format(rname,
-                                                                  line_number +
-                                                                  1))
-                        elif blen > line_blen:
-                            short_lines.append(line_number)
-                            if len(short_lines) > 1:
-                                raise FastaIndexingError("Line length of fasta"
-                                                         " file is not "
-                                                         "consistent! "
-                                    "Early short line found in >{0} at "
-                                    "line {1:n}.".format(rname,
-                                                         short_lines[0] + 1))
-                        elif blen < line_blen:
-                            raise FastaIndexingError("Line length of fasta "
-                                                     "file is not consistent! "
-                                                     "Long line found in >{0} "
-                                                     "at line {1:n}."
-                                                     "".format(rname,
-                                                               line_number +
-                                                               1))
-                        offset += line_blen
-                        if clen == 0:
-                            clen = line_clen
-                        rlen += line_clen
-                    elif (line[0] == '>') and (rname is not None):
-                        indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
-                        blen = 0
+                    # write an index line
+                    if line[0] == '>':
+                        check_bad_lines(rname, bad_lines, i)  # raises errors
+                        if i > 0:
+                            indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                        blen = None
                         rlen = 0
-                        clen = 0
-                        short_lines = []
+                        clen = None
+                        bad_lines = []
                         rname = line.rstrip()[1:].split()[0]
                         offset += line_blen
                         thisoffset = offset
-                    line_number += 1
+                    else:  # check line and advance offset
+                        if not blen:
+                            blen = line_blen
+                        if not clen:
+                            clen = line_clen
+                        # only one short line should be allowed
+                        # before we hit the next header, and it
+                        # should be the last line in the entry
+                        if line_blen != blen or line_blen == 0:
+                            bad_lines.append(i)
+                        offset += line_blen
+                        rlen += line_clen
+
+                # write the final index line
+                check_bad_lines(rname, bad_lines, i + 1)  # advance index since we're at the end of the file
                 indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def write_fai(self):
@@ -614,7 +598,7 @@ def translate_chr_name(from_name, to_name):
 def bed_split(bed_entry):
     try:
         rname, start, end = bed_entry.rstrip().split()[:3]
-    except IndexError:
+    except (IndexError, ValueError):
         raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
     start, end = (int(start), int(end))
     return (rname, start, end)
