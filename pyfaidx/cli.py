@@ -124,7 +124,7 @@ def main(ext_args=None):
     elif ext_args:
         args = parser.parse_args(ext_args)
     else:
-        args = parser.parse_args(sys.argv)
+        args = parser.parse_args()
 
     if args.stats:
         for key, value in Faidx(args.fasta).index.items():
