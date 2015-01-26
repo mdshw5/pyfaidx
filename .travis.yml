@@ -10,9 +10,9 @@ python:
 - pypy3
 install:
 - pip wheel cython
-- pip install cython
+- pip install -f wheelhouse cython
 - pip wheel pysam
-- pip install pysam https://github.com/brentp/fastahack-python/archive/master.zip
+- pip install -f wheelhouse pysam https://github.com/brentp/fastahack-python/archive/master.zip
 - pip install pyfasta
 - pip install biopython || true
 - pip install -e .
