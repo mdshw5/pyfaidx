@@ -9,6 +9,8 @@ python:
 - pypy
 - pypy3
 install:
+- pip wheel cython pysam fastahack
+- pip install pyfasta
 - pip install biopython || true
 - pip install -e .
 - pip install coveralls
@@ -23,5 +25,7 @@ deploy:
     python: 2.6
     tags: true
     repo: mdshw5/pyfaidx
+cache:
+    - wheelhouse
 after_success:
     - coveralls
