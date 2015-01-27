@@ -11,6 +11,7 @@ from Bio import SeqIO
 import time
 import random
 import os
+import sys
 from subprocess import call, check_output
 
 
@@ -23,7 +24,7 @@ def mean(s):
     return sum(s) / len(s)
 
 
-def make_intervals(nreads=40000, seqlen=SEQLEN, readlen=1000):
+def make_intervals(nreads=int(sys.argv[1]), seqlen=SEQLEN, readlen=int(sys.argv[2])):
     for _ in range(nreads):
         start = random.randint(0, seqlen)
         end = min(seqlen, start + readlen)
