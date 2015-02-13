@@ -18,7 +18,7 @@ import re
 if PY2:
     import string
 
-dna_bases = re.compile(r'([ACTGNactgYRWSKMDVHBXyrwskmdvhbx]+)')
+dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
 __version__ = '0.3.4'
 
@@ -575,13 +575,15 @@ def complement(seq):
     'TAGCAT'
     """
     if PY3:
-        table = str.maketrans('ACTGNactgYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacRYWSMKHBDVXrywsmkhbdvx')
+        table = str.maketrans('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
     elif PY2:
-        table = string.maketrans('ACTGNactgYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacRYWSMKHBDVXrywsmkhbdvx')
+        table = string.maketrans('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
     if len(re.findall(dna_bases, seq)) == 1:  # finds invalid characters if > 1
         return str(seq).translate(table)
     else:
-        raise ValueError("Sequence contains non-DNA characters: \n {0}".format(''.join(wrap_sequence(70, seq))))
+        matches = re.findall(dna_bases, seq)
+        position = len(matches[0])
+        raise ValueError("Sequence contains non-DNA character '{0}' at position {1:n}\n".format(seq[position], position + 1))
 
 
 
