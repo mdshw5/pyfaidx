@@ -24,24 +24,22 @@ __version__ = '0.3.5'
 
 
 class FastaIndexingError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
+    pass
 
 
 class FetchError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
+    pass
 
 
 class BedError(Exception):
     def __init__(self, msg=None):
-        self.msg = 'Malformed BED entry!\n' if not msg else msg
-
+        msg = 'Malformed BED entry!\n' if not msg else msg
+        super(BedError, self).__init__(msg)
 
 class RegionError(Exception):
     def __init__(self, msg=None):
-        self.msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
-
+        msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
+        super(RegionError, self).__init__(msg)
 
 class Sequence(object):
     """
