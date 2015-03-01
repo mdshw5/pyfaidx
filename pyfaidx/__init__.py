@@ -6,6 +6,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 import os
+from os.path import getmtime
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
 try:
@@ -203,7 +204,7 @@ class Faidx(object):
 
         self.mutable = mutable
 
-        if os.path.exists(self.indexname):
+        if os.path.exists(self.indexname) and getmtime(self.indexname) > getmtime(self.filename):
             self.read_fai(split_char)
         else:
             try:

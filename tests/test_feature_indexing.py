@@ -1,4 +1,5 @@
 import os
+from os.path import getmtime
 from pyfaidx import Faidx, FastaIndexingError
 from nose.tools import raises
 
@@ -52,3 +53,12 @@ class TestIndexing:
     @raises(FastaIndexingError)
     def test_long_line_lengths(self):
         Faidx('data/long_line.fasta')
+
+    def test_reindex_on_modification(self):
+        """ This test ensures that the index is regenerated when the FASTA
+        modification time is newer than the index modification time.
+        mdshw5/pyfaidx#50 """
+        index_mtime = getmtime(self.fai)
+        os.utime(self.fasta, (index_mtime + 10, ) * 2)
+        Faidx(self.fasta)
+        assert getmtime(self.fai) > index_mtime
