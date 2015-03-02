@@ -1,19 +1,27 @@
 import os
 from pyfaidx import Fasta
+from itertools import chain
+from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
 
-class TestFastaRecordIter:
-    def __init__(self):
-        self.genes = os.path.join(path, 'data/genes.fasta')
-        self.fasta = Fasta(self.genes)
+class TestFastaRecordIter(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except EnvironmentError:
+            pass  # some tests may delete this file
 
     def test_fetch_whole_fasta(self):
-        expect = open(self.genes).read()
-        result = ''.join(['>' + record.name + '\n' + ''.join([line.seq + '\n' for line in record]) for record in self.fasta]).rstrip()
+        expect = [line.rstrip('\n') for line in open('data/genes.fasta') if line[0] != '>']
+        result = list(chain(*([line for line in record] for record in Fasta('data/genes.fasta', as_raw=True))))
         assert expect == result
 
     def test_line_len(self):
-        for record in self.fasta:
-            assert len(next(iter(record))) == self.fasta.faidx.index[record.name].lenc
+        fasta = Fasta('data/genes.fasta')
+        for record in fasta:
+            assert len(next(iter(record))) == fasta.faidx.index[record.name].lenc

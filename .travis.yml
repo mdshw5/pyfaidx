@@ -1,17 +1,20 @@
 language: python
-sudo: false
 python:
-- '3.4'
-- '3.3'
-- '3.2'
-- '2.7'
-- '2.6'
-- pypy
-- pypy3
+    - '3.4'
+    - '3.3'
+    - '3.2'
+    - '2.7'
+    - '2.6'
+    - pypy
+    - pypy3
 install:
-- pip install biopython || true
-- pip install -e .
-- pip install coveralls
+    - pip install biopython || true
+    - pip install -e .
+    - pip install coveralls
+before_script:
+    - sudo apt-get update -qq
+    - sudo apt-get install -y python-biopython
+    - if [ ! -e "tests/data/genes.fasta" ]; then /usr/bin/python tests/data/download_gene_fasta.py; fi
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi
@@ -25,5 +28,7 @@ deploy:
     repo: mdshw5/pyfaidx
 cache:
     - wheelhouse
+    - tests/data
+    - apt
 after_success:
     - coveralls

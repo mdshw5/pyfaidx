@@ -6,6 +6,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 import os
+from os.path import getmtime
 from six import PY2, PY3, string_types
 from six.moves import zip_longest
 try:
@@ -20,7 +21,7 @@ if PY2:
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 
 
 class FastaIndexingError(Exception):
@@ -44,7 +45,7 @@ class BedError(Exception):
 class RegionError(Exception):
     def __init__(self, msg=None):
         self.msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
-        super(RegionError, self).__init__(self.msg)        
+        super(RegionError, self).__init__(self.msg)
 
 
 class Sequence(object):
@@ -203,7 +204,7 @@ class Faidx(object):
 
         self.mutable = mutable
 
-        if os.path.exists(self.indexname):
+        if os.path.exists(self.indexname) and getmtime(self.indexname) > getmtime(self.filename):
             self.read_fai(split_char)
         else:
             try:
@@ -295,7 +296,7 @@ class Faidx(object):
                         # only one short line should be allowed
                         # before we hit the next header, and it
                         # should be the last line in the entry
-                        if line_blen != blen or line_blen == 0:
+                        if line_blen != blen or line_blen == 1:
                             bad_lines.append(i)
                         offset += line_blen
                         rlen += line_clen
@@ -419,6 +420,9 @@ class Faidx(object):
                     n = m
                     m += line_len
                 self.file.write(seq[n:].encode())
+
+    def close(self):
+        self.__exit__()
 
     def __enter__(self):
         return self
