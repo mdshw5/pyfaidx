@@ -13,7 +13,8 @@ install:
     - pip install -e .
     - pip install coveralls
 before_script:
-    - python tests/data/download_gene_fasta.py
+    - /usr/bin/pip install --user biopython
+    - /usr/bin/python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi

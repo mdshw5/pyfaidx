@@ -14,7 +14,7 @@ class TestFeatureSplitChar(TestCase):
     def tearDown(self):
         try:
             os.remove('data/genes.fasta.fai')
-        except FileNotFoundError:
+        except IOError:
             pass  # some tests may delete this file
 
     def test_keys(self):
