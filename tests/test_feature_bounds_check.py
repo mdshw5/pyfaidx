@@ -13,7 +13,7 @@ class TestFeatureBoundsCheck:
     def tearDown(self):
         try:
             os.remove('data/genes.fasta.fai')
-        except IOError:
+        except EnvironmentError:
             pass  # some tests may delete this file
 
     def test_fetch_whole_entry(self):

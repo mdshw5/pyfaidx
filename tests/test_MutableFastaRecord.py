@@ -15,15 +15,15 @@ class TestMutableFastaRecord(TestCase):
     def tearDown(self):
         try:
             os.remove('data/genes.fasta.fai')
-        except IOError:
+        except EnvironmentError:
             pass  # some tests may delete this file
         try:
             os.remove('data/genes_mutable.fasta')
-        except IOError:
+        except EnvironmentError:
             pass  # some tests may delete this file
         try:
             os.remove('data/genes_mutable.fasta.fai')
-        except IOError:
+        except EnvironmentError:
             pass  # some tests may delete this file
 
     def test_mutate_fasta_to_same(self):

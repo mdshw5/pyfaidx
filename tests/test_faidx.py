@@ -15,7 +15,7 @@ class TestCLI(TestCase):
     def tearDown(self):
         try:
             os.remove('data/genes.fasta.fai')
-        except IOError:
+        except EnvironmentError:
             pass  # some tests may delete this file
 
     @raises(BedError)
