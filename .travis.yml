@@ -1,5 +1,4 @@
 language: python
-sudo: false
 python:
     - '3.4'
     - '3.3'
@@ -13,7 +12,8 @@ install:
     - pip install -e .
     - pip install coveralls
 before_script:
-    - /usr/bin/pip install --user biopython
+    - sudo apt-get update -qq
+    - sudo apt-get install -y python-biopython
     - /usr/bin/python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
