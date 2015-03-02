@@ -29,5 +29,6 @@ deploy:
 cache:
     - wheelhouse
     - tests/data
+    - apt
 after_success:
     - coveralls
