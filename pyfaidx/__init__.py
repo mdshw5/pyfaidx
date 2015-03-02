@@ -45,7 +45,7 @@ class BedError(Exception):
 class RegionError(Exception):
     def __init__(self, msg=None):
         self.msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
-        super(RegionError, self).__init__(self.msg)        
+        super(RegionError, self).__init__(self.msg)
 
 
 class Sequence(object):
@@ -296,7 +296,7 @@ class Faidx(object):
                         # only one short line should be allowed
                         # before we hit the next header, and it
                         # should be the last line in the entry
-                        if line_blen != blen or line_blen == 0:
+                        if line_blen != blen or line_blen == 1:
                             bad_lines.append(i)
                         offset += line_blen
                         rlen += line_clen
@@ -420,6 +420,9 @@ class Faidx(object):
                     n = m
                     m += line_len
                 self.file.write(seq[n:].encode())
+
+    def close(self):
+        self.__exit__()
 
     def __enter__(self):
         return self

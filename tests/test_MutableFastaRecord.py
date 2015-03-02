@@ -1,31 +1,40 @@
 import os
 from pyfaidx import Fasta
 from tempfile import NamedTemporaryFile
+from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
 
-class TestMutableFastaRecord:
-    def __init__(self):
-        self.genes = os.path.join(path, 'data/genes.fasta')
-        self.fasta = Fasta(self.genes)
+class TestMutableFastaRecord(TestCase):
+    def setUp(self):
+        with open('data/genes_mutable.fasta', 'wb') as mutable:
+            mutable.write(open('data/genes.fasta', 'rb').read())
+        self.mutable_fasta = Fasta('data/genes_mutable.fasta', mutable=True)
 
-    def setup(self):
-        self.genes_copy = NamedTemporaryFile(mode='wb', delete=False)
-        self.genes_copy.write(open(self.genes, 'rb').read())
-        self.genes_copy.close()
-        self.mutable_fasta = Fasta(self.genes_copy.name, mutable=True)
-
-    def teardown(self):
-        self.mutable_fasta.__exit__()
-        os.remove(self.mutable_fasta.filename)  # deletes temporary file
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except FileNotFoundError:
+            pass  # some tests may delete this file
+        try:
+            os.remove('data/genes_mutable.fasta')
+        except FileNotFoundError:
+            pass  # some tests may delete this file
+        try:
+            os.remove('data/genes_mutable.fasta.fai')
+        except FileNotFoundError:
+            pass  # some tests may delete this file
 
     def test_mutate_fasta_to_same(self):
-        chunk = self.fasta['KF435150.1'][0:100]
-        self.mutable_fasta['KF435150.1'][0:100] = chunk.seq
-        assert str(self.fasta['KF435150.1']) == str(self.mutable_fasta['KF435150.1'])
+        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+        fasta = Fasta('data/genes.fasta', mutable=False)
+        chunk = fasta['gi|557361099|gb|KF435150.1|'][0:100]
+        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk.seq
+        assert str(fasta['gi|557361099|gb|KF435150.1|']) == str(mutable['gi|557361099|gb|KF435150.1|'])
 
     def test_mutate_fasta_to_N(self):
+        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
         chunk = 100 * 'N'
-        self.mutable_fasta['KF435150.1'][0:100] = chunk
-        assert self.mutable_fasta['KF435150.1'][0:100].seq == chunk
+        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
+        assert mutable['gi|557361099|gb|KF435150.1|'][0:100].seq == chunk

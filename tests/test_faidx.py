@@ -2,16 +2,21 @@ import os
 from pyfaidx import FastaIndexingError, BedError, FetchError
 from pyfaidx.cli import main
 from nose.tools import raises
+from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
 
 
-class TestCLI:
+class TestCLI(TestCase):
+    def setUp(self):
+        pass
 
-    @raises(FastaIndexingError)
-    def test_short_line_lengths(self):
-        main(['data/short_line.fasta'])
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except FileNotFoundError:
+            pass  # some tests may delete this file
 
     @raises(BedError)
     def test_short_line_lengths(self):
@@ -21,10 +26,10 @@ class TestCLI:
         main(['data/genes.fasta'])
 
     def test_split_entry(self):
-        main(['--split-files', 'data/genes.fasta', 'KF435150.1'])
-        assert os.path.exists('KF435150.1.fasta')
-        os.remove('KF435150.1.fasta')
+        main(['--split-files', 'data/genes.fasta', 'gi|557361099|gb|KF435150.1|'])
+        assert os.path.exists('gi557361099gbKF435150.1.fasta')
+        os.remove('gi557361099gbKF435150.1.fasta')
 
     @raises(FetchError)
     def test_fetch_error(self):
-        main(['data/genes.fasta', 'KF435150.1:1-1000'])
+        main(['data/genes.fasta', 'gi|557361099|gb|KF435150.1|:1-1000'])

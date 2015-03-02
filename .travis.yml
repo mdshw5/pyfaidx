@@ -1,17 +1,19 @@
 language: python
 sudo: false
 python:
-- '3.4'
-- '3.3'
-- '3.2'
-- '2.7'
-- '2.6'
-- pypy
-- pypy3
+    - '3.4'
+    - '3.3'
+    - '3.2'
+    - '2.7'
+    - '2.6'
+    - pypy
+    - pypy3
 install:
-- pip install biopython || true
-- pip install -e .
-- pip install coveralls
+    - pip install biopython || true
+    - pip install -e .
+    - pip install coveralls
+before_script:
+    - python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi

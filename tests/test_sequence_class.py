@@ -1,10 +1,10 @@
 from pyfaidx import Sequence, complement
 from nose.tools import assert_raises, raises
 
-seq = Sequence(name='KF435150.1', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
+seq = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
                     start=100, end=150)
 
-seq_invalid = Sequence(name='KF435150.1', seq='TTGAAGATTTPGCATGCAGCAGGTGCGCAAGGTGAAATNTTCACTGTTAAA',
+seq_invalid = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTPGCATGCAGCAGGTGCGCAAGGTGAAATNTTCACTGTTAAA',
                     start=100, end=150)
 
 comp_valid = 'TTGAAGATTTnGCATGCAGCAGGtgccaAGGTGAAATGTTNACTGTTAAA'

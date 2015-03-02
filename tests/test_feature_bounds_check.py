@@ -1,17 +1,23 @@
 import os
 from pyfaidx import Faidx, FetchError
 from nose.tools import raises
+from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
 
 class TestFeatureBoundsCheck:
-    def __init__(self):
-        self.fasta = os.path.join(path, 'data/genes.fasta')
-        self.faidx = Faidx(self.fasta)
-        self.faidx_strict = Faidx(self.fasta, strict_bounds=True)
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except FileNotFoundError:
+            pass  # some tests may delete this file
 
     def test_fetch_whole_entry(self):
+        faidx = Faidx('data/genes.fasta')
         expect = ('ATGACATCATTTTCCACCTCTGCTCAGTGTTCAACATCTGA'
                 'CAGTGCTTGCAGGATCTCTCCTGGACAAATCAATCAGGTACGACCA'
                 'AAACTGCCGCTTTTGAAGATTTTGCATGCAGCAGGTGCGCAAGG'
@@ -22,38 +28,43 @@ class TestFeatureBoundsCheck:
                 'AGCCACTGCTACTACAGCAAAGTGCAGAGGAAAGTTCCACTTCCAGAAAAA'
                 'GAACTACAGAAGACGATATCCCCACACTGCCTACCTCAGAGCATAAATGCA'
                 'TACATTCTAGAGAAGGTGATTGAAGTGGGAAAAAATGATGACCTGGAGGACTC')
-        result = self.faidx.fetch('KF435150.1',
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              1, 482)
         assert str(result) == expect
 
     def test_fetch_middle(self):
+        faidx = Faidx('data/genes.fasta')
         expect = 'TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA'
-        result = self.faidx.fetch('KF435150.1',
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              100, 150)
         assert str(result) == expect
 
     def test_fetch_end(self):
+        faidx = Faidx('data/genes.fasta')
         expect = 'TC'
-        result = self.faidx.fetch('KF435150.1',
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              480, 482)
         assert str(result) == expect
 
     def test_fetch_border(self):
         """ Fetch past the end of a gene entry """
+        faidx = Faidx('data/genes.fasta')
         expect = 'TC'
-        result = self.faidx.fetch('KF435150.1',
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              480, 500)
         assert str(result) == expect
 
     def test_rev(self):
+        faidx = Faidx('data/genes.fasta')
         expect = 'GA'
-        result = self.faidx.fetch('KF435150.1',
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              480, 482)
         assert str(-result) == expect, result
 
     @raises(FetchError)
     def test_fetch_past_bounds(self):
         """ Fetch past the end of a gene entry """
+        faidx = Faidx('data/genes.fasta', strict_bounds=True)
         expect = 'TC'
-        result = self.faidx_strict.fetch('KF435150.1',
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          480, 5000)

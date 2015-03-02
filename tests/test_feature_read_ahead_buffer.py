@@ -1,35 +1,44 @@
 import os
 from pyfaidx import Faidx, Fasta, FetchError
 from nose.tools import raises
+from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
 
-class TestFeatureBuffer:
-    def __init__(self):
-        self.fasta = os.path.join(path, 'data/genes.fasta')
-        self.genes_buffer = Fasta(self.fasta, read_ahead=300, strict_bounds=True)
-        self.genes = Fasta(self.fasta)
+class TestFeatureBuffer(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except FileNotFoundError:
+            pass  # some tests may delete this file
 
     def test_buffer_false(self):
+        fasta = Fasta('data/genes.fasta', strict_bounds=True)
         expect = 'TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA'.lower()
-        result = self.genes['KF435150.1'][100-1:150].seq.lower()
+        result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].seq.lower()
         assert result == expect
 
     def test_buffer_true(self):
+        fasta = Fasta('data/genes.fasta', read_ahead=300, strict_bounds=True)
         expect = 'TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA'.lower()
-        result = self.genes_buffer['KF435150.1'][100-1:150].seq.lower()
+        result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].seq.lower()
         assert result == expect
 
     def test_buffer_exceed(self):
+        fasta = Fasta('data/genes.fasta', read_ahead=300, strict_bounds=True)
         expect = 'atgacatcattttccacctctgctcagtgttcaacatctgacagtgcttgcaggatctctcctggacaaatcaatcaggtacgaccaaaactgccgcttttgaagattttgcatgcagcaggtgcgcaaggtgaaatgttcactgttaaagaggtcatgcactatttaggtcagtacataatggtgaagcaactttatgatcagcaggagcagcatatggtatattgtggtggagatcttttgggagaactactgggacgtcagagcttctccgtgaaagacccaagccctctctatgatatgctaagaaagaatcttgtcactttagccactgctactacagcaaagtgcagaggaaagttccacttccagaaaaagaactacagaagacgatatcccc'
-        result = self.genes_buffer['KF435150.1'][0:400].seq.lower()
+        result = fasta['gi|557361099|gb|KF435150.1|'][0:400].seq.lower()
         assert result == expect
 
     @raises(FetchError)
     def test_bounds_error(self):
-        result = self.genes_buffer['KF435150.1'][100-1:15000].seq.lower()
+        fasta = Fasta('data/genes.fasta', read_ahead=300, strict_bounds=True)
+        result = fasta['gi|557361099|gb|KF435150.1|'][100-1:15000].seq.lower()
 
     @raises(ValueError)
     def test_buffer_value(self):
-        Fasta(self.fasta, read_ahead = 0.5)
+        Fasta('data/genes.fasta', read_ahead=0.5)
