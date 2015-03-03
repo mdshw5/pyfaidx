@@ -2,6 +2,7 @@ import os
 from pyfaidx import Fasta
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
+from nose.tools import raises
 
 path = os.path.dirname(__file__)
 os.chdir(path)
@@ -38,3 +39,21 @@ class TestMutableFastaRecord(TestCase):
         chunk = 100 * 'N'
         mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
         assert mutable['gi|557361099|gb|KF435150.1|'][0:100].seq == chunk
+
+    def test_mutate_single_position(self):
+        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+        chunk = 'N'
+        mutable['gi|557361099|gb|KF435150.1|'][0] = chunk
+        assert mutable['gi|557361099|gb|KF435150.1|'][0].seq == chunk
+
+    @raises(TypeError)
+    def test_mutate_immutable_fasta(self):
+        mutable = Fasta('data/genes_mutable.fasta', mutable=False)
+        chunk = 100 * 'N'
+        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
+
+    @raises(IOError)
+    def test_mutate_too_long(self):
+        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+        chunk = 101 * 'N'
+        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk

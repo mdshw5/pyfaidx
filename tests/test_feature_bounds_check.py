@@ -65,6 +65,26 @@ class TestFeatureBoundsCheck:
     def test_fetch_past_bounds(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta', strict_bounds=True)
-        expect = 'TC'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          480, 5000)
+
+    @raises(FetchError)
+    def test_fetch_negative(self):
+        """ Fetch starting with a negative coordinate """
+        faidx = Faidx('data/genes.fasta', strict_bounds=True)
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
+                                         -10, 10)
+
+    @raises(FetchError)
+    def test_fetch_reversed_coordinates(self):
+        """ Fetch starting with a negative coordinate """
+        faidx = Faidx('data/genes.fasta', strict_bounds=True)
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
+                                         50, 10)
+
+    @raises(FetchError)
+    def test_fetch_keyerror(self):
+        """ Fetch a key that does not exist """
+        faidx = Faidx('data/genes.fasta', strict_bounds=True)
+        result = faidx.fetch('gi|joe|gb|KF435150.1|',
+                                         1, 10)
