@@ -9,7 +9,7 @@ python:
     - pypy3
 install:
     - pip install biopython || true
-    - pip install -e .
+    - python setup.py install
     - pip install coveralls
 before_script:
     - sudo apt-get update -qq
@@ -30,5 +30,6 @@ cache:
     - wheelhouse
     - tests/data
     - apt
+    - pip
 after_success:
     - coveralls
