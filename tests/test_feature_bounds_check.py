@@ -1,5 +1,5 @@
 import os
-from pyfaidx import Faidx, FetchError
+from pyfaidx import Faidx, Fasta, FetchError
 from nose.tools import raises
 from unittest import TestCase
 
@@ -88,3 +88,16 @@ class TestFeatureBoundsCheck:
         faidx = Faidx('data/genes.fasta', strict_bounds=True)
         result = faidx.fetch('gi|joe|gb|KF435150.1|',
                                          1, 10)
+
+    def test_blank_string(self):
+        """ seq[0:0] should return a blank string mdshw5/pyfaidx#53 """
+        fasta = Fasta('data/genes.fasta', as_raw=True)
+        assert fasta['gi|557361099|gb|KF435150.1|'][0:0] == ''
+
+    def test_slice_from_beginning(self):
+        fasta = Fasta('data/genes.fasta', as_raw=True)
+        assert fasta['gi|557361099|gb|KF435150.1|'][:4] == 'ATGA'
+
+    def test_slice_from_end(self):
+        fasta = Fasta('data/genes.fasta', as_raw=True)
+        assert fasta['gi|557361099|gb|KF435150.1|'][-4:] == 'ACTC'

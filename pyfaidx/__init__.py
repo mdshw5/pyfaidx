@@ -444,9 +444,9 @@ class FastaRecord(object):
         try:
             if isinstance(n, slice):
                 start, stop, step = n.start, n.stop, n.step
-                if not start:
+                if start is None:
                     start = 0
-                if not stop:
+                if stop is None:
                     stop = len(self)
                 if stop < 0:
                     stop = len(self) + stop
