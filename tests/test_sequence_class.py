@@ -22,6 +22,12 @@ def test_negate_metadata():
 def test_seq_invalid():
     assert_raises(ValueError, lambda: seq_invalid.complement)
 
+def test_integer_index():
+    assert seq[1].seq == 'T'
+
+def test_slice_index():
+    assert seq[0:10].seq == 'TTGAAGATTT'
+
 @raises(ValueError)
 def test_comp_invalid():
     complement(comp_invalid)
