@@ -168,6 +168,25 @@ You can also perform line-based iteration, receiving the sequence lines as they 
     CGATGCCGGATAATCGGCAGCCGAGGAACCGGCAGCCGAGGATCCGCTCCGGGAACGAGCCTCGTTCCGC
     ...
 
+Sequence names are truncated on any whitespace. This is a limitation of the indexing strategy. However, full names can be recovered:
+
+.. code:: python
+
+    # new in v0.3.7
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta')
+    >>> for record in genes:
+    ...   print(record.name)
+    ...   print(record.long_name)
+    ...
+    gi|563317589|dbj|AB821309.1|
+    gi|563317589|dbj|AB821309.1| Homo sapiens FGFR2-AHCYL1 mRNA for FGFR2-AHCYL1 fusion kinase protein, complete cds
+    gi|557361099|gb|KF435150.1|
+    gi|557361099|gb|KF435150.1| Homo sapiens MDM4 protein variant Y (MDM4) mRNA, complete cds, alternatively spliced
+    gi|557361097|gb|KF435149.1|
+    gi|557361097|gb|KF435149.1| Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
+    ...
+
 .. role:: red
 
 If you want to modify the contents of your FASTA file in-place, you can use the `mutable` argument.

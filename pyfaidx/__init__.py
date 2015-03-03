@@ -21,7 +21,7 @@ if PY2:
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.3.6'
+__version__ = '0.3.7'
 
 
 class FastaIndexingError(Exception):
