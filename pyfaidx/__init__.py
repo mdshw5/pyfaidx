@@ -483,6 +483,20 @@ class FastaRecord(object):
     def __str__(self):
         return str(self[:])
 
+    @property
+    def long_name(self):
+        """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
+        seqnames = tuple(self._fa.keys())
+        seqname_i = seqnames.index(self.name)
+        if seqname_i > 0:
+            seqname_p = seqnames[seqname_i - 1]  # previous seqname
+            _, internals = self._fa.faidx.from_file(seqname_p, 1, 1, internals=True)
+            defline_start = internals['bend'] + 1
+        elif seqname_i == 0:
+            defline_start = 0
+        defline_end = self._fa.faidx.index[self.name].offset
+        self._fa.faidx.file.seek(defline_start)
+        return self._fa.faidx.file.read(defline_end - defline_start).decode()[1:-1]
 
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):

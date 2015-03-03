@@ -7,6 +7,31 @@ from nose.tools import raises
 path = os.path.dirname(__file__)
 os.chdir(path)
 
+class TestFastaRecord(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except EnvironmentError:
+            pass  # some tests may delete this file
+
+    def test_long_names(self):
+        """ Test that deflines extracted using FastaRecord.long_name are
+        identical to deflines in the actual file.
+        """
+        deflines = []
+        with open('data/genes.fasta') as fasta_file:
+            for line in fasta_file:
+                if line[0] == '>':
+                    deflines.append(line[1:-1])
+        fasta = Fasta('data/genes.fasta')
+        long_names = []
+        for record in fasta:
+            long_names.append(record.long_name)
+        assert deflines == long_names
+
 class TestMutableFastaRecord(TestCase):
     def setUp(self):
         with open('data/genes_mutable.fasta', 'wb') as mutable:
