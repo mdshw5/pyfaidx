@@ -176,7 +176,7 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, split_char=None, filt_function=None)):
+                 mutable=False, split_char=None, filt_function=None):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -257,15 +257,15 @@ class Faidx(object):
                 raise FastaIndexingError("Line length of fasta"
                                          " file is not "
                                          "consistent! "
-                    "Inconsistent line found in >{0} at "
-                    "line {1:n}.".format(rname, bad_lines[0] + 1))
+                                         "Inconsistent line found in >{0} at "
+                                         "line {1:n}.".format(rname, bad_lines[0] + 1))
             elif len(bad_lines) == 1:  # check that the line is previous line
                 if bad_lines[0] + 1 != i:
                     raise FastaIndexingError("Line length of fasta"
                                              " file is not "
                                              "consistent! "
-                        "Inconsistent line found in >{0} at "
-                        "line {1:n}.".format(rname, bad_lines[0] + 1))
+                                             "Inconsistent line found in >{0} at "
+                                             "line {1:n}.".format(rname, bad_lines[0] + 1))
 
         with open(self.filename, 'r') as fastafile:
             with open(self.indexname, 'w') as indexfile:
