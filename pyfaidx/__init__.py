@@ -176,7 +176,7 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, split_char=None):
+                 mutable=False, split_char=None, filt_function=None)):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -192,6 +192,7 @@ class Faidx(object):
             self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
         self.key_function = key_function if key_function else lambda rname: rname
+        self.filt_function = filt_function if filt_function else lambda x: True
         self.as_raw = as_raw
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
@@ -233,6 +234,8 @@ class Faidx(object):
                 line = line.strip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
                 rname = self.key_function(rname).split(split_char)
+                if not self.filt_function(rname):
+                    continue
                 for key in rname:
                     if key in self.index and not split_char:
                         raise ValueError('Duplicate key "%s"' % rname)
@@ -530,7 +533,7 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False, split_char=None):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False, split_char=None, filt_function=None):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
@@ -539,7 +542,8 @@ class Fasta(object):
         self.mutable = mutable
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            default_seq=default_seq, strict_bounds=strict_bounds,
-                           read_ahead=read_ahead, mutable=mutable, split_char=split_char)
+                           read_ahead=read_ahead, mutable=mutable, split_char=split_char,
+                           filt_function=filt_function)
         self.keys = self.faidx.index.keys
         if not self.mutable:
             self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
