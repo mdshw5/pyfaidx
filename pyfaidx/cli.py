@@ -21,6 +21,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 import argparse
 import sys
 import os.path
+import re
 from pyfaidx import Faidx, Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
 
 keepcharacters = (' ', '.', '_')
@@ -30,7 +31,8 @@ def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
     if ext:
         ext = ext[1:]  # remove the dot from extension
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy, split_char=args.delimiter)
+    filt_function = re.compile(args.regex).search
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
@@ -105,17 +107,18 @@ def main(ext_args=None):
     parser.add_argument('fasta', type=str, help='FASTA file')
     parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
-    parser.add_argument('--stats', action="store_true", default=False, help="print basic stats about the file. default: %(default)s")
+    parser.add_argument('-i', '--stats', action="store_true", default=False, help="print basic stats FASTA sequences. default: %(default)s")
     parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
-    parser.add_argument('-n', '--no-names', action="store_true", default=False, help="print sequences without names. default: %(default)s")
-    parser.add_argument('--split-files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
-    parser.add_argument('--lazy', action="store_true", default=False, help="lazy region bounds checking - fill in default_seq for missing ranges. default: %(default)s")
-    parser.add_argument('--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')
+    parser.add_argument('-n', '--no-names', action="store_true", default=False, help="omit sequence names from output. default: %(default)s")
+    parser.add_argument('-x', '--split-files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
+    parser.add_argument('-l', '--lazy', action="store_true", default=False, help="fill in --default-seq for missing ranges. default: %(default)s")
+    parser.add_argument('-s', '--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')
     parser.add_argument('-d', '--delimiter', type=str, default=None, help='delimiter for splitting names to multiple values (duplicate names will be discarded). default: %(default)s')
+    parser.add_argument('-g', '--regex', type=str, default='.*', help='regular expression for filtering non-matching sequence names. default: %(default)s')
     masking = parser.add_mutually_exclusive_group()
-    masking.add_argument('--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using `--default-seq` default: %(default)s")
-    masking.add_argument('--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
+    masking.add_argument('-m', '--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using --default-seq default: %(default)s")
+    masking.add_argument('-M', '--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
     parser.add_argument('--version', action="version", version=__version__, help="print pyfaidx version number")
     # print help usage if no arguments are supplied
     if len(sys.argv)==1 and not ext_args:

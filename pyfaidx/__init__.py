@@ -234,8 +234,7 @@ class Faidx(object):
                 line = line.strip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
                 rname = self.key_function(rname).split(split_char)
-                if not self.filt_function(rname):
-                    continue
+                rname = filter(self.filt_function, rname)
                 for key in rname:
                     if key in self.index and not split_char:
                         raise ValueError('Duplicate key "%s"' % rname)
