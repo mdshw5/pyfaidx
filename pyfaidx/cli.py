@@ -63,7 +63,11 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
         sequence = sequence.complement
     if args.reverse:
         sequence = sequence.reverse
-    if not args.no_names:
+    if args.no_names:
+        pass
+    elif args.full_names:
+        yield ''.join(['>', fasta[name].long_name, '\n'])
+    else:
         if start or end:
             yield ''.join(['>', sequence.longname, '\n'])
         else:
@@ -110,7 +114,9 @@ def main(ext_args=None):
     parser.add_argument('-i', '--stats', action="store_true", default=False, help="print basic stats FASTA sequences. default: %(default)s")
     parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
-    parser.add_argument('-n', '--no-names', action="store_true", default=False, help="omit sequence names from output. default: %(default)s")
+    names = parser.add_mutually_exclusive_group()
+    names.add_argument('-n', '--no-names', action="store_true", default=False, help="omit sequence names from output. default: %(default)s")
+    names.add_argument('-f', '--full-names', action="store_true", default=False, help="output full names including description. default: %(default)s")
     parser.add_argument('-x', '--split-files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
     parser.add_argument('-l', '--lazy', action="store_true", default=False, help="fill in --default-seq for missing ranges. default: %(default)s")
     parser.add_argument('-s', '--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')

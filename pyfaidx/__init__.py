@@ -21,7 +21,7 @@ if PY2:
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.3.7'
+__version__ = '0.3.8'
 
 
 class FastaIndexingError(Exception):
@@ -160,7 +160,7 @@ class Sequence(object):
         return (g + c) / len(self.seq)
 
 
-class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb'])):
+class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', 'bend', 'prev_bend'])):
     __slots__ = ()
 
     def __getitem__(self, key):
@@ -230,9 +230,13 @@ class Faidx(object):
     def read_fai(self, split_char):
         duplicate_ids = []
         with open(self.indexname) as index:
+            prev_bend = 0
             for line in index:
-                line = line.strip()
+                line = line.rstrip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
+                rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
+                newlines = rlen // lenc * (lenb - lenc)
+                bend = offset + newlines + rlen
                 rname = self.key_function(rname).split(split_char)
                 rname = filter(self.filt_function, rname)
                 for key in rname:
@@ -242,10 +246,8 @@ class Faidx(object):
                         duplicate_ids.append(key)
                         continue
                     else:
-                        self.index[key] = IndexRecord(*map(int, (rlen,
-                                                                   offset,
-                                                                   lenc,
-                                                                   lenb)))
+                        self.index[key] = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
+                prev_bend = bend
             for dup in duplicate_ids:
                 self.index.pop(dup, None)
 
@@ -360,19 +362,16 @@ class Faidx(object):
 
 
         # Calculate offset (https://github.com/samtools/htslib/blob/20238f354894775ed22156cdd077bc0d544fa933/faidx.c#L398)
-        newlines_total = int(i.rlen / i.lenc * (i.lenb - i.lenc))
-        newlines_before = int((start0 - 1) / i.lenc *
-                              (i.lenb - i.lenc)) if start0 > 0 else 0
+        newlines_before = int((start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 else 0
         newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
         bstart = i.offset + newlines_before + start0
-        bend = i.offset + newlines_total + i.rlen
         self.file.seek(bstart)
 
-        if bstart + seq_blen > bend and not self.strict_bounds:
-            seq_blen = bend - bstart
-        elif bstart + seq_blen > bend and self.strict_bounds:
+        if bstart + seq_blen > i.bend and not self.strict_bounds:
+            seq_blen = i.bend - bstart
+        elif bstart + seq_blen > i.bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
         if seq_blen > 0:
@@ -437,7 +436,6 @@ class FastaRecord(object):
     def __init__(self, name, fa):
         self.name = name
         self._fa = fa
-        self._len = self._fa.faidx.index[self.name].rlen
 
     def __getitem__(self, n):
         """Return sequence from region [start, end)
@@ -480,7 +478,7 @@ class FastaRecord(object):
         return 'FastaRecord("%s")' % (self.name)
 
     def __len__(self):
-        return self._len
+        return self._fa.faidx.index[self.name].rlen
 
     def __str__(self):
         return str(self[:])
@@ -488,17 +486,14 @@ class FastaRecord(object):
     @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
-        seqnames = tuple(self._fa.keys())
-        seqname_i = seqnames.index(self.name)
-        if seqname_i > 0:
-            seqname_p = seqnames[seqname_i - 1]  # previous seqname
-            _, internals = self._fa.faidx.from_file(seqname_p, 1, 1, internals=True)
-            defline_start = internals['bend'] + 1
-        elif seqname_i == 0:
-            defline_start = 0
-        defline_end = self._fa.faidx.index[self.name].offset
-        self._fa.faidx.file.seek(defline_start)
-        return self._fa.faidx.file.read(defline_end - defline_start).decode()[1:-1]
+        index_record = self._fa.faidx.index[self.name]
+        prev_bend = index_record.prev_bend
+        newline_len = index_record.lenb - index_record.lenc
+        if prev_bend > 0:
+            prev_bend += newline_len  # account for newline
+        defline_end = index_record.offset
+        self._fa.faidx.file.seek(prev_bend)
+        return self._fa.faidx.file.read(defline_end - prev_bend).decode()[1:-1]
 
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
