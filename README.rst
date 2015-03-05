@@ -143,6 +143,18 @@ Custom key functions provide cleaner access:
     >NR_104212:1-10
     CCCCGCCCCT
 
+Filter functions (returning True) limit the index:
+
+.. code:: python
+
+    # new in v0.3.8
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta', filt_function = lambda x: x[0] == 'N')
+    >>> genes.keys()
+    dict_keys(['NR_104212', 'NM_001282543', 'NR_104216', 'NR_104215', 'NM_001282549', 'NM_000465', 'NM_001282545', 'NM_001282548'])
+    >>> genes['XM_005249644']
+    KeyError: XM_005249644 not in tests/data/genes.fasta.
+
 Or just get a Python string:
 
 .. code:: python
@@ -223,6 +235,10 @@ For usage type ``faidx -h``.
     >NM_001282543.1:300-320
     GTAATTGTGTAAGTGACTGCA
 
+    $ faidx --full-names tests/data/genes.fasta NM_001282543.1:201-210
+    >NM_001282543.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 2, mRNA
+    CTCGTTCCGC
+
     $ faidx --no-names tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
     CTCGTTCCGC
     GTAATTGTGTAAGTGACTGCA
@@ -242,6 +258,16 @@ For usage type ``faidx -h``.
     $ faidx tests/data/genes.fasta NM_001282543.1
     >NM_001282543.1:1-5466
     CCCCGCCCCT........
+    ..................
+    ..................
+    ..................
+
+    $ faidx --regex "^NM_00128254[35]" genes.fasta
+    >NM_001282543.1
+    ..................
+    ..................
+    ..................
+    >NM_001282545.1
     ..................
     ..................
     ..................
