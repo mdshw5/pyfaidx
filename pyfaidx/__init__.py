@@ -582,6 +582,63 @@ class Fasta(object):
         self.faidx.__exit__(*args)
 
 
+class FastaVariant(Fasta):
+    """ Return consensus sequence from FASTA and VCF inputs
+    """
+    def __init__(self, filename, vcf_file, het=False, hom=True, **kwargs):
+        try:
+            import pysam
+        except ImportError:
+            raise ImportError("pysam must be installed for VCF Consensus.")
+        try:
+            import vcf
+        except ImportError:
+            raise ImportError("PyVCF must be installed for VCF Consensus.")
+        self.vcf = vcf.Reader(filename=vcf_file)
+        if len(self.vcf.samples) > 1:
+            raise ValueError("VCF file must contain only one sample!")
+        if het and hom:
+            self.gt_type = set((1, 2))
+        elif het:
+            self.gt_type = set((1,))
+        elif hom:
+            self.gt_type = set((2,))
+        else:
+            self.gt_type = set((0,))
+        super(FastaVariant, self).__init__(filename, **kwargs)
+
+
+    def __repr__(self):
+        return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename, self.vcf.filename, str(self.gt_type))
+
+    def get_seq(self, name, start, end):
+        """Return a sequence by record name and interval [start, end).
+        Replace positions with polymorphism with variant.
+        Coordinates are 0-based, end-exclusive.
+        """
+        seq = self.faidx.fetch(name, start, end)
+        if self.faidx.as_raw:
+            seq_mut = list(seq)
+            del seq
+        else:
+            seq_mut = list(seq.seq)
+            del seq.seq
+        var = self.vcf.fetch(name, start, end)
+        for record in var:
+            if record.is_snp:  # skip indels
+                sample = record.samples[0]
+                if sample.gt_type >= self.gt_type:
+                    alt = record.ALT[0]
+                    i = (record.POS - 1) - (start - 1)
+                    seq_mut[i:i + len(alt)] = str(alt)
+        # slice the list in case we added an MNP in last position
+        if self.faidx.as_raw:
+            return ''.join(seq_mut[:end - start + 1])
+        else:
+            seq.seq = ''.join(seq_mut[:end - start + 1])
+            return seq
+
+
 def wrap_sequence(n, sequence, fillvalue=''):
     args = [iter(sequence)] * n
     for line in zip_longest(fillvalue=fillvalue, *args):
