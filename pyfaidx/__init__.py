@@ -627,7 +627,7 @@ class FastaVariant(Fasta):
         for record in var:
             if record.is_snp:  # skip indels
                 sample = record.samples[0]
-                if sample.gt_type >= self.gt_type:
+                if sample.gt_type in self.gt_type:
                     alt = record.ALT[0]
                     i = (record.POS - 1) - (start - 1)
                     seq_mut[i:i + len(alt)] = str(alt)
