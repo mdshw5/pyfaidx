@@ -485,7 +485,7 @@ class FastaRecord(object):
 
     @property
     def variant_sites(self):
-        if isinstance(FastaVariant, self._fa):
+        if isinstance(self._fa, FastaVariant):
             var = self._fa.vcf.fetch(self.name, 0, len(self))
             pos = (site.POS for site in var if site.is_snp)
             return pos
