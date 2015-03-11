@@ -484,6 +484,15 @@ class FastaRecord(object):
         return str(self[:])
 
     @property
+    def variant_sites(self):
+        if isinstance(FastaVariant, self._fa):
+            var = self._fa.vcf.fetch(self.name, 0, len(self))
+            pos = (site.POS for site in var if site.is_snp)
+            return pos
+        else:
+            raise NotImplementedError("variant_sites() only valid for FastaVariant.")
+
+    @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
         index_record = self._fa.faidx.index[self.name]
