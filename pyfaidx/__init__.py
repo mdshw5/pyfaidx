@@ -487,7 +487,7 @@ class FastaRecord(object):
     def variant_sites(self):
         if isinstance(self._fa, FastaVariant):
             var = self._fa.vcf.fetch(self.name, 0, len(self))
-            pos = tuple(site.POS for site in var if site.is_snp)
+            pos = tuple(site.POS for site in var if site.is_snp and site.gt_type in self._fa.gt_type)
             return pos
         else:
             raise NotImplementedError("variant_sites() only valid for FastaVariant.")
