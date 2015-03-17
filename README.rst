@@ -28,8 +28,6 @@ This package is tested under Linux, MacOS, and Windows using Python 3.2-3.4, 2.7
 Usage
 -----
 
-.. _benchmark: http://www.biostars.org/p/93364/#93390
-
 .. code:: python
 
     >>> from pyfaidx import Fasta
@@ -350,7 +348,7 @@ A lower-level Faidx class is also available:
 
 
 Changelog
--------
+---------
 
 Please see the `releases <https://github.com/mdshw5/pyfaidx/releases>`_ for a
 comprehensive list of version changes.
