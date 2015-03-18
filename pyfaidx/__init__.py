@@ -649,7 +649,7 @@ class FastaVariant(Fasta):
                 else:
                     sample = record.genotype(self.sample)
                 if self.filter is not None:
-                    pass_ = eval('sample[%s] %s %s') % self.filter
+                    pass_ = eval('sample[%s] %s %s' % self.filter)
                     if not pass_:
                         continue
                 if sample.gt_type in self.gt_type:
