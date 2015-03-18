@@ -597,13 +597,13 @@ class FastaVariant(Fasta):
         try:
             import pysam
         except ImportError:
-            raise ImportError("pysam must be installed for VCF Consensus.")
+            raise ImportError("pysam must be installed for FastaVariant.")
         try:
             import vcf
         except ImportError:
-            raise ImportError("PyVCF must be installed for VCF Consensus.")
+            raise ImportError("PyVCF must be installed for FastaVariant.")
         if call_filter is not None:
-            self.filter = call_filter.split() # 'GQ > 30'
+            self.filter = tuple(call_filter.split()) # 'GQ > 30'
             if len(self.filter) != 3:
                 raise ValueError("call_filter must be a string in the format 'XX <>!= NN'")
             assert all([x in self.expr for x in list(self.filter[1])])
@@ -649,7 +649,7 @@ class FastaVariant(Fasta):
                 else:
                     sample = record.genotype(self.sample)
                 if self.filter is not None:
-                    pass_ = eval('sample[%s] %s %s' % self.filter)
+                    pass_ = eval('sample[{0}] {1} {2}'.format(*self.filter))
                     if not pass_:
                         continue
                 if sample.gt_type in self.gt_type:
