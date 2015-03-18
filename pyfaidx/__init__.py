@@ -16,6 +16,7 @@ except ImportError: #python 2.6
 from collections import namedtuple
 import re
 import string
+import warnings
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
@@ -484,9 +485,14 @@ class FastaRecord(object):
     @property
     def variant_sites(self):
         if isinstance(self._fa, FastaVariant):
+            pos = []
             var = self._fa.vcf.fetch(self.name, 0, len(self))
-            pos = tuple(site.POS for site in var if site.is_snp and site.samples[0].gt_type in self._fa.gt_type)
-            return pos
+            for site in var:
+                if site.is_snp:
+                    sample = site.genotype(self._fa.sample)
+                    if sample.gt_type in self._fa.gt_type and eval(self._fa.filter):
+                        pos.append(site.POS)
+            return tuple(pos)
         else:
             raise NotImplementedError("variant_sites() only valid for FastaVariant.")
 
@@ -603,18 +609,23 @@ class FastaVariant(Fasta):
         except ImportError:
             raise ImportError("PyVCF must be installed for FastaVariant.")
         if call_filter is not None:
-            self.filter = tuple(call_filter.split()) # 'GQ > 30'
-            if len(self.filter) != 3:
+            try:
+                key, expr, value = call_filter.split() # 'GQ > 30'
+            except IndexError:
                 raise ValueError("call_filter must be a string in the format 'XX <>!= NN'")
-            assert all([x in self.expr for x in list(self.filter[1])])
-            assert all([x in string.ascii_uppercase for x in list(self.filter[0])])
-            assert all([x in string.printable for x in list(self.filter[2])])
+            assert all([x in self.expr for x in list(expr)])
+            assert all([x in string.ascii_uppercase for x in list(key)])
+            assert all([x in string.printable for x in list(value)])
+            self.filter = "sample['{key}'] {expr} {value}".format(**locals())
         else:
-            self.filter = None
+            self.filter = 'True'
         self.vcf = vcf.Reader(filename=vcf_file)
-        self.sample = sample
-        if len(self.vcf.samples) > 1 and self.sample is None:
-            raise ValueError("VCF file must contain only one sample if FastaVariant(sample=None)!")
+        if sample is not None:
+            self.sample = sample
+        else:
+            self.sample = self.vcf.samples[0]
+            if len(self.vcf.samples) > 1 and sample is None:
+                warnings.warn("Using sample {0} genotypes.".format(self.sample), RuntimeWarning)
         if het and hom:
             self.gt_type = set((1, 2))
         elif het:
@@ -648,11 +659,7 @@ class FastaVariant(Fasta):
                     sample = record.samples[0]
                 else:
                     sample = record.genotype(self.sample)
-                if self.filter is not None:
-                    pass_ = eval("sample['{0}'] {1} {2}".format(*self.filter))
-                    if not pass_:
-                        continue
-                if sample.gt_type in self.gt_type:
+                if sample.gt_type in self.gt_type and eval(self.filter):
                     alt = record.ALT[0]
                     i = (record.POS - 1) - (start - 1)
                     seq_mut[i:i + len(alt)] = str(alt)
