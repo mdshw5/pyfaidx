@@ -592,7 +592,7 @@ class Fasta(object):
 class FastaVariant(Fasta):
     """ Return consensus sequence from FASTA and VCF inputs
     """
-    expr = set('>', '<', '=', '!')
+    expr = set(('>', '<', '=', '!'))
     def __init__(self, filename, vcf_file, sample=None, het=True, hom=True, call_filter=None, **kwargs):
         try:
             import pysam
