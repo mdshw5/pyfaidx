@@ -15,9 +15,7 @@ except ImportError: #python 2.6
     from ordereddict import OrderedDict
 from collections import namedtuple
 import re
-
-if PY2:
-    import string
+import string
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
@@ -594,7 +592,8 @@ class Fasta(object):
 class FastaVariant(Fasta):
     """ Return consensus sequence from FASTA and VCF inputs
     """
-    def __init__(self, filename, vcf_file, het=True, hom=True, **kwargs):
+    expr = set('>', '<', '=', '!')
+    def __init__(self, filename, vcf_file, sample=None, het=True, hom=True, call_filter=None, **kwargs):
         try:
             import pysam
         except ImportError:
@@ -603,9 +602,19 @@ class FastaVariant(Fasta):
             import vcf
         except ImportError:
             raise ImportError("PyVCF must be installed for VCF Consensus.")
+        if call_filter is not None:
+            self.filter = call_filter.split() # 'GQ > 30'
+            if len(self.filter) != 3:
+                raise ValueError("call_filter must be a string in the format 'XX <>!= NN'")
+            assert all([x in self.expr for x in list(self.filter[1])])
+            assert all([x in string.ascii_uppercase for x in list(self.filter[0])])
+            assert all([x in string.printable for x in list(self.filter[2])])
+        else:
+            self.filter = None
         self.vcf = vcf.Reader(filename=vcf_file)
-        if len(self.vcf.samples) > 1:
-            raise ValueError("VCF file must contain only one sample!")
+        self.sample = sample
+        if len(self.vcf.samples) > 1 and self.sample is None:
+            raise ValueError("VCF file must contain only one sample if FastaVariant(sample=None)!")
         if het and hom:
             self.gt_type = set((1, 2))
         elif het:
@@ -613,7 +622,7 @@ class FastaVariant(Fasta):
         elif hom:
             self.gt_type = set((2,))
         else:
-            self.gt_type = set((0,))
+            self.gt_type = set()
         super(FastaVariant, self).__init__(filename, **kwargs)
 
 
@@ -635,7 +644,14 @@ class FastaVariant(Fasta):
         var = self.vcf.fetch(name, start, end)
         for record in var:
             if record.is_snp:  # skip indels
-                sample = record.samples[0]
+                if self.sample is None:
+                    sample = record.samples[0]
+                else:
+                    sample = record.genotype(self.sample)
+                if self.filter is not None:
+                    pass_ = eval('sample[%s] %s %s') % self.filter
+                    if not pass_:
+                        continue
                 if sample.gt_type in self.gt_type:
                     alt = record.ALT[0]
                     i = (record.POS - 1) - (start - 1)
