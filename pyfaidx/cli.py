@@ -25,6 +25,8 @@ def write_sequence(args):
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
             outfile = open(filename, 'w')
+        elif args.out:
+            outfile = args.out
         else:
             outfile = sys.stdout
         try:
@@ -92,6 +94,7 @@ def main(ext_args=None):
     parser.add_argument('fasta', type=str, help='FASTA file')
     parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
+    parser.add_argument('-o', '--out', type=argparse.FileType('w'), help="output file name (default: stdout)")
     parser.add_argument('-i', '--stats', action="store_true", default=False, help="print basic stats FASTA sequences. default: %(default)s")
     parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
