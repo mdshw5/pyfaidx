@@ -32,6 +32,34 @@ class TestFastaRecord(TestCase):
             long_names.append(record.long_name)
         assert deflines == long_names
 
+    def test_issue_62(self):
+        """ Check for pathogenic FastaRecord.long_name behavior in mdshw5/pyfaidx#62 """
+        deflines = []
+        line_len = None
+        with open('data/genes.fasta') as fasta_file:
+            with open('data/issue_62.fa', 'w') as fasta_uniform_len:
+                for line in fasta_file:
+                    if line[0] == '>':
+                        deflines.append(line[1:-1])
+                        fasta_uniform_len.write(line)
+                    elif line_len is None:
+                        line_len = len(line)
+                        fasta_uniform_len.write(line)
+                    elif line_len > len(line):
+                        fasta_uniform_len.write(line.rstrip() + 'N' * (line_len - len(line)) + '\n')
+                    else:
+                        fasta_uniform_len.write(line)
+        fasta = Fasta('data/issue_62.fa', as_raw=True)
+        long_names = []
+        for record in fasta:
+            long_names.append(record.long_name)
+        try:
+            os.remove('data/issue_62.fa')
+            os.remove('data/issue_62.fa.fai')
+        except EnvironmentError:
+            pass
+        assert deflines == long_names
+
 class TestMutableFastaRecord(TestCase):
     def setUp(self):
         with open('data/genes_mutable.fasta', 'wb') as mutable:
