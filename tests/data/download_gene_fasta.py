@@ -25,15 +25,14 @@ def fetch_genes(filename):
 
 def fetch_chr22(filename):
     from subprocess import Popen, PIPE
-    import gzip
 
     grch36 = 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz'
-    p = Popen(['curl', '-s', grch36], stdout=PIPE)
-    with gzip.open(p.stdout) as remote:
+    curl = Popen(['curl', '-s', grch36], stdout=PIPE)
+    gz = Popen(['gzip', '-dc'], stdin=curl.stdout, stdout=PIPE)
+    with gz.stdout as remote:
         with open(filename, 'w') as fasta:
             chr22 = False
             for line in remote:
-                line = line.decode()
                 if line[0:3] == '>22':
                     fasta.write(line)
                     chr22 = True
