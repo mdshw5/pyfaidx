@@ -17,6 +17,7 @@ from collections import namedtuple
 import re
 import string
 import warnings
+from math import ceil
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
@@ -234,7 +235,7 @@ class Faidx(object):
                 line = line.rstrip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
                 rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
-                newlines = rlen // lenc * (lenb - lenc)
+                newlines = ceil(rlen / lenc) * (lenb - lenc)
                 bend = offset + newlines + rlen
                 rname = self.key_function(rname).split(split_char)
                 rname = filter(self.filt_function, rname)
@@ -502,8 +503,6 @@ class FastaRecord(object):
         index_record = self._fa.faidx.index[self.name]
         prev_bend = index_record.prev_bend
         newline_len = index_record.lenb - index_record.lenc
-        if prev_bend > 0:
-            prev_bend += newline_len  # account for newline
         defline_end = index_record.offset
         self._fa.faidx.file.seek(prev_bend)
         return self._fa.faidx.file.read(defline_end - prev_bend).decode()[1:-1]
