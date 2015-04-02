@@ -235,7 +235,7 @@ class Faidx(object):
                 line = line.rstrip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
                 rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
-                newlines = ceil(rlen / lenc) * (lenb - lenc)
+                newlines = int(ceil(rlen / lenc) * (lenb - lenc))
                 bend = offset + newlines + rlen
                 rname = self.key_function(rname).split(split_char)
                 rname = filter(self.filt_function, rname)
