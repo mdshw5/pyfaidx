@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os.path
 
-def fetch_fasta(filename):
+def fetch_genes(filename):
     from Bio import Entrez
     Entrez.email = "mdshw5@gmail.com"
 
@@ -23,9 +23,31 @@ def fetch_fasta(filename):
             if len(line) > 1:  # skip lines with only \n
                 fasta.write(line)
 
+def fetch_chr22(filename):
+    from subprocess import Popen, PIPE
+    import gzip
+
+    grch36 = 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz'
+    p = Popen(['curl', '-s', grch36], stdout=PIPE)
+    with gzip.open(p.stdout) as remote:
+        with open(filename, 'w') as fasta:
+            chr22 = False
+            for line in remote:
+                line = line.decode()
+                if line[0:3] == '>22':
+                    fasta.write(line)
+                    chr22 = True
+                elif not chr22:
+                    continue
+                elif chr22 and line[0] == '>':
+                    break
+                elif chr22:
+                    fasta.write(line)
+
+
 
 if __name__ == "__main__":
     path = os.path.dirname(__file__)
     os.chdir(path)
-    fasta_name = "genes.fasta"
-    fetch_fasta(fasta_name)
+    fetch_genes("genes.fasta")
+    fetch_chr22("chr22.fasta")

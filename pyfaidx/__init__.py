@@ -635,7 +635,6 @@ class FastaVariant(Fasta):
             self.gt_type = set()
         super(FastaVariant, self).__init__(filename, **kwargs)
 
-
     def __repr__(self):
         return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename, self.vcf.filename, str(self.gt_type))
 
