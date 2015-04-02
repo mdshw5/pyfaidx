@@ -24,11 +24,11 @@ def fetch_genes(filename):
                 fasta.write(line)
 
 def fetch_chr22(filename):
-    from subprocess import Popen, PIPE
+    from subprocess import Popen, PIPE, call
 
     grch36 = 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz'
     curl = Popen(['curl', '-s', grch36], stdout=PIPE)
-    gz = Popen(['gzip', '-dc'], stdin=curl.stdout, stdout=PIPE)
+    gz = Popen(['gzip', '-dcq'], stdin=curl.stdout, stdout=PIPE)
     with gz.stdout as remote:
         with open(filename, 'w') as fasta:
             chr22 = False
@@ -39,9 +39,15 @@ def fetch_chr22(filename):
                 elif not chr22:
                     continue
                 elif chr22 and line[0] == '>':
+                    curl.kill()
                     break
                 elif chr22:
                     fasta.write(line)
+
+    call(['curl', '-s', 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz',
+          '-o', 'data/chr22.vcf.gz'])
+    call(['curl', '-s', 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz.tbi',
+          '-o', 'data/chr22.vcf.gz.tbi'])
 
 
 
