@@ -2,8 +2,6 @@ import os
 from pyfaidx import FastaVariant, Fasta
 from unittest import TestCase
 from nose.plugins.skip import SkipTest
-import sys
-pypy = '__pypy__' in sys.builtin_module_names
 
 
 path = os.path.dirname(__file__)
