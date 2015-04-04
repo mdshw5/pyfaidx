@@ -28,9 +28,8 @@ deploy:
     python: 2.6
     tags: true
     repo: mdshw5/pyfaidx
-cache:
+cache: pip
     directories:
         - tests/data
-    - pip
 after_success:
     - coveralls
