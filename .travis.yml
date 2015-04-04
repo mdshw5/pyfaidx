@@ -16,7 +16,7 @@ install:
     - pip install pyvcf
 before_script:
     - /usr/local/bin/pip install --user biopython
-    - /usr/bin/python tests/data/download_gene_fasta.py; fi
+    - /usr/bin/python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi
@@ -29,8 +29,8 @@ deploy:
     tags: true
     repo: mdshw5/pyfaidx
 cache:
-    - wheelhouse
-    - tests/data
+    directories:
+        - tests/data
     - pip
 after_success:
     - coveralls
