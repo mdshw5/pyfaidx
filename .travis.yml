@@ -12,10 +12,11 @@ install:
     - pip install biopython || true
     - python setup.py install
     - pip install coveralls
-    - pip install pysam pyvcf
+    - pip install pysam || true
+    - pip install pyvcf
 before_script:
     - /usr/local/bin/pip install --user biopython
-    - if [ ! -e "tests/data/genes.fasta" ]; then /usr/bin/python tests/data/download_gene_fasta.py; fi
+    - /usr/bin/python tests/data/download_gene_fasta.py; fi
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi
