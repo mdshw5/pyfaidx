@@ -46,4 +46,4 @@ cache:
         - wheelhouse
 after_success:
     - coveralls
-    - if [ $TRAVIS_PYTHON_VERSION == '3.4' ]; then python scripts/benchmark.py 10000 1000; fi
+    - if [ $TRAVIS_PYTHON_VERSION == '3.4' ] && [ -n $TRAVIS_TAG ]; then python scripts/benchmark.py 10000 1000; fi
