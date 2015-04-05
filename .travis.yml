@@ -13,6 +13,10 @@ install:
     - python setup.py install
     - pip install coveralls
     - pip install pysam || true
+    - wget -nc -q -O - https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjz
+    - cd samtools-1.2
+    - make
+    - export PATH=$PATH:$PWD/bin
     - pip install pyvcf
 before_script:
     - /usr/local/bin/pip install --user biopython
@@ -31,5 +35,7 @@ deploy:
 cache:
     directories:
         - tests/data
+        - samtools-1.2
 after_success:
     - coveralls
+    - if [TRAVIS_PYTHON_VERSION == '3.4']; then python scripts/benchmark.py; fi
