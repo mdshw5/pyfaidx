@@ -15,9 +15,9 @@ except ImportError: #python 2.6
     from ordereddict import OrderedDict
 from collections import namedtuple
 import re
-
-if PY2:
-    import string
+import string
+import warnings
+from math import ceil
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
@@ -235,7 +235,7 @@ class Faidx(object):
                 line = line.rstrip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
                 rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
-                newlines = rlen // lenc * (lenb - lenc)
+                newlines = int(ceil(rlen / lenc) * (lenb - lenc))
                 bend = offset + newlines + rlen
                 rname = self.key_function(rname).split(split_char)
                 rname = filter(self.filt_function, rname)
@@ -484,13 +484,25 @@ class FastaRecord(object):
         return str(self[:])
 
     @property
+    def variant_sites(self):
+        if isinstance(self._fa, FastaVariant):
+            pos = []
+            var = self._fa.vcf.fetch(self.name, 0, len(self))
+            for site in var:
+                if site.is_snp:
+                    sample = site.genotype(self._fa.sample)
+                    if sample.gt_type in self._fa.gt_type and eval(self._fa.filter):
+                        pos.append(site.POS)
+            return tuple(pos)
+        else:
+            raise NotImplementedError("variant_sites() only valid for FastaVariant.")
+
+    @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
         index_record = self._fa.faidx.index[self.name]
         prev_bend = index_record.prev_bend
         newline_len = index_record.lenb - index_record.lenc
-        if prev_bend > 0:
-            prev_bend += newline_len  # account for newline
         defline_end = index_record.offset
         self._fa.faidx.file.seek(prev_bend)
         return self._fa.faidx.file.read(defline_end - prev_bend).decode()[1:-1]
@@ -585,18 +597,34 @@ class Fasta(object):
 class FastaVariant(Fasta):
     """ Return consensus sequence from FASTA and VCF inputs
     """
-    def __init__(self, filename, vcf_file, het=False, hom=True, **kwargs):
+    expr = set(('>', '<', '=', '!'))
+    def __init__(self, filename, vcf_file, sample=None, het=True, hom=True, call_filter=None, **kwargs):
         try:
             import pysam
         except ImportError:
-            raise ImportError("pysam must be installed for VCF Consensus.")
+            raise ImportError("pysam must be installed for FastaVariant.")
         try:
             import vcf
         except ImportError:
-            raise ImportError("PyVCF must be installed for VCF Consensus.")
+            raise ImportError("PyVCF must be installed for FastaVariant.")
+        if call_filter is not None:
+            try:
+                key, expr, value = call_filter.split() # 'GQ > 30'
+            except IndexError:
+                raise ValueError("call_filter must be a string in the format 'XX <>!= NN'")
+            assert all([x in self.expr for x in list(expr)])
+            assert all([x in string.ascii_uppercase for x in list(key)])
+            assert all([x in string.printable for x in list(value)])
+            self.filter = "sample['{key}'] {expr} {value}".format(**locals())
+        else:
+            self.filter = 'True'
         self.vcf = vcf.Reader(filename=vcf_file)
-        if len(self.vcf.samples) > 1:
-            raise ValueError("VCF file must contain only one sample!")
+        if sample is not None:
+            self.sample = sample
+        else:
+            self.sample = self.vcf.samples[0]
+            if len(self.vcf.samples) > 1 and sample is None:
+                warnings.warn("Using sample {0} genotypes.".format(self.sample), RuntimeWarning)
         if het and hom:
             self.gt_type = set((1, 2))
         elif het:
@@ -604,9 +632,8 @@ class FastaVariant(Fasta):
         elif hom:
             self.gt_type = set((2,))
         else:
-            self.gt_type = set((0,))
+            self.gt_type = set()
         super(FastaVariant, self).__init__(filename, **kwargs)
-
 
     def __repr__(self):
         return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename, self.vcf.filename, str(self.gt_type))
@@ -626,8 +653,11 @@ class FastaVariant(Fasta):
         var = self.vcf.fetch(name, start, end)
         for record in var:
             if record.is_snp:  # skip indels
-                sample = record.samples[0]
-                if sample.gt_type in self.gt_type:
+                if self.sample is None:
+                    sample = record.samples[0]
+                else:
+                    sample = record.genotype(self.sample)
+                if sample.gt_type in self.gt_type and eval(self.filter):
                     alt = record.ALT[0]
                     i = (record.POS - 1) - (start - 1)
                     seq_mut[i:i + len(alt)] = str(alt)
