@@ -12,8 +12,14 @@ install:
     - pip install biopython || true
     - python setup.py install
     - pip install coveralls
+    - pip wheel cython || true
+    - pip install -f wheelhouse cython || true
+    - pip wheel pysam || true
+    - pip install -f wheelhouse pysam || true
+    - pip install https://github.com/brentp/fastahack-python/archive/master.zip
+    - pip install pyfasta || true
     - pip install pysam || true
-    - wget -nc -q -O - https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjz
+    - if [ ! -f samtools-1.2 ]; then wget -q -O - https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjz; fi
     - cd samtools-1.2
     - make
     - export PATH=$PATH:$PWD/bin
@@ -36,6 +42,7 @@ cache:
     directories:
         - tests/data
         - samtools-1.2
+        - wheelhouse
 after_success:
     - coveralls
     - if [TRAVIS_PYTHON_VERSION == '3.4']; then python scripts/benchmark.py; fi
