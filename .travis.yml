@@ -23,6 +23,7 @@ install:
     - cd samtools-1.2
     - make
     - export PATH=$PATH:$PWD/bin
+    - cd ..
     - pip install pyvcf
 before_script:
     - /usr/local/bin/pip install --user biopython
