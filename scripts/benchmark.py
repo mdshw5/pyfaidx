@@ -64,13 +64,13 @@ def read_fastahack(f, headers):
 
 
 def read_pysam(f, headers):
-    for k in islice(headers, 100):
+    for k in islice(headers, 1000):
         for start, end in intervals:
             str(pysam.faidx(f, '{0}:{1}-{2}'.format(k, start + 1, end)))
 
 
 def read_samtools(f, headers):
-    for k in islice(headers, 100):
+    for k in islice(headers, 1000):
         for start, end in intervals:
             check_output(['samtools', 'faidx', f, '{0}:{1}-{2}'.format(k, start + 1, end)])
 
