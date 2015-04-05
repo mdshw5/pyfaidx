@@ -22,7 +22,7 @@ install:
     - if [ ! -f samtools-1.2 ]; then wget -q -O - https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjv; fi
     - cd samtools-1.2
     - make
-    - export PATH=$PATH:$PWD/bin
+    - export PATH=$PATH:$PWD
     - cd ..
     - pip install pyvcf
 before_script:
