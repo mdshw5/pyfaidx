@@ -17,14 +17,18 @@ import tracemalloc
 
 random.seed(1234)
 
-SEQLEN = 100000
-
+SEQLEN = 10000000
+try:
+    nreads = int(sys.argv[1])
+except IndexError:
+    nreads = 10000
+read_len = 1000
 
 def mean(s):
     return sum(s) / len(s)
 
 
-def make_intervals(nreads=int(sys.argv[1]), seqlen=SEQLEN, readlen=int(sys.argv[2])):
+def make_intervals(nreads=nreads, seqlen=SEQLEN, readlen=read_len):
     for _ in range(nreads):
         start = random.randint(0, seqlen)
         end = min(seqlen, start + readlen)
@@ -32,8 +36,7 @@ def make_intervals(nreads=int(sys.argv[1]), seqlen=SEQLEN, readlen=int(sys.argv[
 
 intervals = tuple(make_intervals())
 
-
-def make_long_fasta(filename, nrecs=2500, seqlen=SEQLEN):
+def make_long_fasta(filename, nrecs=250, seqlen=SEQLEN):
     headers = []
     with open(filename, 'w') as f:
         s = "ACTGACTGAC"
@@ -46,41 +49,41 @@ def make_long_fasta(filename, nrecs=2500, seqlen=SEQLEN):
     return headers
 
 def read_dict(f, headers):
-    for k in islice(headers, 10):
+    for k in islice(headers, 0, None, 10):
         for start, end in intervals:
             str(f[k][start:end])
 
 
 def read_faidx(f, headers):
-    for k in islice(headers, 10):
+    for k in islice(headers, 0, None, 10):
         for start, end in intervals:
             str(f.fetch(k, start + 1, end))
 
 
 def read_fastahack(f, headers):
-    for k in islice(headers, 10):
+    for k in islice(headers, 0, None, 10):
         for start, end in intervals:
             str(f.get_sub_sequence(k, start, end))
 
 
 def read_pysam(f, headers):
     tstart = time.time()
-    for k in islice(headers, 10000):
+    for k in islice(headers, 0, None, 100):
         for start, end in intervals:
-          if time.time() - tstart > 300:
-            print(k)
+            if time.time() - tstart > 300:
+                print(k)
             tstart = time.time()
-          str(pysam.faidx(f, '{0}:{1}-{2}'.format(k, start + 1, end)))
+            str(pysam.faidx(f, '{0}:{1}-{2}'.format(k, start + 1, end)))
 
 
 def read_samtools(f, headers):
     tstart = time.time()
-    for k in islice(headers, 10000):
+    for k in islice(headers, 0, None, 100):
         for start, end in intervals:
-          if time.time() - tstart > 300:
-            print(k)
-            tstart = time.time()
-        check_output(['samtools', 'faidx', f, '{0}:{1}-{2}'.format(k, start + 1, end)])
+            if time.time() - tstart > 300:
+                print(k)
+                tstart = time.time()
+            check_output(['samtools', 'faidx', f, '{0}:{1}-{2}'.format(k, start + 1, end)])
 
 
 def main():
@@ -108,7 +111,7 @@ def main():
         os.remove(index)
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
     def pyfaidx_faidx(n):
@@ -131,7 +134,7 @@ def main():
         os.remove(index)
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
     def fastahack_fetch(n):
@@ -154,7 +157,7 @@ def main():
         os.remove(index)
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
     def pyfasta_fseek(n):
@@ -179,7 +182,7 @@ def main():
         os.remove(fa_file.name + '.gdx')
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
     def pyfasta_fasta(n):
@@ -204,7 +207,7 @@ def main():
         os.remove(fa_file.name + '.gdx')
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
     def pysam_faidx(n):
@@ -227,7 +230,7 @@ def main():
         os.remove(index)
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
     def samtools_faidx(n):
@@ -244,7 +247,7 @@ def main():
             tf.append(time.time() - t)
             os.remove(index)
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/100*1000*1000)
 
     def seqio_read(n):
         print('timings for Bio.SeqIO')
@@ -268,7 +271,7 @@ def main():
         fh.close()
         print(tracemalloc.get_traced_memory())
         print(mean(ti))
-        print(mean(tf)/nseq)
+        print(mean(tf)/nreads/100*1000*1000)
         tracemalloc.stop()
 
     n = 3
@@ -277,8 +280,9 @@ def main():
     pyfasta_fasta(n)
     pyfasta_fseek(n)
     seqio_read(n)
-    samtools_faidx(1)
-    pysam_faidx(1)
+    #fastahack_fetch(n)
+    samtools_faidx(n)
+    pysam_faidx(n)
 
 
 if __name__ == "__main__":
