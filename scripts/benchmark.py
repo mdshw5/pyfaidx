@@ -17,7 +17,7 @@ import tracemalloc
 
 random.seed(1234)
 
-SEQLEN = 10000000
+SEQLEN = 1000000
 try:
     nreads = int(sys.argv[1])
 except IndexError:
