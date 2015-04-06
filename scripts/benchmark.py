@@ -90,7 +90,6 @@ def main():
     fa_file = NamedTemporaryFile()
     index = fa_file.name + '.fai'
     headers = make_long_fasta(fa_file.name)
-    nseq = int(sys.argv[1])
     def pyfaidx_fasta(n):
         print('timings for pyfaidx.Fasta')
         ti = []
