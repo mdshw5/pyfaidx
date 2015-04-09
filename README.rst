@@ -11,8 +11,12 @@ indexing, retrieval, and in-place modification of FASTA files.
 
 If you use pyfaidx in your publication, please cite:
 
-Shirley MD, Ma Z, Pederson B, Wheelan S. `Efficient "pythonic" access to FASTA files using pyfaidx <https://dx.doi.org/10.7287/peerj.preprints.970v1>`_. PeerJ PrePrints. 2015.
+`Shirley MD`_, `Ma Z`_, `Pedersen B`_, `Wheelan S`_. `Efficient "pythonic" access to FASTA files using pyfaidx <https://dx.doi.org/10.7287/peerj.preprints.970v1>`_. PeerJ PrePrints. 2015.
 
+.. _`Shirley MD`: http://github.com/mdshw5
+.. _`Ma Z`: http://github.com/azalea
+.. _`Pedersen B`: http://github.com/brentp
+.. _`Wheelan S`: http://github.com/swheelan
 
 Installation
 ------------
