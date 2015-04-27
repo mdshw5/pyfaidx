@@ -653,10 +653,7 @@ class FastaVariant(Fasta):
         var = self.vcf.fetch(name, start, end)
         for record in var:
             if record.is_snp:  # skip indels
-                if self.sample is None:
-                    sample = record.samples[0]
-                else:
-                    sample = record.genotype(self.sample)
+                sample = record.genotype(self.sample)
                 if sample.gt_type in self.gt_type and eval(self.filter):
                     alt = record.ALT[0]
                     i = (record.POS - 1) - (start - 1)
