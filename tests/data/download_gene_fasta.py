@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os.path
 
-def fetch_genes(filename):
+def fetch_genes(filename, suffix=None):
     from Bio import Entrez
     Entrez.email = "mdshw5@gmail.com"
 
@@ -20,8 +20,12 @@ def fetch_genes(filename):
 
     with open(filename, 'w') as fasta:
         for line in records:
-            if len(line) > 1:  # skip lines with only \n
-                fasta.write(line)
+            if suffix is not None and line[0] == '>':
+                line = line.rstrip('\n')
+                line = ''.join([line, suffix, '\n'])
+            if len(line) == 1:  # skip lines with only \n
+                continue
+            fasta.write(line)
 
 def fetch_chr22(filename):
     from subprocess import Popen, PIPE

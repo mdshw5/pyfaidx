@@ -237,12 +237,12 @@ class Faidx(object):
                 rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
                 newlines = int(ceil(rlen / lenc) * (lenb - lenc))
                 bend = offset + newlines + rlen
-                rname = self.key_function(rname).split(split_char)
-                rname = filter(self.filt_function, rname)
-                for key in rname:
-                    if key in self.index and not split_char:
-                        raise ValueError('Duplicate key "%s"' % rname)
-                    elif key in self.index and split_char:
+                rname = filter(self.filt_function, self.key_function(rname).split(split_char))
+                for i, key in enumerate(rname):  # mdshw5/pyfaidx/issues/64
+                    if key in self.index and split_char is None and i == 0:
+                        raise ValueError('Duplicate key "%s"' % key)
+                    # eliminate duplicate keys if they result from split_char
+                    elif key in self.index and split_char or i > 0:
                         duplicate_ids.append(key)
                         continue
                     else:
