@@ -7,7 +7,12 @@ Samtools provides a function "faidx" (FAsta InDeX), which creates a
 small flat index file ".fai" allowing for fast random access to any
 subsequence in the indexed FASTA file, while loading a minimal amount of the
 file in to memory. This python module implements pure Python classes for
-indexing, retrieval, and in-place modification of FASTA files.
+indexing, retrieval, and in-place modification of FASTA files using a samtools
+compatible index. The pyfaidx module is API compatible with the `pygr`_ seqdb module.
+A command-line script "`faidx`_" is installed alongside the pyfaidx module, and
+facilitates complex manipulation of FASTA files without any programming knowledge.
+
+.. _`pygr`: https://github.com/cjlee112/pygr
 
 If you use pyfaidx in your publication, please cite:
 
@@ -21,13 +26,15 @@ If you use pyfaidx in your publication, please cite:
 Installation
 ------------
 
-This package is tested under Linux, MacOS, and Windows using Python 3.2-3.4, 2.7, 2.6, and pypy.
+This package is tested under Linux, MacOS, and Windows using Python 3.2-3.4, 2.7, 2.6, and pypy and is available from the PyPI:
 
 ::
 
-    pip install pyfaidx
+    pip install pyfaidx  # add --user if you don't have root
 
-    or
+or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
+
+::
 
     python setup.py install
 
@@ -223,6 +230,30 @@ Any portion of the FastaRecord can be replaced with an equivalent-length string.
     >NM_001282543.1:1-15
     NNNNNNNNNNCTGGC
 
+The FastaVariant class provides a way to integrate single nucleotide variant calls to generate a consensus sequence.
+
+.. code:: python
+
+    # new in v0.4.0
+    >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', het=True, hom=True)
+    RuntimeWarning: Using sample NA06984 genotypes.
+
+    >>> consensus['22'].variant_sites
+    (16042793, 21833121, 29153196, 29187373, 29187448, 29194610, 29821295, 29821332, 29993842, 32330460, 32352284)
+
+    >>> consensus['22'][16042790:16042800]
+    >22:16042791-16042800
+    TCGTAGGACA
+
+    >>> Fasta('tests/data/chr22.fasta')['22'][16042790:16042800]
+    >22:16042791-16042800
+    TCATAGGACA
+
+    >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', het=True, hom=True, call_filter='GT == "0/1"')
+    >>> consensus['22'].variant_sites
+    (16042793, 29187373, 29187448, 29194610, 29821332)
+
+.. _faidx:
 
 It also provides a command-line script:
 
