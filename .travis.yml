@@ -9,21 +9,14 @@ python:
     - pypy
     - pypy3
 install:
-    - pip install biopython || true
+    - pip wheel -f wheelhouse coveralls biopython cython pysam pyfasta pyvcf https://github.com/brentp/fastahack-python/archive/master.zip || true
+    - pip install -f wheelhouse biopython cython pysam fastahack pyfasta coveralls pyvcf || true
     - python setup.py install
-    - pip install coveralls
-    - pip wheel -f wheelhouse cython || true
-    - pip install -f wheelhouse cython || true
-    - pip wheel -f wheelhouse pysam || true
-    - pip install -f wheelhouse pysam || true
-    - pip install https://github.com/brentp/fastahack-python/archive/master.zip
-    - pip install pyfasta || true
     - if [ ! -f samtools-1.2 ]; then wget -q -O - https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjv; fi
     - cd samtools-1.2
     - make
     - export PATH=$PATH:$PWD
     - cd ..
-    - pip install pyvcf
 before_script:
     - /usr/local/bin/pip install --user biopython
     - /usr/bin/python tests/data/download_gene_fasta.py
@@ -45,4 +38,4 @@ cache:
         - wheelhouse
 after_success:
     - coveralls
-    - if [ $TRAVIS_PYTHON_VERSION == '3.4' ] && [ -n $TRAVIS_TAG ]; then python scripts/benchmark.py 1000; fi
+    - if [ $TRAVIS_PYTHON_VERSION == '3.4' ] && [ $TRAVIS_TAG ]; then python scripts/benchmark.py 1000; fi
