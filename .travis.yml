@@ -9,8 +9,8 @@ python:
     - pypy
     - pypy3
 install:
-    - pip wheel -f wheelhouse coveralls biopython cython pysam pyfasta pyvcf https://github.com/brentp/fastahack-python/archive/master.zip || true
-    - pip install -f wheelhouse biopython cython pysam fastahack pyfasta coveralls pyvcf || true
+    - pip wheel -f wheelhouse coveralls biopython cython pysam pyvcf || true
+    - pip install -f wheelhouse biopython cython pysam pyfasta coveralls pyvcf || true
     - python setup.py install
     - if [ ! -f samtools-1.2 ]; then wget -q -O - https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjv; fi
     - cd samtools-1.2
