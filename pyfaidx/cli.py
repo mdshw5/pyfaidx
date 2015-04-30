@@ -4,6 +4,7 @@ import sys
 import os.path
 import re
 from pyfaidx import Faidx, Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
+from collections import Counter
 
 keepcharacters = (' ', '.', '_')
 
@@ -19,6 +20,7 @@ def write_sequence(args):
     if not regions_to_fetch:
         regions_to_fetch = tuple(fasta.keys())
 
+    header = False
     for region in regions_to_fetch:
         name, start, end = split_function(region)
         if args.split_files:  # open output file based on sequence name
@@ -30,8 +32,14 @@ def write_sequence(args):
         else:
             outfile = sys.stdout
         try:
-            for line in fetch_sequence(args, fasta, name, start, end):
-                outfile.write(line)
+            if args.transform:
+                if not header and args.transform == 'nucleotide':
+                    outfile.write("name\tstart\tend\tA\tT\tC\tG\tN\n")
+                    header = True
+                outfile.write(transform_sequence(args, fasta, name, start, end))
+            else:
+                for line in fetch_sequence(args, fasta, name, start, end):
+                    outfile.write(line)
         except FetchError as e:
             raise FetchError(e.msg.rstrip() + "Try setting --lazy.\n")
         if args.split_files:
@@ -88,6 +96,22 @@ def split_regions(args):
     return (regions_to_fetch, split_function)
 
 
+def transform_sequence(args, fasta, name, start=None, end=None):
+    line_len = fasta.faidx.index[name].lenc
+    s = fasta[name][start:end]
+    if args.transform == 'bed':
+        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start, end=s.end)
+    elif args.transform == 'chromsizes':
+        return '{name}\t{length}\n'.format(name=s.name, length=len(s))
+    elif args.transform == 'nucleotide':
+        nucs = Counter(dict([('A', 0), ('T', 0), ('C', 0), ('G', 0), ('N', 0)]))
+        nucs.update(str(s).upper())
+        return '{name}\t{start}\t{end}\t{A}\t{T}\t{C}\t{G}\t{N}\n'.format(name=s.name, start=s.start, end=s.end, **nucs)
+    elif args.transform == 'transposed':
+        return '{name}\t{start}\t{end}\t{seq}\n'.format(name=s.name, start=s.start, end=s.end, seq=str(s))
+
+
+
 def main(ext_args=None):
     from pyfaidx import __version__
     parser = argparse.ArgumentParser(description="Fetch sequences from FASTA. If no regions are specified, all entries in the input file are returned. Input FASTA file must be consistently line-wrapped, and line wrapping of output is based on input line lengths.",
@@ -96,7 +120,7 @@ def main(ext_args=None):
     parser.add_argument('regions', type=str, nargs='*', help="space separated regions of sequence to fetch e.g. chr1:1-1000")
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
     parser.add_argument('-o', '--out', type=argparse.FileType('w'), help="output file name (default: stdout)")
-    parser.add_argument('-i', '--stats', action="store_true", default=False, help="print basic stats FASTA sequences. default: %(default)s")
+    parser.add_argument('-i', '--transform', type=str, choices=('bed', 'chromsizes', 'nucleotide', 'transposed'), help="transform the requested regions into another format. default: %(default)s")
     parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
     names = parser.add_mutually_exclusive_group()
@@ -119,11 +143,6 @@ def main(ext_args=None):
         args = parser.parse_args(ext_args)
     else:
         args = parser.parse_args()
-
-    if args.stats:
-        for key, value in Faidx(args.fasta).index.items():
-            sys.stdout.write("{name}\t{length}\n".format(name=key, length=value['rlen']))
-        sys.exit(0)
 
     if args.mask_with_default_seq or args.mask_by_case:
         mask_sequence(args)
