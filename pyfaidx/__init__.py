@@ -146,6 +146,28 @@ class Sequence(object):
         return self[::-1]
 
     @property
+    def orientation(self):
+        """ get the orientation forward=1, reverse=-1
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
+        >>> x.orientation
+        1
+        >>> x.complement.orientation is None
+        True
+        >>> x[::-1].orientation is None
+        True
+        >>> x = -x
+        >>> x.orientation
+        -1
+        """
+        if self.start < self.end and not self.comp:
+            return 1
+        elif self.start > self.end and self.comp:
+            return -1
+        else:
+            return None
+
+
+    @property
     def gc(self):
         """ Return the GC content of seq as a float
         >>> x = Sequence(name='chr1', seq='ATCGTA')
