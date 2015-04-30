@@ -318,27 +318,42 @@ For usage type ``faidx -h``.
     $ faidx tests/data/genes.fasta --bed regions.bed
     ...
 
-    $ faidx --stats tests/data/genes.fasta
+    $ faidx --transform chromsizes tests/data/genes.fasta
     AB821309.1	3510
     KF435150.1	481
     KF435149.1	642
     NR_104216.1	4573
     NR_104215.1	5317
     NR_104212.1	5374
-    NM_001282545.1	4170
-    NM_001282543.1	5466
-    NM_000465.3	5523
-    NM_001282549.1	3984
-    NM_001282548.1	4113
-    XM_005249645.1	2752
-    XM_005249644.1	3004
-    XM_005249643.1	3109
-    XM_005249642.1	3097
-    XM_005265508.1	2794
-    XM_005265507.1	2848
-    XR_241081.1	1009
-    XR_241080.1	4884
-    XR_241079.1	2819
+    ...
+
+    $ faidx --transform bed tests/data/genes.fasta
+    AB821309.1	1    3510
+    KF435150.1	1    481
+    KF435149.1	1    642
+    NR_104216.1	1   4573
+    NR_104215.1	1   5317
+    NR_104212.1	1   5374
+    ...
+
+    $ faidx --transform nucleotide tests/data/genes.fasta
+    name	start	end	A	T	C	G	N
+    AB821309.1	1	3510	955	774	837	944	0
+    KF435150.1	1	481	149	120	103	109	0
+    KF435149.1	1	642	201	163	129	149	0
+    NR_104216.1	1	4573	1294	1552	828	899	0
+    NR_104215.1	1	5317	1567	1738	968	1044	0
+    NR_104212.1	1	5374	1581	1756	977	1060	0
+    ...
+
+    faidx --transform transposed tests/data/genes.fasta
+    AB821309.1	1	3510	ATGGTCAGCTGGGGTCGTTTCATC...
+    KF435150.1	1	481	ATGACATCATTTTCCACCTCTGCTCAGT...
+    KF435149.1	1	642	ATGACATCATTTTCCACCTCTGCTCAGT...
+    NR_104216.1	1	4573	CCCCGCCCCTCTGGCGGCCCGCCG...
+    NR_104215.1	1	5317	CCCCGCCCCTCTGGCGGCCCGCCG...
+    NR_104212.1	1	5374	CCCCGCCCCTCTGGCGGCCCGCCG...
+    ...
 
     $ faidx --split-files tests/data/genes.fasta
     $ ls
