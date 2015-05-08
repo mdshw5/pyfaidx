@@ -47,8 +47,8 @@ def write_sequence(args):
 
 
 def fetch_sequence(args, fasta, name, start=None, end=None):
-    line_len = fasta.faidx.index[name].lenc
     try:
+      line_len = fasta.faidx.index[name].lenc
       sequence = fasta[name][start:end]
     except KeyError:
       sys.stderr.write("warning: {name} not found in file".format(**locals()))
