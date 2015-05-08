@@ -33,3 +33,6 @@ class TestCLI(TestCase):
     @raises(FetchError)
     def test_fetch_error(self):
         main(['data/genes.fasta', 'gi|557361099|gb|KF435150.1|:1-1000'])
+        
+    def test_key_warning(self):
+        main(['data/genes.fasta', 'foo'])
