@@ -1,6 +1,7 @@
 language: python
 sudo: false
 python:
+    - 'nightly'
     - '3.4'
     - '3.3'
     - '3.2'
@@ -31,6 +32,9 @@ deploy:
     python: 2.6
     tags: true
     repo: mdshw5/pyfaidx
+matrix:
+  allow_failures:
+    - python: 'nightly'
 cache:
     directories:
         - tests/data
