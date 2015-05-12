@@ -227,7 +227,7 @@ class Faidx(object):
 
         self.mutable = mutable
 
-        if os.path.exists(self.indexname) and getmtime(self.indexname) > getmtime(self.filename):
+        if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
             self.read_fai(split_char)
         else:
             try:
