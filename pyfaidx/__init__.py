@@ -21,7 +21,7 @@ from math import ceil
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.1'
+__version__ = '0.4.1.1'
 
 
 class FastaIndexingError(Exception):
@@ -227,7 +227,7 @@ class Faidx(object):
 
         self.mutable = mutable
 
-        if os.path.exists(self.indexname) and getmtime(self.indexname) > getmtime(self.filename):
+        if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
             self.read_fai(split_char)
         else:
             try:
