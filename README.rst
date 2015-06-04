@@ -64,9 +64,11 @@ Acts like a dictionary.
     >>> genes['NM_001282543.1'][200:230].name
     'NM_001282543.1'
 
+    # Start attributes are 1-based
     >>> genes['NM_001282543.1'][200:230].start
     201
 
+    # End attributes are 0-based
     >>> genes['NM_001282543.1'][200:230].end
     230
 
@@ -75,6 +77,8 @@ Acts like a dictionary.
 
     >>> len(genes['NM_001282543.1'])
     5466
+
+Note that start and end coordinates of Sequence objects are [1, 0]. This can be changed to [0, 0] by passing one_based_attributes=False to Fasta or Faidx.
 
 Indexes like a list:
 
@@ -104,7 +108,7 @@ Slices just like a string:
     >NM_001282543.1:1-5466
     CCCCGCCCCT........
 
-- Start and end coordinates are 0-based, just like Python.
+- Slicing start and end coordinates are 0-based, just like Python sequences.
 
 Sequence can be buffered in memory using a read-ahead buffer
 for fast sequential access:

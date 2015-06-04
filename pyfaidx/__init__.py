@@ -55,7 +55,7 @@ class Sequence(object):
     start, end = coordinates of subsequence (optional)
     comp = boolean switch for complement property
     """
-    def __init__(self, name='', seq='', start=None, end=None, comp=False):
+    def __init__(self, name='', seq='', start=None, end=None, comp=False, one_based_attributes=True):
         self.name = name
         self.seq = seq
         self.start = start
@@ -198,7 +198,8 @@ class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, split_char=None, filt_function=None):
+                 mutable=False, split_char=None, filt_function=None,
+                 one_based_attributes=True):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -218,6 +219,7 @@ class Faidx(object):
         self.as_raw = as_raw
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
+        self.one_based_attributes = one_based_attributes
         self.index = OrderedDict()
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
         if not read_ahead or isinstance(read_ahead, int):
@@ -423,7 +425,7 @@ class Faidx(object):
             return seq
         else:
             return Sequence(name=rname, start=int(start),
-                            end=int(end), seq=seq)
+                            end=int(end), seq=seq, one_based_attributes=self.one_based_attributes)
 
     def to_file(self, rname, start, end, seq):
         """ Write sequence in region from start-end, overwriting current
@@ -564,7 +566,7 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False, split_char=None, filt_function=None):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False, split_char=None, filt_function=None, one_based_attributes=True):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
@@ -574,7 +576,7 @@ class Fasta(object):
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            default_seq=default_seq, strict_bounds=strict_bounds,
                            read_ahead=read_ahead, mutable=mutable, split_char=split_char,
-                           filt_function=filt_function)
+                           filt_function=filt_function, one_based_attributes=one_based_attributes)
         self.keys = self.faidx.index.keys
         if not self.mutable:
             self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
