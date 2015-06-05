@@ -39,4 +39,4 @@ def test_comp_valid():
     complement(comp_valid)
     
 def test_zero_start():
-    assert seq_0.start = seq.start - 1
+    assert seq_0.start == seq.start - 1
