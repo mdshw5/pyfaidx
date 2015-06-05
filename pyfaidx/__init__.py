@@ -59,6 +59,8 @@ class Sequence(object):
         self.name = name
         self.seq = seq
         self.start = start
+        if one_based_attributes:
+            self.start += 1
         self.end = end
         self.comp = comp
         assert isinstance(name, string_types)
