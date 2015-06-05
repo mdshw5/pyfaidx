@@ -59,7 +59,7 @@ class Sequence(object):
         self.name = name
         self.seq = seq
         self.start = start
-        if not one_based_attributes:
+        if not one_based_attributes and start is not None:
             self.start -= 1
         self.end = end
         self.comp = comp
