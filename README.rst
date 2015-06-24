@@ -374,6 +374,12 @@ For usage type ``faidx -h``.
     CCCCGCCCCTCTGGCGGCCCGCCGTCCCAGACGCGGGAAGAGCTTGGCCGGTTTCGAGTCGCTGGCCTGC
     AGCTTCCCTGTGGTTTCCCGAGGCTTCCTTGCTTCCCGCTCTGCGAGGAGCCTTTCATCCGAAGGCGGGA
     .......
+    
+    $ faidx -m --bed regions.bed tests/data/genes.fasta 
+    ### Modifies tests/data/genes.fasta by masking regions using --default-seq character ###
+    
+    $ faidx -M --bed regions.bed tests/data/genes.fasta 
+    ### Modifies tests/data/genes.fasta by masking regions using lowercase characters ###
 
 
 Similar syntax as ``samtools faidx``
