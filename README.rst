@@ -78,7 +78,7 @@ Acts like a dictionary.
     >>> len(genes['NM_001282543.1'])
     5466
 
-Note that start and end coordinates of Sequence objects are [1, 0]. This can be changed to [0, 0] by passing one_based_attributes=False to Fasta or Faidx.
+Note that start and end coordinates of Sequence objects are [1, 0]. This can be changed to [0, 0] by passing ``one_based_attributes=False`` to ``Fasta`` or ``Faidx``.
 
 Indexes like a list:
 
