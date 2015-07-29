@@ -188,6 +188,8 @@ You can make sure that you always receive an uppercase sequence, even if your fa
    
     >>> from pyfaidx import Fasta
     >>> reference = Fasta('tests/data/genes.fasta.lower', sequence_always_upper=True)
+    >>> reference['gi|557361099|gb|KF435150.1|'][1:70]
+    
     >gi|557361099|gb|KF435150.1|:2-70
     TGACATCATTTTCCACCTCTGCTCAGTGTTCAACATCTGACAGTGCTTGCAGGATCTCTCCTGGACAAA
     
