@@ -66,7 +66,7 @@ def fetch_chr22_vcf(filename):
 if __name__ == "__main__":
     path = os.path.dirname(__file__)
     os.chdir(path)
-    if not os.path.isfile("genes.fasta"):
+    if not os.path.isfile("genes.fasta") or not os.path.isfile("genes.fasta.lower"):
         fetch_genes("genes.fasta")
     if not os.path.isfile("chr22.vcf.gz"):
         fetch_chr22_vcf("chr22.vcf.gz")

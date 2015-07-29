@@ -17,6 +17,16 @@ class TestFastaRecord(TestCase):
         except EnvironmentError:
             pass  # some tests may delete this file
 
+    def test_sequence_uppercase(self):
+        """Test that the sequence is always returned in 
+        uppercase, even if it is in lowercase in the 
+        reference genome. 
+        """
+        filename = "data/genes.fasta.lower"
+        reference_upper = Fasta(filename, sequence_always_upper=True)
+        reference_normal = Fasta(filename)
+        assert reference_upper['gi|557361099|gb|KF435150.1|'][1:100].seq == reference_normal['gi|557361099|gb|KF435150.1|'][1:100].seq.upper()
+
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
         identical to deflines in the actual file.

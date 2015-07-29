@@ -181,6 +181,18 @@ Or just get a Python string:
 
     >>> genes['NM_001282543.1'][200:230]
     CTCGTTCCGCGCCCGCCATGGAACCGGATG
+    
+You can make sure that you always receive an uppercase sequence, even if your fasta file has lower case
+
+.. code:: python
+   
+    >>> from pyfaidx import Fasta
+    >>> reference = Fasta('tests/data/genes.fasta.lower', sequence_always_upper=True)
+    >>> reference['gi|557361099|gb|KF435150.1|'][1:70]
+    
+    >gi|557361099|gb|KF435150.1|:2-70
+    TGACATCATTTTCCACCTCTGCTCAGTGTTCAACATCTGACAGTGCTTGCAGGATCTCTCCTGGACAAA
+    
 
 You can also perform line-based iteration, receiving the sequence lines as they appear in the FASTA file:
 
@@ -414,6 +426,23 @@ Changelog
 
 Please see the `releases <https://github.com/mdshw5/pyfaidx/releases>`_ for a
 comprehensive list of version changes.
+
+
+Contributing
+------------
+
+Create a new Pull Request with one feauture. If you add a new feature, please 
+create also the relevant test.
+
+To get test running on your machine:
+ - Create a new virtualenv and install the `dev-requirements.txt`. 
+ - Download the test data running:
+
+      python tests/data/download_gene_fasta.py
+   
+ - Run the tests with 
+
+      nosetests --with-coverage --cover-package=pyfaidx
 
 Acknowledgements
 ----------------

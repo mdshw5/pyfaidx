@@ -201,7 +201,8 @@ class Faidx(object):
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
                  mutable=False, split_char=None, filt_function=None,
-                 one_based_attributes=True):
+                 one_based_attributes=True, 
+                 sequence_always_upper=False):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -222,6 +223,7 @@ class Faidx(object):
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
         self.one_based_attributes = one_based_attributes
+        self.sequence_always_upper = sequence_always_upper
         self.index = OrderedDict()
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
         if not read_ahead or isinstance(read_ahead, int):
@@ -422,7 +424,10 @@ class Faidx(object):
             seq = ''.join([seq, pad_len * self.default_seq])
         else:  # Return less than requested range
             end = start0 + len(seq)
-
+        
+        if self.sequence_always_upper:
+            seq = seq.upper()
+            
         if self.as_raw:
             return seq
         else:
@@ -568,7 +573,10 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, strict_bounds=False, read_ahead=None, mutable=False, split_char=None, filt_function=None, one_based_attributes=True):
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, 
+                 strict_bounds=False, read_ahead=None, mutable=False, split_char=None, 
+                 filt_function=None, one_based_attributes=True, 
+                 sequence_always_upper=False):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
@@ -578,7 +586,8 @@ class Fasta(object):
         self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
                            default_seq=default_seq, strict_bounds=strict_bounds,
                            read_ahead=read_ahead, mutable=mutable, split_char=split_char,
-                           filt_function=filt_function, one_based_attributes=one_based_attributes)
+                           filt_function=filt_function, one_based_attributes=one_based_attributes,
+                           sequence_always_upper=sequence_always_upper)
         self.keys = self.faidx.index.keys
         if not self.mutable:
             self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
