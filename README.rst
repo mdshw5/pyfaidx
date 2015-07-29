@@ -181,6 +181,19 @@ Or just get a Python string:
 
     >>> genes['NM_001282543.1'][200:230]
     CTCGTTCCGCGCCCGCCATGGAACCGGATG
+    
+You can make sure that you always receive an uppercase sequence, even if your fasta file has lower case
+
+.. code:: python
+   
+    >>> from pyfaidx import Fasta
+    >>> reference = Fasta('tests/data/hs37d5_part.fa', sequence_always_upper=True)
+    >>> reference['hs37d5'][300:330]
+    >hs37d5:301-330
+    TCATCAAGGCTGGAATGCAGTGGCATGATC
+    
+
+    
 
 You can also perform line-based iteration, receiving the sequence lines as they appear in the FASTA file:
 

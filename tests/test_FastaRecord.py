@@ -17,6 +17,48 @@ class TestFastaRecord(TestCase):
         except EnvironmentError:
             pass  # some tests may delete this file
 
+    def test_sequence_uppercase(self):
+        """Test that the sequence is always returned in 
+        uppercase, even if it is in lowercase in the 
+        reference genome. 
+        """
+        filename = 'data/hs37d5_part.fa'
+        fasta = Fasta(filename)
+        hs37d5 = fasta['hs37d5']
+        seq_normal = """AAGAAACAGAACAAAACAACTCCTTCAATGTTGATGAGACTGCCCCTGGGATTTGGAAAG
+                CTAATAACAGAGAAAACCAATATAGACAAAGGATTTTAAACAGGACTATCGGATTATGAT
+                CAATTAAGCAAATTAGAAAAGGATACTTGAAGGAGTATTTGGGACACAGGAATCAAAAAC
+                ACCAGGAAGACATGAGGAGTTTTTCCAAGATTGTAGACTATAGCAATACTTAGATAACCA
+                ATACCAGTGTATTAATGAGTAATTATTAGTATTATTAttttgagatggagtcgcactctg
+                tcatcaaggctggaatgcagtggcatgatctcggcttactgcaacctccgcctccctggt
+                tcaagaattctggtgcctccgcctcccgagtagctgggactataggtgcacgtcaggatg
+                cctggataatttctatatttttagtacagatgggatttcaccatgttggtcaggctggtc
+                tccaactcctggcctgaagtgatctgctctcttcagcctcccaaagggctaggattacag
+                gcatgggccactatgcacagccAAGTAATTTGTATCATCATGGGAATAAAAAATATACAT"""
+                
+        seq_normal = "".join(seq_normal.split())
+        assert hs37d5[:].seq == seq_normal
+        
+        # always uppercase
+        fasta = Fasta(filename, sequence_always_upper=True)
+        hs37d5 = fasta['hs37d5']
+        seq_upper = """AAGAAACAGAACAAAACAACTCCTTCAATGTTGATGAGACTGCCCCTGGGATTTGGAAAG
+                        CTAATAACAGAGAAAACCAATATAGACAAAGGATTTTAAACAGGACTATCGGATTATGAT
+                        CAATTAAGCAAATTAGAAAAGGATACTTGAAGGAGTATTTGGGACACAGGAATCAAAAAC
+                        ACCAGGAAGACATGAGGAGTTTTTCCAAGATTGTAGACTATAGCAATACTTAGATAACCA
+                        ATACCAGTGTATTAATGAGTAATTATTAGTATTATTATTTTGAGATGGAGTCGCACTCTG
+                        TCATCAAGGCTGGAATGCAGTGGCATGATCTCGGCTTACTGCAACCTCCGCCTCCCTGGT
+                        TCAAGAATTCTGGTGCCTCCGCCTCCCGAGTAGCTGGGACTATAGGTGCACGTCAGGATG
+                        CCTGGATAATTTCTATATTTTTAGTACAGATGGGATTTCACCATGTTGGTCAGGCTGGTC
+                        TCCAACTCCTGGCCTGAAGTGATCTGCTCTCTTCAGCCTCCCAAAGGGCTAGGATTACAG
+                        GCATGGGCCACTATGCACAGCCAAGTAATTTGTATCATCATGGGAATAAAAAATATACAT"""
+        
+        seq_upper = "".join(seq_upper.split())
+        
+        assert hs37d5[:].seq == seq_upper
+        
+
+
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
         identical to deflines in the actual file.
