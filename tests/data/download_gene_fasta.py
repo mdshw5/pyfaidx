@@ -26,6 +26,12 @@ def fetch_genes(filename, suffix=None):
             if len(line) == 1:  # skip lines with only \n
                 continue
             fasta.write(line)
+    with open(filename, 'r') as fasta:
+        with open('.'.join([filename, 'lower']), 'w') as lower:
+            for line in fasta:
+                if line[0] != '>':
+                    line = line.decode().lower().encode()
+                lower.write(line)
 
 def fetch_chr22(filename):
     from subprocess import Popen, PIPE
