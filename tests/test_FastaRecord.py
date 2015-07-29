@@ -22,42 +22,10 @@ class TestFastaRecord(TestCase):
         uppercase, even if it is in lowercase in the 
         reference genome. 
         """
-        filename = 'data/hs37d5_part.fa'
-        fasta = Fasta(filename)
-        hs37d5 = fasta['hs37d5']
-        seq_normal = """AAGAAACAGAACAAAACAACTCCTTCAATGTTGATGAGACTGCCCCTGGGATTTGGAAAG
-                CTAATAACAGAGAAAACCAATATAGACAAAGGATTTTAAACAGGACTATCGGATTATGAT
-                CAATTAAGCAAATTAGAAAAGGATACTTGAAGGAGTATTTGGGACACAGGAATCAAAAAC
-                ACCAGGAAGACATGAGGAGTTTTTCCAAGATTGTAGACTATAGCAATACTTAGATAACCA
-                ATACCAGTGTATTAATGAGTAATTATTAGTATTATTAttttgagatggagtcgcactctg
-                tcatcaaggctggaatgcagtggcatgatctcggcttactgcaacctccgcctccctggt
-                tcaagaattctggtgcctccgcctcccgagtagctgggactataggtgcacgtcaggatg
-                cctggataatttctatatttttagtacagatgggatttcaccatgttggtcaggctggtc
-                tccaactcctggcctgaagtgatctgctctcttcagcctcccaaagggctaggattacag
-                gcatgggccactatgcacagccAAGTAATTTGTATCATCATGGGAATAAAAAATATACAT"""
-                
-        seq_normal = "".join(seq_normal.split())
-        assert hs37d5[:].seq == seq_normal
-        
-        # always uppercase
-        fasta = Fasta(filename, sequence_always_upper=True)
-        hs37d5 = fasta['hs37d5']
-        seq_upper = """AAGAAACAGAACAAAACAACTCCTTCAATGTTGATGAGACTGCCCCTGGGATTTGGAAAG
-                        CTAATAACAGAGAAAACCAATATAGACAAAGGATTTTAAACAGGACTATCGGATTATGAT
-                        CAATTAAGCAAATTAGAAAAGGATACTTGAAGGAGTATTTGGGACACAGGAATCAAAAAC
-                        ACCAGGAAGACATGAGGAGTTTTTCCAAGATTGTAGACTATAGCAATACTTAGATAACCA
-                        ATACCAGTGTATTAATGAGTAATTATTAGTATTATTATTTTGAGATGGAGTCGCACTCTG
-                        TCATCAAGGCTGGAATGCAGTGGCATGATCTCGGCTTACTGCAACCTCCGCCTCCCTGGT
-                        TCAAGAATTCTGGTGCCTCCGCCTCCCGAGTAGCTGGGACTATAGGTGCACGTCAGGATG
-                        CCTGGATAATTTCTATATTTTTAGTACAGATGGGATTTCACCATGTTGGTCAGGCTGGTC
-                        TCCAACTCCTGGCCTGAAGTGATCTGCTCTCTTCAGCCTCCCAAAGGGCTAGGATTACAG
-                        GCATGGGCCACTATGCACAGCCAAGTAATTTGTATCATCATGGGAATAAAAAATATACAT"""
-        
-        seq_upper = "".join(seq_upper.split())
-        
-        assert hs37d5[:].seq == seq_upper
-        
-
+        filename = "data/genes.fasta.lower"
+        reference_upper = Fasta(filename, sequence_always_upper=True)
+        reference_normal = Fasta(filename)
+        assert reference_upper['gi|557361099|gb|KF435150.1|'][1:100].seq == reference_normal['gi|557361099|gb|KF435150.1|'][1:100].seq.upper()
 
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
