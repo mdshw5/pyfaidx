@@ -187,12 +187,9 @@ You can make sure that you always receive an uppercase sequence, even if your fa
 .. code:: python
    
     >>> from pyfaidx import Fasta
-    >>> reference = Fasta('tests/data/hs37d5_part.fa', sequence_always_upper=True)
-    >>> reference['hs37d5'][300:330]
-    >hs37d5:301-330
-    TCATCAAGGCTGGAATGCAGTGGCATGATC
-    
-
+    >>> reference = Fasta('tests/data/genes.fasta.lower', sequence_always_upper=True)
+    >gi|557361099|gb|KF435150.1|:2-70
+    TGACATCATTTTCCACCTCTGCTCAGTGTTCAACATCTGACAGTGCTTGCAGGATCTCTCCTGGACAAA
     
 
 You can also perform line-based iteration, receiving the sequence lines as they appear in the FASTA file:
