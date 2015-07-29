@@ -415,6 +415,23 @@ Changelog
 Please see the `releases <https://github.com/mdshw5/pyfaidx/releases>`_ for a
 comprehensive list of version changes.
 
+
+Contributing
+------------
+
+Create a new Pull Request with one feauture. If you add a new feature, please 
+create also the relevant test.
+
+To get test running on your machine:
+ - Create a new virtualenv and install the `dev-requirements.txt`. 
+ - Download the test data running:
+
+      python tests/data/download_gene_fasta.py
+   
+ - Run the tests with 
+
+      nosetests --with-coverage --cover-package=pyfaidx
+
 Acknowledgements
 ----------------
 
