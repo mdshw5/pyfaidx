@@ -1,4 +1,4 @@
-# pylint: disable=R0913, R0914
+# pylint: disable=R0913, R0914, C0301
 
 """
 Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
@@ -21,7 +21,7 @@ from math import ceil
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.1.1'
+__version__ = '0.4.2'
 
 
 class FastaIndexingError(Exception):
@@ -55,35 +55,55 @@ class Sequence(object):
     start, end = coordinates of subsequence (optional)
     comp = boolean switch for complement property
     """
-    def __init__(self, name='', seq='', start=None, end=None, comp=False, one_based_attributes=True):
+    def __init__(self, name='', seq='', start=None, end=None, comp=False):
         self.name = name
         self.seq = seq
         self.start = start
-        if not one_based_attributes and start is not None:
-            self.start -= 1
         self.end = end
         self.comp = comp
         assert isinstance(name, string_types)
         assert isinstance(seq, string_types)
 
     def __getitem__(self, n):
+        """ Returns the reverse compliment of sequence
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
+        >>> x
+        >chr1:1-6
+        ATCGTA
+        >>> x[:3]
+        >chr1:1-3
+        ATC
+        >>> x[3:]
+        >chr1:4-6
+        GTA
+        >>> x[::-1]
+        >chr1:6-1
+        ATGCTA
+        """
         if isinstance(n, slice):
-            start, stop, step = n.indices(len(self))
-            if stop == -1:
-                stop = start
+            slice_start, slice_stop, slice_step = n.indices(len(self))
+            if slice_step < 0:  # flip the coordinates when we reverse
+
+                self_start, self_end = (self.end, self.start)
+                slice_stop, slice_start = (slice_start, slice_stop)
+                if self.start is not None and self.end is not None:
+                    start = self_start + slice_start + 1
+                    end = self_end - (len(self) - slice_stop - 1)
             else:
-                stop = len(self) - stop
-            if self.start and self.end:
-                return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
-                                  self.start + start, self.end - stop, self.comp)
-            else:
-                return self.__class__(self.name, self.seq[n.start:n.stop:n.step], self.comp)
+                if self.start is not None and self.end is not None:
+                    start = self.start + slice_start
+                    end = self.end - (self.end - slice_stop)
+            if self.start is None or self.end is None:  # there should never be self.start != self.end == None
+                start = None
+                end = None
+            return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
+                                  start, end, self.comp)
         elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
             if self.start:
                 return self.__class__(self.name, self.seq[n], self.start + n,
-                                  self.start + n, self.comp)
+                                      self.start + n, self.comp)
             else:
                 return self.__class__(self.name, self.seq[n], self.comp)
 
@@ -93,9 +113,16 @@ class Sequence(object):
     def __neg__(self):
         """ Returns the reverse compliment of sequence
         >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
-        >>> -x
+        >>> x
+        >chr1:1-6
+        ATCGTA
+        >>> y = -x
+        >>> y
         >chr1:6-1 (complement)
         TACGAT
+        >>> -y
+        >chr1:1-6
+        ATCGTA
         """
         return self[::-1].complement
 
@@ -201,7 +228,7 @@ class Faidx(object):
     def __init__(self, filename, default_seq=None, key_function=None,
                  as_raw=False, strict_bounds=False, read_ahead=None,
                  mutable=False, split_char=None, filt_function=None,
-                 one_based_attributes=True, 
+                 one_based_attributes=True,
                  sequence_always_upper=False):
         """
         filename: name of fasta file
@@ -320,7 +347,10 @@ class Faidx(object):
                         rlen = 0
                         clen = None
                         bad_lines = []
-                        rname = line.rstrip()[1:].split()[0]
+                        try:  # must catch empty deflines
+                            rname = line.rstrip('\n\r')[1:].split()[0]  # remove comments
+                        except IndexError:
+                            raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                         offset += line_blen
                         thisoffset = offset
                     else:  # check line and advance offset
@@ -424,15 +454,18 @@ class Faidx(object):
             seq = ''.join([seq, pad_len * self.default_seq])
         else:  # Return less than requested range
             end = start0 + len(seq)
-        
+
         if self.sequence_always_upper:
             seq = seq.upper()
-            
+
+        if not self.one_based_attributes:
+            start = start0
+
         if self.as_raw:
             return seq
         else:
             return Sequence(name=rname, start=int(start),
-                            end=int(end), seq=seq, one_based_attributes=self.one_based_attributes)
+                            end=int(end), seq=seq)
 
     def to_file(self, rname, start, end, seq):
         """ Write sequence in region from start-end, overwriting current
@@ -486,6 +519,7 @@ class FastaRecord(object):
                     stop = len(self) + stop
                 if start < 0:
                     start = len(self) + start
+                print(stop)
                 return self._fa.get_seq(self.name, start + 1, stop)[::step]
 
             elif isinstance(n, int):
@@ -573,9 +607,9 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False, 
-                 strict_bounds=False, read_ahead=None, mutable=False, split_char=None, 
-                 filt_function=None, one_based_attributes=True, 
+    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False,
+                 strict_bounds=False, read_ahead=None, mutable=False, split_char=None,
+                 filt_function=None, one_based_attributes=True,
                  sequence_always_upper=False):
         """
         An object that provides a pygr compatible interface.
