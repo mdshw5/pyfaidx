@@ -101,3 +101,28 @@ class TestFeatureBoundsCheck:
     def test_slice_from_end(self):
         fasta = Fasta('data/genes.fasta', as_raw=True)
         assert fasta['gi|557361099|gb|KF435150.1|'][-4:] == 'ACTC'
+
+    def test_issue_74_start(self):
+        f0 = Fasta('data/genes.fasta', one_based_attributes=False)
+        f1 = Fasta('data/genes.fasta', one_based_attributes=True)
+        assert f0['gi|557361099|gb|KF435150.1|'][0:90].start == f1['gi|557361099|gb|KF435150.1|'][0:90].start - 1
+
+    def test_issue_74_consistency(self):
+        f0 = Fasta('data/genes.fasta', one_based_attributes=False)
+        f1 = Fasta('data/genes.fasta', one_based_attributes=True)
+        assert str(f0['gi|557361099|gb|KF435150.1|'][0:90]) == str(f1['gi|557361099|gb|KF435150.1|'][0:90])
+
+    def test_issue_74_end_faidx(self):
+        f0 = Faidx('data/genes.fasta', one_based_attributes=False)
+        f1 = Faidx('data/genes.fasta', one_based_attributes=True)
+        end0 = f0.fetch('gi|557361099|gb|KF435150.1|', 1, 90).end
+        end1 = f1.fetch('gi|557361099|gb|KF435150.1|', 1, 90).end
+        assert end0 == end1
+
+    def test_issue_74_end_fasta(self):
+        f0 = Fasta('data/genes.fasta', one_based_attributes=False)
+        f1 = Fasta('data/genes.fasta', one_based_attributes=True)
+        end0 = f0['gi|557361099|gb|KF435150.1|'][1:90].end
+        end1 = f1['gi|557361099|gb|KF435150.1|'][1:90].end
+        print((end0, end1))
+        assert end0 == end1

@@ -6,9 +6,6 @@ seq = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGT
 
 seq_invalid = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTPGCATGCAGCAGGTGCGCAAGGTGAAATNTTCACTGTTAAA',
                     start=100, end=150)
-                    
-seq_0 = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
-                    start=100, end=150, one_based_attributes=False)                    
 
 comp_valid = 'TTGAAGATTTnGCATGCAGCAGGtgccaAGGTGAAATGTTNACTGTTAAA'
 
@@ -37,6 +34,3 @@ def test_comp_invalid():
 
 def test_comp_valid():
     complement(comp_valid)
-    
-def test_zero_start():
-    assert seq_0.start == seq.start - 1

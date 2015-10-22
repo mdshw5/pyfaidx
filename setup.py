@@ -35,6 +35,7 @@ setup(
             "Intended Audience :: Science/Research",
             "Natural Language :: English",
             "Operating System :: Unix",
+            "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.4",
             "Programming Language :: Python :: 3.3",
             "Programming Language :: Python :: 3.2",
