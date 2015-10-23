@@ -519,7 +519,6 @@ class FastaRecord(object):
                     stop = len(self) + stop
                 if start < 0:
                     start = len(self) + start
-                print(stop)
                 return self._fa.get_seq(self.name, start + 1, stop)[::step]
 
             elif isinstance(n, int):
