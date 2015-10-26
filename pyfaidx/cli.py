@@ -17,11 +17,23 @@ def write_sequence(args):
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
-        regions_to_fetch = tuple(fasta.keys())
+        regions_to_fetch = fasta.keys()
+    if args.invert_match:
+        sequences_to_exclude = set([split_function(region)[0] for region in regions_to_fetch])
+        fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy, split_char=args.delimiter)
+        regions_to_fetch = (key for key in fasta.keys() if key not in sequences_to_exclude)
+        split_function = ucsc_split
 
     header = False
     for region in regions_to_fetch:
         name, start, end = split_function(region)
+        if args.size_range:
+            if start is not None and end is not None:
+                sequence_len = end - start
+            else:
+                sequence_len = len(fasta[name])
+            if args.size_range[0] > sequence_len or args.size_range[1] < sequence_len:
+                continue
         if args.split_files:  # open output file based on sequence name
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
@@ -126,6 +138,7 @@ def main(ext_args=None):
     parser.add_argument('-i', '--transform', type=str, choices=('bed', 'chromsizes', 'nucleotide', 'transposed'), help="transform the requested regions into another format. default: %(default)s")
     parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
+    parser.add_argument('-a', '--size-range', type=parse_size_range, default=None, help='selected sequences are in the size range [low, high]. example: 1,1000 default: %(default)s')
     names = parser.add_mutually_exclusive_group()
     names.add_argument('-n', '--no-names', action="store_true", default=False, help="omit sequence names from output. default: %(default)s")
     names.add_argument('-f', '--full-names', action="store_true", default=False, help="output full names including description. default: %(default)s")
@@ -133,7 +146,9 @@ def main(ext_args=None):
     parser.add_argument('-l', '--lazy', action="store_true", default=False, help="fill in --default-seq for missing ranges. default: %(default)s")
     parser.add_argument('-s', '--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')
     parser.add_argument('-d', '--delimiter', type=str, default=None, help='delimiter for splitting names to multiple values (duplicate names will be discarded). default: %(default)s')
-    parser.add_argument('-g', '--regex', type=str, default='.*', help='regular expression for filtering non-matching sequence names. default: %(default)s')
+    matcher = parser.add_mutually_exclusive_group()
+    matcher.add_argument('-g', '--regex', type=str, default='.*', help='selected sequences are those matching regular expression. default: %(default)s')
+    matcher.add_argument('-v', '--invert-match', action="store_true", default=False, help="selected sequences are those not matching 'regions' argument. default: %(default)s")
     masking = parser.add_mutually_exclusive_group()
     masking.add_argument('-m', '--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using --default-seq default: %(default)s")
     masking.add_argument('-M', '--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
@@ -157,6 +172,16 @@ def check_seq_length(value):
     if len(value) != 1:
         raise argparse.ArgumentTypeError("--default-seq value must be a single character!")
     return value
+
+def parse_size_range(value):
+    """ Size range argument should be in the form start,end and is end-inclusive. """
+    if value is None:
+        return value
+    try:
+        start, end = value.replace(' ', '').replace('\t', '').split(',')
+    except (TypeError, ValueError, IndexError):
+        raise ValueError
+    return (int(start), int(end))
 
 
 class Counter(dict):

@@ -276,7 +276,43 @@ It also provides a command-line script:
 cli script: faidx
 ~~~~~~~~~~~~~~~~~
 
-For usage type ``faidx -h``.
+.. code:: bash
+
+    Fetch sequences from FASTA. If no regions are specified, all entries in the
+    input file are returned. Input FASTA file must be consistently line-wrapped,
+    and line wrapping of output is based on input line lengths.
+
+    positional arguments:
+      fasta                 FASTA file
+      regions               space separated regions of sequence to fetch e.g.
+                            chr1:1-1000
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -b BED, --bed BED     bed file of regions
+      -o OUT, --out OUT     output file name (default: stdout)
+      -i {bed,chromsizes,nucleotide,transposed}, --transform {bed,chromsizes,nucleotide,transposed} transform the requested regions into another format. default: None
+      -c, --complement      complement the sequence. default: False
+      -r, --reverse         reverse the sequence. default: False
+      -a SIZE_RANGE, --size-range SIZE_RANGE
+                            selected sequences are in the size range [low, high]. example: 1,1000 default: None
+      -n, --no-names        omit sequence names from output. default: False
+      -f, --full-names      output full names including description. default: False
+      -x, --split-files     write each region to a separate file (names are derived from regions)
+      -l, --lazy            fill in --default-seq for missing ranges. default: False
+      -s DEFAULT_SEQ, --default-seq DEFAULT_SEQ
+                            default base for missing positions and masking. default: N
+      -d DELIMITER, --delimiter DELIMITER
+                            delimiter for splitting names to multiple values (duplicate names will be discarded). default: None
+      -g REGEX, --regex REGEX
+                            selected sequences are those matching regular expression. default: .*
+      -v, --invert-match    selected sequences are those not matching 'regions' argument. default: False
+      -m, --mask-with-default-seq
+                            mask the FASTA file using --default-seq default: False
+      -M, --mask-by-case    mask the FASTA file by changing to lowercase. default: False
+      --version             print pyfaidx version number
+
+Examples:
 
 .. code:: bash
 
@@ -386,6 +422,11 @@ For usage type ``faidx -h``.
     CCCCGCCCCTCTGGCGGCCCGCCGTCCCAGACGCGGGAAGAGCTTGGCCGGTTTCGAGTCGCTGGCCTGC
     AGCTTCCCTGTGGTTTCCCGAGGCTTCCTTGCTTCCCGCTCTGCGAGGAGCCTTTCATCCGAAGGCGGGA
     .......
+
+    
+
+    $ faidx --size-range 5500,6000 -i chromsizes tests/data/genes.fasta
+    NM_000465.3	5523
 
     $ faidx -m --bed regions.bed tests/data/genes.fasta
     ### Modifies tests/data/genes.fasta by masking regions using --default-seq character ###
