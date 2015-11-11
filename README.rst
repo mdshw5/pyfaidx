@@ -507,3 +507,6 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Coveralls| image:: https://coveralls.io/repos/mdshw5/pyfaidx/badge.svg?branch=master
    :target: https://coveralls.io/r/mdshw5/pyfaidx?branch=master
+   
+.. |Depsy| image:: http://depsy.org/api/package/pypi/pyfaidx/badge.svg
+   :target: http://depsy.org/package/python/pyfaidx
