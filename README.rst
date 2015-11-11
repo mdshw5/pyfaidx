@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Landscape| |Coveralls|
+|Travis| |PyPI| |Landscape| |Coveralls| |Depsy|
 
 Description
 -----------
