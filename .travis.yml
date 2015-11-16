@@ -27,7 +27,7 @@ deploy:
   provider: pypi
   user: mdshw5
   password:
-    secure: WaAW6Vk1yjC851PKaeiJGNyZ6wZ2baqlixUSvRDXoT673yFrlp32IMHofmP/TwVxnLMfQxhAb3r7dYYDYnNw4n3vPInJ+Yy35RG1WQ2XUOpOEZ8n2fWczxKfkJjQ5ob03DCSFPeL5h+FYfyHRAfPb9K8OtEawKRvCfaUXE0teko=
+    secure: MbSaeuitkVTZqxa0PJ3RcR1aMf+B/sMbcx2sWOo9xfLlRFDFpYWJZ0EfXWEhrVu2YWXpBsasgunTDWSi0jNcZMH92MzOC+UTVYr45LO5sy6hm4iSiAgm/DPgYWdjP0SFKr7eL/HWPS+gHvgkXL1upleX21O358bxaezoasuKFvs=
   on:
     all_branches: true
     python: 2.6
