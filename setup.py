@@ -30,7 +30,7 @@ setup(
     entry_points={'console_scripts': ['faidx = pyfaidx.cli:main']},
     classifiers=[
             "Development Status :: 5 - Production/Stable",
-            "License :: OSI Approved :: MIT License",
+            "License :: OSI Approved :: BSD License",
             "Environment :: Console",
             "Intended Audience :: Science/Research",
             "Natural Language :: English",
