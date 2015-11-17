@@ -21,7 +21,7 @@ from math import ceil
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.5.1'
+__version__ = '0.4.5.2'
 
 
 class FastaIndexingError(Exception):
