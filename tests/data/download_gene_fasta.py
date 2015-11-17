@@ -30,7 +30,7 @@ def fetch_genes(filename, suffix=None):
         with open('.'.join([filename, 'lower']), 'w') as lower:
             for line in fasta:
                 if line[0] != '>':
-                    line = line.decode().lower().encode()
+                    line = line.lower()
                 lower.write(line)
 
 def fetch_chr22(filename):
@@ -53,6 +53,17 @@ def fetch_chr22(filename):
                     break
                 elif chr22:
                     fasta.write(line)
+
+def fake_chr22(filename):
+    """ Fake up some data """
+    chr22_len = 49691432
+    mod_70 = chr22_len % 70
+    with open(filename, 'w') as fake_file:
+        fake_file.write('>22 fake data for testing\n')
+        while chr22_len > mod_70:
+            fake_file.write('N' * 70 + '\n')
+            chr22_len -= 70
+        fake_file.write('N' * mod_70 + '\n')
 
 def fetch_chr22_vcf(filename):
     from subprocess import call

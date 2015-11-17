@@ -368,7 +368,7 @@ class Faidx(object):
 
                 # write the final index line
                 check_bad_lines(rname, bad_lines, i + 1)  # advance index since we're at the end of the file
-                indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def write_fai(self):
         with open(self.indexname, 'w') as outfile:
@@ -689,7 +689,10 @@ class FastaVariant(Fasta):
             self.filter = "sample['{key}'] {expr} {value}".format(**locals())
         else:
             self.filter = 'True'
-        self.vcf = vcf.Reader(filename=vcf_file)
+        if os.path.exists(vcf_file):
+            self.vcf = vcf.Reader(filename=vcf_file)
+        else:
+            raise IOError("File {s:0} does not exist.".format(vcf_file))
         if sample is not None:
             self.sample = sample
         else:
