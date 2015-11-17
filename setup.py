@@ -24,7 +24,7 @@ setup(
     description='pyfaidx: efficient pythonic random '
                 'access to fasta subsequences',
     long_description=open('README.rst').read(),
-    license='MIT',
+    license='BSD',
     packages=['pyfaidx'],
     install_requires=install_requires,
     entry_points={'console_scripts': ['faidx = pyfaidx.cli:main']},
