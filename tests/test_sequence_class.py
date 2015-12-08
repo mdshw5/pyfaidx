@@ -33,4 +33,9 @@ def test_comp_invalid():
     complement(comp_invalid)
 
 def test_comp_valid():
-    complement(comp_valid)
+    assert complement(comp_valid).startswith("AACTTCTAAAnCG")
+    assert complement(complement(comp_valid)) == comp_valid
+
+def test_comp_empty():
+    assert complement('') == ''
+

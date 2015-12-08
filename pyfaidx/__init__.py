@@ -745,25 +745,35 @@ def wrap_sequence(n, sequence, fillvalue=''):
     for line in zip_longest(fillvalue=fillvalue, *args):
         yield ''.join(line + ("\n",))
 
+# To take a complement, we map each character in the first string in this pair
+# to the corresponding character in the second string.
+complement_map = ('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
+invalid_characters_set = set(
+    chr(x) for x in range(256) if chr(x) not in complement_map[0])
+invalid_characters_string = ''.join(invalid_characters_set)
+
+if PY3:
+    complement_table = str.maketrans(
+        complement_map[0], complement_map[1], invalid_characters_string)
+    translate_arguments = (complement_table,)
+elif PY2:
+    complement_table = string.maketrans(complement_map[0], complement_map[1])
+    translate_arguments = (complement_table, invalid_characters_string)
 
 def complement(seq):
-    """ Returns the compliment of seq.
+    """ Returns the complement of seq.
     >>> seq = 'ATCGTA'
     >>> complement(seq)
     'TAGCAT'
     """
-    if PY3:
-        table = str.maketrans('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
-    elif PY2:
-        table = string.maketrans('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
-    if len(re.findall(dna_bases, seq)) == 1:  # finds invalid characters if > 1
-        return str(seq).translate(table)
-    else:
-        matches = re.findall(dna_bases, seq)
-        position = len(matches[0])
-        raise ValueError("Sequence contains non-DNA character '{0}' at position {1:n}\n".format(seq[position], position + 1))
-
-
+    seq = str(seq)
+    result = seq.translate(*translate_arguments)
+    if len(result) != len(seq):
+        first_invalid_position = next(
+            i for i in range(len(seq)) if seq[i] in invalid_characters_set)
+        raise ValueError("Sequence contains non-DNA character '{0}' at position {1:n}\n".format(
+            seq[first_invalid_position], first_invalid_position + 1))
+    return result
 
 def translate_chr_name(from_name, to_name):
     chr_name_map = dict(zip(from_name, to_name))
