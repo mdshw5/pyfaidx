@@ -310,22 +310,6 @@ class Faidx(object):
                 self.index.pop(dup, None)
 
     def build_index(self):
-
-        def check_bad_lines(rname, bad_lines, i):
-            if len(bad_lines) > 1:
-                raise FastaIndexingError("Line length of fasta"
-                                         " file is not "
-                                         "consistent! "
-                                         "Inconsistent line found in >{0} at "
-                                         "line {1:n}.".format(rname, bad_lines[0] + 1))
-            elif len(bad_lines) == 1:  # check that the line is previous line
-                if bad_lines[0] + 1 != i:
-                    raise FastaIndexingError("Line length of fasta"
-                                             " file is not "
-                                             "consistent! "
-                                             "Inconsistent line found in >{0} at "
-                                             "line {1:n}.".format(rname, bad_lines[0] + 1))
-
         with open(self.filename, 'r') as fastafile:
             with open(self.indexname, 'w') as indexfile:
                 rname = None  # reference sequence name
@@ -340,9 +324,15 @@ class Faidx(object):
                     line_clen = len(line.rstrip('\n\r'))
                     # write an index line
                     if line[0] == '>':
-                        check_bad_lines(rname, bad_lines, i)  # raises errors
-                        if i > 0:
+                        valid_entry = check_bad_lines(rname, bad_lines, i - 1)
+                        if valid_entry and i > 0:
                             indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                        elif not valid_entry:
+                            raise FastaIndexingError("Line length of fasta"
+                                                     " file is not "
+                                                     "consistent! "
+                                                     "Inconsistent line found in >{0} at "
+                                                     "line {1:n}.".format(rname, bad_lines[0][0] + 1))
                         blen = None
                         rlen = 0
                         clen = None
@@ -362,12 +352,18 @@ class Faidx(object):
                         # before we hit the next header, and it
                         # should be the last line in the entry
                         if line_blen != blen or line_blen == 1:
-                            bad_lines.append(i)
+                            bad_lines.append((i, line_blen))
                         offset += line_blen
                         rlen += line_clen
 
                 # write the final index line
-                check_bad_lines(rname, bad_lines, i + 1)  # advance index since we're at the end of the file
+                valid_entry = check_bad_lines(rname, bad_lines, i)  # advance index since we're at the end of the file
+                if not valid_entry:
+                    raise FastaIndexingError("Line length of fasta"
+                                             " file is not "
+                                             "consistent! "
+                                             "Inconsistent line found in >{0} at "
+                                             "line {1:n}.".format(rname, bad_lines[0][0] + 1))
                 indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
 
     def write_fai(self):
@@ -805,6 +801,39 @@ def ucsc_split(region):
     except (AttributeError, ValueError):
         start, end = (None, None)
     return (rname, start, end)
+
+def check_bad_lines(rname, bad_lines, i):
+    """ Find inconsistent line lengths in the middle of an
+    entry. Allow blank lines between entries, and short lines
+    occurring at the last line of an entry. Returns boolean
+    validating the entry.
+    >>> check_bad_lines('chr0', [(10, 79)], 10)
+    True
+    >>> check_bad_lines('chr0', [(9, 79)], 10)
+    False
+    >>> check_bad_lines('chr0', [(9, 79), (10, 1)], 10)
+    True
+    """
+    if len(bad_lines) == 0:
+        return True
+    elif len(bad_lines) == 1:
+        if bad_lines[0][0] == i:  # must be last line
+            return True
+        else:
+            return False
+    elif len(bad_lines) == 2:
+        if bad_lines[0][0] == i:  # must not be last line
+            return False
+        elif bad_lines[1][0] == i and bad_lines[1][1] == 1:  # blank last line
+            if bad_lines[0][0] + 1 == i and bad_lines[0][1] > 1:  # non-blank line
+                return True
+        else:
+            return False
+    if len(bad_lines) > 2:
+        return False
+    raise RuntimeError("Unhandled exception during fasta indexing at entry " + rname + \
+                       "Please report this issue at https://github.com/mdshw5/pyfaidx/issues " + \
+                       str(bad_lines))
 
 
 if __name__ == "__main__":

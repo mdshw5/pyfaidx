@@ -161,3 +161,13 @@ class TestIndexing(TestCase):
         time.sleep(2)
         faidx = Faidx('data/genes.fasta')
         assert getmtime(faidx.indexname) > index_mtime
+
+    def test_build_issue_83(self):
+        """ Ensure that blank lines between entries are treated in the
+        same way as samtools 1.2. See mdshw5/pyfaidx#83.
+        """
+        expect_index = ("MT	119	4	70	71\nGL000207.1	60	187	60	61\n")
+        index_file = Faidx('data/issue_83.fasta').indexname
+        result_index = open(index_file).read()
+        os.remove('data/issue_83.fasta.fai')
+        assert result_index == expect_index
