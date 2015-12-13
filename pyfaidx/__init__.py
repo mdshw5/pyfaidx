@@ -65,7 +65,7 @@ class Sequence(object):
         assert isinstance(seq, string_types)
 
     def __getitem__(self, n):
-        """ Returns the reverse compliment of sequence
+        """ Returns a sliced version of Sequence
         >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
         >>> x
         >chr1:1-6
@@ -80,22 +80,30 @@ class Sequence(object):
         >chr1:6-1
         ATGCTA
         """
+        if len(self.seq) > abs(self.end - self.start):  # determine coordinate system
+            one_based = True
+            correction_factor = -1
+        elif len(self.seq) == abs(self.end - self.start):
+            one_based = False
+            correction_factor = 0
+        else:
+            raise ValueError("Coordinates start=%s and end=%s imply a diffent length than sequence (length %s)." % (self.start, self.end, len(self.seq)))
+
         if isinstance(n, slice):
             slice_start, slice_stop, slice_step = n.indices(len(self))
-            if slice_step < 0:  # flip the coordinates when we reverse
-
-                self_start, self_end = (self.end, self.start)
-                slice_stop, slice_start = (slice_start, slice_stop)
-                if self.start is not None and self.end is not None:
-                    start = self_start + slice_start + 1
-                    end = self_end - (len(self) - slice_stop - 1)
-            else:
-                if self.start is not None and self.end is not None:
-                    start = self.start + slice_start
-                    end = self.end - (self.end - slice_stop)
+            slice_stop += correction_factor
             if self.start is None or self.end is None:  # there should never be self.start != self.end == None
                 start = None
                 end = None
+                return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
+                                      start, end, self.comp)
+            if slice_step < 0:  # flip the coordinates when we reverse
+                self_start, self_end = (self.end, self.start)
+                slice_stop, slice_start = (slice_start, slice_stop)
+
+            start = self.start + slice_start
+            end = self.start + slice_stop
+
             return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
                                   start, end, self.comp)
         elif isinstance(n, int):
