@@ -7,7 +7,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 from __future__ import division
 import os
 from os.path import getmtime
-from six import PY2, PY3, string_types
+from six import PY2, PY3, string_types, integer_types
 from six.moves import zip_longest
 try:
     from collections import OrderedDict
@@ -106,7 +106,7 @@ class Sequence(object):
 
             return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
                                   start, end, self.comp)
-        elif isinstance(n, int):
+        elif isinstance(n, integer_types):
             if n < 0:
                 n = len(self) + n
             if self.start:
@@ -261,9 +261,9 @@ class Faidx(object):
         self.sequence_always_upper = sequence_always_upper
         self.index = OrderedDict()
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
-        if not read_ahead or isinstance(read_ahead, int):
+        if not read_ahead or isinstance(read_ahead, integer_types):
             self.read_ahead = read_ahead
-        elif not isinstance(read_ahead, int):
+        elif not isinstance(read_ahead, integer_types):
             raise ValueError("read_ahead value must be int, not {0}".format(type(read_ahead)))
 
         self.mutable = mutable
@@ -413,8 +413,8 @@ class Faidx(object):
         4. Seek to start position, taking newlines into account
         5. Read to end position, return sequence
         """
-        assert isinstance(start, int)
-        assert isinstance(end, int)
+        assert isinstance(start, integer_types)
+        assert isinstance(end, integer_types)
         try:
             i = self.index[rname]
         except KeyError:
@@ -525,7 +525,7 @@ class FastaRecord(object):
                     start = len(self) + start
                 return self._fa.get_seq(self.name, start + 1, stop)[::step]
 
-            elif isinstance(n, int):
+            elif isinstance(n, integer_types):
                 if n < 0:
                     n = len(self) + n
                 return self._fa.get_seq(self.name, n + 1, n + 1)
@@ -601,7 +601,7 @@ class MutableFastaRecord(FastaRecord):
                     start = len(self) + start
                 self._fa.faidx.to_file(self.name, start + 1, stop, value)
 
-            elif isinstance(n, int):
+            elif isinstance(n, integer_types):
                 if n < 0:
                     n = len(self) + n
                 return self._fa.faidx.to_file(self.name, n + 1, n + 1, value)
@@ -637,7 +637,7 @@ class Fasta(object):
 
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
-        if isinstance(rname, int):
+        if isinstance(rname, integer_types):
             rname = tuple(self.keys())[rname]
         try:
             return self.records[rname]
