@@ -34,8 +34,9 @@ def test_comp_invalid():
 
 @raises(ValueError)
 def test_check_coordinates():
-    Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
-                        start=100, end=110)
+    x = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
+                 start=100, end=110)
+    x[:]
 
 def test_comp_valid():
     assert complement(comp_valid).startswith("AACTTCTAAAnCG")

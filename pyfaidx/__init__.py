@@ -76,36 +76,67 @@ class Sequence(object):
         >>> x[3:]
         >chr1:4-6
         GTA
+        >>> x[1:-1]
+        >chr1:2-5
+        TCGT
         >>> x[::-1]
         >chr1:6-1
         ATGCTA
+        >>> x[::-3]
+        >chr1
+        AC
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=0, end=6)
+        >>> x
+        >chr1:0-6
+        ATCGTA
+        >>> x[:3]
+        >chr1:0-3
+        ATC
+        >>> x[3:]
+        >chr1:3-6
+        GTA
+        >>> x[1:-1]
+        >chr1:1-5
+        TCGT
+        >>> x[::-1]
+        >chr1:6-0
+        ATGCTA
+        >>> x[::-3]
+        >chr1
+        AC
         """
-        if len(self.seq) > abs(self.end - self.start):  # determine coordinate system
+        if self.start is None or self.end is None:
+            correction_factor = 0
+        elif len(self.seq) == abs(self.end - self.start) + 1:  # determine coordinate system
             one_based = True
             correction_factor = -1
         elif len(self.seq) == abs(self.end - self.start):
             one_based = False
             correction_factor = 0
-        else:
+        elif len(self.seq) != abs(self.end - self.start):
             raise ValueError("Coordinates start=%s and end=%s imply a diffent length than sequence (length %s)." % (self.start, self.end, len(self.seq)))
 
         if isinstance(n, slice):
             slice_start, slice_stop, slice_step = n.indices(len(self))
-            slice_stop += correction_factor
             if self.start is None or self.end is None:  # there should never be self.start != self.end == None
                 start = None
                 end = None
-                return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
+                return self.__class__(self.name, self.seq[n],
                                       start, end, self.comp)
-            if slice_step < 0:  # flip the coordinates when we reverse
-                self_start, self_end = (self.end, self.start)
-                slice_stop, slice_start = (slice_start, slice_stop)
-
-            start = self.start + slice_start
-            end = self.start + slice_stop
-
-            return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
-                                  start, end, self.comp)
+            self_end, self_start = (self.end, self.start)
+            if abs(slice_step) > 1:
+                start = None
+                end = None
+            elif slice_step == -1:  # flip the coordinates when we reverse
+                if slice_stop == -1:
+                    slice_stop = 0
+                start = self_end - slice_stop
+                end = self_start + slice_stop
+                #print(locals())
+            else:
+                start = self_start + slice_start
+                end = self_start + slice_stop + correction_factor
+            return self.__class__(self.name, self.seq[n], start, end, self.comp)
         elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
@@ -152,7 +183,7 @@ class Sequence(object):
         'chr1:1-6 (complement)'
         """
         name = self.name
-        if self.start and self.end:
+        if self.start is not None and self.end is not None:
             name = ':'.join([name, '-'.join([str(self.start), str(self.end)])])
         if self.comp:
             name += ' (complement)'
@@ -696,7 +727,7 @@ class FastaVariant(Fasta):
         if os.path.exists(vcf_file):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
-            raise IOError("File {s:0} does not exist.".format(vcf_file))
+            raise IOError("File {0} does not exist.".format(vcf_file))
         if sample is not None:
             self.sample = sample
         else:
