@@ -469,6 +469,11 @@ Changelog
 Please see the `releases <https://github.com/mdshw5/pyfaidx/releases>`_ for a
 comprehensive list of version changes.
 
+Known issues
+------------
+
+I try to fix as many bugs as possible, but most of this work is supported by a single developer. Please check the `known issues <https://github.com/mdshw5/pyfaidx/issues?utf8=✓&q=is%3Aissue+is%3Aopen+label%3Aknown>`_ for bugs relevant to your work. Pull requests are welcome.
+
 
 Contributing
 ------------

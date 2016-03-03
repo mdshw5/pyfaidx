@@ -1,7 +1,7 @@
 from setuptools import setup
 import sys
 
-install_requires = ['six']
+install_requires = ['six', 'setuptools >= 0.7']
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
     install_requires.extend(['ordereddict', 'argparse'])
 

@@ -7,7 +7,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 from __future__ import division
 import os
 from os.path import getmtime
-from six import PY2, PY3, string_types
+from six import PY2, PY3, string_types, integer_types
 from six.moves import zip_longest
 try:
     from collections import OrderedDict
@@ -21,7 +21,7 @@ from math import ceil
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.7'
+__version__ = '0.4.7.1'
 
 
 class FastaIndexingError(Exception):
@@ -65,7 +65,7 @@ class Sequence(object):
         assert isinstance(seq, string_types)
 
     def __getitem__(self, n):
-        """ Returns the reverse compliment of sequence
+        """ Returns a sliced version of Sequence
         >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6)
         >>> x
         >chr1:1-6
@@ -76,29 +76,68 @@ class Sequence(object):
         >>> x[3:]
         >chr1:4-6
         GTA
+        >>> x[1:-1]
+        >chr1:2-5
+        TCGT
         >>> x[::-1]
         >chr1:6-1
         ATGCTA
+        >>> x[::-3]
+        >chr1
+        AC
+        >>> x = Sequence(name='chr1', seq='ATCGTA', start=0, end=6)
+        >>> x
+        >chr1:0-6
+        ATCGTA
+        >>> x[:3]
+        >chr1:0-3
+        ATC
+        >>> x[3:]
+        >chr1:3-6
+        GTA
+        >>> x[1:-1]
+        >chr1:1-5
+        TCGT
+        >>> x[::-1]
+        >chr1:6-0
+        ATGCTA
+        >>> x[::-3]
+        >chr1
+        AC
         """
+        if self.start is None or self.end is None:
+            correction_factor = 0
+        elif len(self.seq) == abs(self.end - self.start) + 1:  # determine coordinate system
+            one_based = True
+            correction_factor = -1
+        elif len(self.seq) == abs(self.end - self.start):
+            one_based = False
+            correction_factor = 0
+        elif len(self.seq) != abs(self.end - self.start):
+            raise ValueError("Coordinates start=%s and end=%s imply a diffent length than sequence (length %s)." % (self.start, self.end, len(self.seq)))
+
         if isinstance(n, slice):
             slice_start, slice_stop, slice_step = n.indices(len(self))
-            if slice_step < 0:  # flip the coordinates when we reverse
-
-                self_start, self_end = (self.end, self.start)
-                slice_stop, slice_start = (slice_start, slice_stop)
-                if self.start is not None and self.end is not None:
-                    start = self_start + slice_start + 1
-                    end = self_end - (len(self) - slice_stop - 1)
-            else:
-                if self.start is not None and self.end is not None:
-                    start = self.start + slice_start
-                    end = self.end - (self.end - slice_stop)
             if self.start is None or self.end is None:  # there should never be self.start != self.end == None
                 start = None
                 end = None
-            return self.__class__(self.name, self.seq[n.start:n.stop:n.step],
-                                  start, end, self.comp)
-        elif isinstance(n, int):
+                return self.__class__(self.name, self.seq[n],
+                                      start, end, self.comp)
+            self_end, self_start = (self.end, self.start)
+            if abs(slice_step) > 1:
+                start = None
+                end = None
+            elif slice_step == -1:  # flip the coordinates when we reverse
+                if slice_stop == -1:
+                    slice_stop = 0
+                start = self_end - slice_stop
+                end = self_start + slice_stop
+                #print(locals())
+            else:
+                start = self_start + slice_start
+                end = self_start + slice_stop + correction_factor
+            return self.__class__(self.name, self.seq[n], start, end, self.comp)
+        elif isinstance(n, integer_types):
             if n < 0:
                 n = len(self) + n
             if self.start:
@@ -144,7 +183,7 @@ class Sequence(object):
         'chr1:1-6 (complement)'
         """
         name = self.name
-        if self.start and self.end:
+        if self.start is not None and self.end is not None:
             name = ':'.join([name, '-'.join([str(self.start), str(self.end)])])
         if self.comp:
             name += ' (complement)'
@@ -253,9 +292,9 @@ class Faidx(object):
         self.sequence_always_upper = sequence_always_upper
         self.index = OrderedDict()
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
-        if not read_ahead or isinstance(read_ahead, int):
+        if not read_ahead or isinstance(read_ahead, integer_types):
             self.read_ahead = read_ahead
-        elif not isinstance(read_ahead, int):
+        elif not isinstance(read_ahead, integer_types):
             raise ValueError("read_ahead value must be int, not {0}".format(type(read_ahead)))
 
         self.mutable = mutable
@@ -412,8 +451,8 @@ class Faidx(object):
         4. Seek to start position, taking newlines into account
         5. Read to end position, return sequence
         """
-        assert isinstance(start, int)
-        assert isinstance(end, int)
+        assert isinstance(start, integer_types)
+        assert isinstance(end, integer_types)
         try:
             i = self.index[rname]
         except KeyError:
@@ -524,7 +563,7 @@ class FastaRecord(object):
                     start = len(self) + start
                 return self._fa.get_seq(self.name, start + 1, stop)[::step]
 
-            elif isinstance(n, int):
+            elif isinstance(n, integer_types):
                 if n < 0:
                     n = len(self) + n
                 return self._fa.get_seq(self.name, n + 1, n + 1)
@@ -600,7 +639,7 @@ class MutableFastaRecord(FastaRecord):
                     start = len(self) + start
                 self._fa.faidx.to_file(self.name, start + 1, stop, value)
 
-            elif isinstance(n, int):
+            elif isinstance(n, integer_types):
                 if n < 0:
                     n = len(self) + n
                 return self._fa.faidx.to_file(self.name, n + 1, n + 1, value)
@@ -636,7 +675,7 @@ class Fasta(object):
 
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
-        if isinstance(rname, int):
+        if isinstance(rname, integer_types):
             rname = tuple(self.keys())[rname]
         try:
             return self.records[rname]
@@ -695,7 +734,7 @@ class FastaVariant(Fasta):
         if os.path.exists(vcf_file):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
-            raise IOError("File {s:0} does not exist.".format(vcf_file))
+            raise IOError("File {0} does not exist.".format(vcf_file))
         if sample is not None:
             self.sample = sample
         else:

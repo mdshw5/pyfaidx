@@ -126,3 +126,30 @@ class TestFeatureBoundsCheck:
         end1 = f1['gi|557361099|gb|KF435150.1|'][1:90].end
         print((end0, end1))
         assert end0 == end1
+
+    def test_issue_79_fix(self):
+        f = Fasta('data/genes.fasta')
+        s = f['gi|557361099|gb|KF435150.1|'][100:105]
+        print((s.start, s.end))
+        assert (101, 105) == (s.start, s.end)
+
+    def test_issue_79_fix_negate(self):
+        f = Fasta('data/genes.fasta')
+        s = f['gi|557361099|gb|KF435150.1|'][100:105]
+        s = -s
+        print((s.start, s.end))
+        assert (105, 101) == (s.start, s.end)
+
+    def test_issue_79_fix_one_based_false(self):
+        f = Fasta('data/genes.fasta', one_based_attributes=False)
+        s = f['gi|557361099|gb|KF435150.1|'][100:105]
+        print((s.start, s.end))
+        assert (100, 105) == (s.start, s.end)
+
+    def test_issue_79_fix_one_based_false_negate(self):
+        f = Fasta('data/genes.fasta', one_based_attributes=False)
+        s = f['gi|557361099|gb|KF435150.1|'][100:105]
+        print(s.__dict__)
+        s = -s
+        print(s.__dict__)
+        assert (105, 100) == (s.start, s.end)

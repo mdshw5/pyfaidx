@@ -32,10 +32,15 @@ def test_slice_index():
 def test_comp_invalid():
     complement(comp_invalid)
 
+@raises(ValueError)
+def test_check_coordinates():
+    x = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
+                 start=100, end=110)
+    x[:]
+
 def test_comp_valid():
     assert complement(comp_valid).startswith("AACTTCTAAAnCG")
     assert complement(complement(comp_valid)) == comp_valid
 
 def test_comp_empty():
     assert complement('') == ''
-
