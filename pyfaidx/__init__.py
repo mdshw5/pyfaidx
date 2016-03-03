@@ -229,7 +229,7 @@ class Faidx(object):
                  as_raw=False, strict_bounds=False, read_ahead=None,
                  mutable=False, split_char=None, filt_function=None,
                  one_based_attributes=True,
-                 sequence_always_upper=False):
+                 sequence_always_upper=False, rebuild=True):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -262,6 +262,9 @@ class Faidx(object):
 
         if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
             self.read_fai(split_char)
+        elif os.path.exists(self.indexname) and not self.rebuild:
+            self.read_fai(split_char)
+            warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
         else:
             try:
                 self.build_index()
@@ -310,6 +313,10 @@ class Faidx(object):
                 self.index.pop(dup, None)
 
     def build_index(self):
+        try:
+            open(self.indexname, 'w')
+        except IOError:
+            raise FastaIndexingError("%s is not writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
         with open(self.filename, 'r') as fastafile:
             with open(self.indexname, 'w') as indexfile:
                 rname = None  # reference sequence name
@@ -605,7 +612,7 @@ class Fasta(object):
     def __init__(self, filename, default_seq=None, key_function=None, as_raw=False,
                  strict_bounds=False, read_ahead=None, mutable=False, split_char=None,
                  filt_function=None, one_based_attributes=True,
-                 sequence_always_upper=False):
+                 sequence_always_upper=False, rebuild=True):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file

@@ -310,6 +310,7 @@ cli script: faidx
       -m, --mask-with-default-seq
                             mask the FASTA file using --default-seq default: False
       -M, --mask-by-case    mask the FASTA file by changing to lowercase. default: False
+      --no-rebuild          do not rebuild the .fai index even if it is out of date. default: False
       --version             print pyfaidx version number
 
 Examples:
@@ -423,7 +424,7 @@ Examples:
     AGCTTCCCTGTGGTTTCCCGAGGCTTCCTTGCTTCCCGCTCTGCGAGGAGCCTTTCATCCGAAGGCGGGA
     .......
 
-    
+
 
     $ faidx --size-range 5500,6000 -i chromsizes tests/data/genes.fasta
     NM_000465.3	5523
@@ -507,6 +508,6 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Coveralls| image:: https://coveralls.io/repos/mdshw5/pyfaidx/badge.svg?branch=master
    :target: https://coveralls.io/r/mdshw5/pyfaidx?branch=master
-   
+
 .. |Depsy| image:: http://depsy.org/api/package/pypi/pyfaidx/badge.svg
    :target: http://depsy.org/package/python/pyfaidx
