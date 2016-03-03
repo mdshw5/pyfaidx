@@ -301,7 +301,7 @@ class Faidx(object):
 
         if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
             self.read_fai(split_char)
-        elif os.path.exists(self.indexname) and not rebuild:
+        elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
             self.read_fai(split_char)
             warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
         else:
@@ -355,7 +355,7 @@ class Faidx(object):
         try:
             open(self.indexname, 'w')
         except IOError:
-            raise FastaIndexingError("%s is not writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
+            raise IOError("%s is not writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
         with open(self.filename, 'r') as fastafile:
             with open(self.indexname, 'w') as indexfile:
                 rname = None  # reference sequence name
