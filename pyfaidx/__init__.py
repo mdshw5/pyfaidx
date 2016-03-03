@@ -262,7 +262,7 @@ class Faidx(object):
 
         if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
             self.read_fai(split_char)
-        elif os.path.exists(self.indexname) and not self.rebuild:
+        elif os.path.exists(self.indexname) and not rebuild:
             self.read_fai(split_char)
             warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
         else:
@@ -623,7 +623,7 @@ class Fasta(object):
                            default_seq=default_seq, strict_bounds=strict_bounds,
                            read_ahead=read_ahead, mutable=mutable, split_char=split_char,
                            filt_function=filt_function, one_based_attributes=one_based_attributes,
-                           sequence_always_upper=sequence_always_upper)
+                           sequence_always_upper=sequence_always_upper, rebuild=rebuild)
         self.keys = self.faidx.index.keys
         if not self.mutable:
             self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
