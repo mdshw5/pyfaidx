@@ -1,6 +1,4 @@
-Pygments>=1
-collective.checkdocs>=0.2
-docutils>=0.12
-six>=1.7.3
-nose==1.3.7
-biopython==1.65
+six
+nose
+biopython
+setuptools >= 0.7
