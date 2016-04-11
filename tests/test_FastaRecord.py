@@ -71,7 +71,7 @@ class TestFastaRecord(TestCase):
             os.remove('data/issue_62.fa.fai')
         except EnvironmentError:
             pass
-        print(self.differ.compare(deflines, long_names))
+        print(Differ().compare(deflines, long_names))
         assert deflines == long_names
 
 class TestMutableFastaRecord(TestCase):
