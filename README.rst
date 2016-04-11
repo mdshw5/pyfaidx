@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Landscape| |Coveralls| |Depsy|
+|Travis| |PyPI| |Landscape| |Coveralls| |Depsy| |Appveyor|
 
 Description
 -----------
@@ -516,3 +516,6 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Depsy| image:: http://depsy.org/api/package/pypi/pyfaidx/badge.svg
    :target: http://depsy.org/package/python/pyfaidx
+
+.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/80ihlw30a003596w?svg=true
+   :target: https://ci.appveyor.com/project/mdshw5/pyfaidx
