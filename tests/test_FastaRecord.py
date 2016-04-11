@@ -3,6 +3,7 @@ from pyfaidx import Fasta
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
 from nose.tools import raises
+from difflib import Differ
 
 path = os.path.dirname(__file__)
 os.chdir(path)
@@ -70,6 +71,7 @@ class TestFastaRecord(TestCase):
             os.remove('data/issue_62.fa.fai')
         except EnvironmentError:
             pass
+        print(self.differ.compare(deflines, long_names))
         assert deflines == long_names
 
 class TestMutableFastaRecord(TestCase):
