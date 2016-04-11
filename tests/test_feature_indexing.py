@@ -2,9 +2,11 @@ import os
 from os.path import getmtime
 from pyfaidx import Faidx, FastaIndexingError
 from nose.tools import raises
+from nose.plugins.skip import Skip, SkipTest
 from unittest import TestCase
 from tempfile import NamedTemporaryFile
 import time
+import platform
 
 path = os.path.dirname(__file__)
 os.chdir(path)
@@ -73,6 +75,9 @@ class TestIndexing(TestCase):
         """ Makes all full-length lines short and checks that error is raised
         in all appropriate circumstances.
         """
+        # http://stackoverflow.com/a/23212515/717419
+        if platform.system() == 'Windows':
+            raise SkipTest
         indexed = []
         with open('data/genes.fasta') as genes:
             fasta = genes.readlines()
@@ -100,6 +105,9 @@ class TestIndexing(TestCase):
         """ Makes all full-length lines long and checks that error is raised
         in all appropriate circumstances.
         """
+        # http://stackoverflow.com/a/23212515/717419
+        if platform.system() == 'Windows':
+            raise SkipTest
         indexed = []
         with open('data/genes.fasta') as genes:
             fasta = genes.readlines()
@@ -127,6 +135,9 @@ class TestIndexing(TestCase):
         """ Makes all full-length lines blank and checks that error is raised
         in all appropriate circumstances.
         """
+        # http://stackoverflow.com/a/23212515/717419
+        if platform.system() == 'Windows':
+            raise SkipTest
         indexed = []
         with open('data/genes.fasta') as genes:
             fasta = genes.readlines()
