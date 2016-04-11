@@ -1,4 +1,5 @@
 import os
+import sys
 from pyfaidx import Fasta
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
@@ -71,7 +72,7 @@ class TestFastaRecord(TestCase):
             os.remove('data/issue_62.fa.fai')
         except EnvironmentError:
             pass
-        print(Differ().compare(deflines, long_names))
+        sys.stdout.writelines(tuple(Differ().compare(deflines, long_names)))
         assert deflines == long_names
 
 class TestMutableFastaRecord(TestCase):
