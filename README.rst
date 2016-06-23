@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Landscape| |Coveralls| |Depsy| |Appveyor|
+|Travis| |PyPI| |Landscape| |Coverage| |Depsy| |Appveyor|
 
 Description
 -----------
@@ -511,8 +511,8 @@ Comprehensive Cancer Center in the Department of Oncology.
    :target: https://landscape.io/github/mdshw5/pyfaidx/master
    :alt: Code Health
 
-.. |Coveralls| image:: https://coveralls.io/repos/mdshw5/pyfaidx/badge.svg?branch=master
-   :target: https://coveralls.io/r/mdshw5/pyfaidx?branch=master
+.. |Coverage| image:: https://codecov.io/gh/mdshw5/pyfaidx/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/mdshw5/pyfaidx
 
 .. |Depsy| image:: http://depsy.org/api/package/pypi/pyfaidx/badge.svg
    :target: http://depsy.org/package/python/pyfaidx
