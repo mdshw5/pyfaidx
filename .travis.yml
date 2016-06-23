@@ -42,5 +42,5 @@ cache:
         - samtools-1.2
         - wheelhouse
 after_success:
-    - coveralls
+    - bash <(curl -s https://codecov.io/bash)
     - if [ $TRAVIS_PYTHON_VERSION == '3.4' ] && [ $TRAVIS_TAG ]; then python scripts/benchmark.py 1000; fi
