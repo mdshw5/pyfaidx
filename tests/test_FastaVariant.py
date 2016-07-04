@@ -54,6 +54,7 @@ class TestFastaVariant(TestCase):
         try:
             fasta = FastaVariant('data/chr22.fasta', 'data/chr22.vcf.gz', hom=True, het=True, as_raw=True)
             ref = Fasta('data/chr22.fasta', as_raw=True)
+            print([(ref['22'][pos-1], fasta['22'][pos-1]) for pos in fasta['22'].variant_sites])
             assert all(ref['22'][pos-1] != fasta['22'][pos-1] for pos in fasta['22'].variant_sites)
         except (ImportError, IOError):
             raise SkipTest
