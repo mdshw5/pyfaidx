@@ -18,6 +18,7 @@ import re
 import string
 import warnings
 from math import ceil
+from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
@@ -291,6 +292,7 @@ class Faidx(object):
         self.one_based_attributes = one_based_attributes
         self.sequence_always_upper = sequence_always_upper
         self.index = OrderedDict()
+        self.lock = Lock()
         self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
         if not read_ahead or isinstance(read_ahead, integer_types):
             self.read_ahead = read_ahead
@@ -298,19 +300,21 @@ class Faidx(object):
             raise ValueError("read_ahead value must be int, not {0}".format(type(read_ahead)))
 
         self.mutable = mutable
-
-        if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
-            self.read_fai(split_char)
-        elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
-            self.read_fai(split_char)
-            warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
-        else:
-            try:
+        self.lock.acquire()  # lock around index generation so only one thread calls method
+        try:
+            if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
+                self.read_fai(split_char)
+            elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
+                self.read_fai(split_char)
+                warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
+            else:
                 self.build_index()
-            except FastaIndexingError as e:
-                os.remove(self.indexname)
-                raise FastaIndexingError(e)
-            self.read_fai(split_char)
+                self.read_fai(split_char)
+        except FastaIndexingError as e:
+            os.remove(self.indexname)
+            raise FastaIndexingError(e)
+        finally:
+            self.lock.release()
 
     def __contains__(self, region):
         if not self.buffer['name']:
@@ -353,69 +357,70 @@ class Faidx(object):
 
     def build_index(self):
         try:
-            open(self.indexname, 'w')
-        except IOError:
-            raise IOError("%s is not writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
-        with open(self.filename, 'r') as fastafile:
-            with open(self.indexname, 'w') as indexfile:
-                rname = None  # reference sequence name
-                offset = 0  # binary offset of end of current line
-                rlen = 0  # reference character length
-                blen = None  # binary line length (includes newline)
-                clen = None  # character line length
-                bad_lines = []  # lines > || < than blen
-                thisoffset = offset
-                for i, line in enumerate(fastafile):
-                    line_blen = len(line)
-                    line_clen = len(line.rstrip('\n\r'))
-                    # write an index line
-                    if line[0] == '>':
-                        valid_entry = check_bad_lines(rname, bad_lines, i - 1)
-                        if valid_entry and i > 0:
-                            indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
-                        elif not valid_entry:
-                            raise FastaIndexingError("Line length of fasta"
-                                                     " file is not "
-                                                     "consistent! "
-                                                     "Inconsistent line found in >{0} at "
-                                                     "line {1:n}.".format(rname, bad_lines[0][0] + 1))
-                        blen = None
-                        rlen = 0
-                        clen = None
-                        bad_lines = []
-                        try:  # must catch empty deflines
-                            rname = line.rstrip('\n\r')[1:].split()[0]  # remove comments
-                        except IndexError:
-                            raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
-                        offset += line_blen
-                        thisoffset = offset
-                    else:  # check line and advance offset
-                        if not blen:
-                            blen = line_blen
-                        if not clen:
-                            clen = line_clen
-                        # only one short line should be allowed
-                        # before we hit the next header, and it
-                        # should be the last line in the entry
-                        if line_blen != blen or line_blen == 1:
-                            bad_lines.append((i, line_blen))
-                        offset += line_blen
-                        rlen += line_clen
+            with open(self.filename, 'r') as fastafile:
+                with open(self.indexname, 'w') as indexfile:
+                    rname = None  # reference sequence name
+                    offset = 0  # binary offset of end of current line
+                    rlen = 0  # reference character length
+                    blen = None  # binary line length (includes newline)
+                    clen = None  # character line length
+                    bad_lines = []  # lines > || < than blen
+                    thisoffset = offset
+                    for i, line in enumerate(fastafile):
+                        line_blen = len(line)
+                        line_clen = len(line.rstrip('\n\r'))
+                        # write an index line
+                        if line[0] == '>':
+                            valid_entry = check_bad_lines(rname, bad_lines, i - 1)
+                            if valid_entry and i > 0:
+                                indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                            elif not valid_entry:
+                                raise FastaIndexingError("Line length of fasta"
+                                                         " file is not "
+                                                         "consistent! "
+                                                         "Inconsistent line found in >{0} at "
+                                                         "line {1:n}.".format(rname, bad_lines[0][0] + 1))
+                            blen = None
+                            rlen = 0
+                            clen = None
+                            bad_lines = []
+                            try:  # must catch empty deflines
+                                rname = line.rstrip('\n\r')[1:].split()[0]  # remove comments
+                            except IndexError:
+                                raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
+                            offset += line_blen
+                            thisoffset = offset
+                        else:  # check line and advance offset
+                            if not blen:
+                                blen = line_blen
+                            if not clen:
+                                clen = line_clen
+                            # only one short line should be allowed
+                            # before we hit the next header, and it
+                            # should be the last line in the entry
+                            if line_blen != blen or line_blen == 1:
+                                bad_lines.append((i, line_blen))
+                            offset += line_blen
+                            rlen += line_clen
 
-                # write the final index line
-                valid_entry = check_bad_lines(rname, bad_lines, i)  # advance index since we're at the end of the file
-                if not valid_entry:
-                    raise FastaIndexingError("Line length of fasta"
-                                             " file is not "
-                                             "consistent! "
-                                             "Inconsistent line found in >{0} at "
-                                             "line {1:n}.".format(rname, bad_lines[0][0] + 1))
-                indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                    # write the final index line
+                    valid_entry = check_bad_lines(rname, bad_lines, i)  # advance index since we're at the end of the file
+                    if not valid_entry:
+                        raise FastaIndexingError("Line length of fasta"
+                                                 " file is not "
+                                                 "consistent! "
+                                                 "Inconsistent line found in >{0} at "
+                                                 "line {1:n}.".format(rname, bad_lines[0][0] + 1))
+                    indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+        except IOError:
+            raise IOError("%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
 
     def write_fai(self):
+        self.lock.acquire()
         with open(self.indexname, 'w') as outfile:
             for k, v in self.index.items():
                 outfile.write('\t'.join([k, str(v)]))
+        self.lock.release()
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -470,20 +475,26 @@ class Faidx(object):
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
         bstart = i.offset + newlines_before + start0
+        self.lock.acquire()
         self.file.seek(bstart)
 
-        if bstart + seq_blen > i.bend and not self.strict_bounds:
-            seq_blen = i.bend - bstart
-        elif bstart + seq_blen > i.bend and self.strict_bounds:
-            raise FetchError("Requested end coordinate {0:n} outside of {1}. "
-                             "\n".format(end, rname))
-        if seq_blen > 0:
-            seq = self.file.read(seq_blen).decode()
-        elif seq_blen <= 0 and not self.strict_bounds:
-            seq = ''
-        elif seq_blen <= 0 and self.strict_bounds:
-            raise FetchError("Requested coordinates start={0:n} end={1:n} are "
-                             "invalid.\n".format(start, end))
+        try:
+            if bstart + seq_blen > i.bend and not self.strict_bounds:
+                seq_blen = i.bend - bstart
+            elif bstart + seq_blen > i.bend and self.strict_bounds:
+                raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                                 "\n".format(end, rname))
+            if seq_blen > 0:
+                seq = self.file.read(seq_blen).decode()
+            elif seq_blen <= 0 and not self.strict_bounds:
+                seq = ''
+            elif seq_blen <= 0 and self.strict_bounds:
+                raise FetchError("Requested coordinates start={0:n} end={1:n} are "
+                                 "invalid.\n".format(start, end))
+        except FetchError:
+            raise
+        finally:
+            self.lock.release()
         if not internals:
             return seq.replace('\n', '')
         else:
@@ -515,21 +526,27 @@ class Faidx(object):
         if not self.mutable:
             raise IOError("Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA.")
         file_seq, internals = self.from_file(rname, start, end, internals=True)
-        if len(seq) != len(file_seq) - internals['newlines_inside']:
-            raise IOError("Specified replacement sequence needs to have the same length as original.")
-        elif len(seq) == len(file_seq) - internals['newlines_inside']:
-            line_len = internals['i'].lenc
-            self.file.seek(internals['bstart'])
-            if internals['newlines_inside'] == 0:
-                self.file.write(seq.encode())
-            elif internals['newlines_inside'] > 0:
-                n = 0
-                m = file_seq.index('\n')
-                while m < len(seq):
-                    self.file.write(''.join([seq[n:m], '\n']).encode())
-                    n = m
-                    m += line_len
-                self.file.write(seq[n:].encode())
+        self.lock.acquire()
+        try:
+            if len(seq) != len(file_seq) - internals['newlines_inside']:
+                raise IOError("Specified replacement sequence needs to have the same length as original.")
+            elif len(seq) == len(file_seq) - internals['newlines_inside']:
+                line_len = internals['i'].lenc
+                self.file.seek(internals['bstart'])
+                if internals['newlines_inside'] == 0:
+                    self.file.write(seq.encode())
+                elif internals['newlines_inside'] > 0:
+                    n = 0
+                    m = file_seq.index('\n')
+                    while m < len(seq):
+                        self.file.write(''.join([seq[n:m], '\n']).encode())
+                        n = m
+                        m += line_len
+                    self.file.write(seq[n:].encode())
+        except IOError:
+            raise
+        finally:
+            self.lock.release()
 
     def close(self):
         self.__exit__()
