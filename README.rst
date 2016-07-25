@@ -265,7 +265,7 @@ The FastaVariant class provides a way to integrate single nucleotide variant cal
     >22:16042791-16042800
     TCATAGGACA
 
-    >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', het=True, hom=True, call_filter='GT == "0/1"')
+    >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', sample='NA06984', het=True, hom=True, call_filter='GT == "0/1"')
     >>> consensus['22'].variant_sites
     (16042793, 29187373, 29187448, 29194610, 29821332)
 
