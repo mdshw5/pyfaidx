@@ -9,3 +9,4 @@ __pycache__
 .tox
 .coverage
 .coverage.*
+tests/data/chr22*
