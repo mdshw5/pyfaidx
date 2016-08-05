@@ -312,7 +312,12 @@ class Faidx(object):
                 self.read_fai(split_char)
         except FastaIndexingError as e:
             os.remove(self.indexname)
+            self.file.close()
             raise FastaIndexingError(e)
+        except Exception:
+            # Handle potential exceptions other than 'FastaIndexingError'
+            self.file.close()
+            raise
         finally:
             self.lock.release()
 
