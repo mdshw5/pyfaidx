@@ -1,9 +1,15 @@
 [run]
+parallel = True
 omit =
-    */python?.?/*
     */lib-python/?.?/*.py
     */lib_pypy/_*.py
     */site-packages/ordereddict.py
     */site-packages/nose/*
     */site-packages/six/*
     */unittest2/*
+
+[paths]
+source =
+    pyfaidx
+    .tox/*/lib/python*/site-packages/pyfaidx
+    .tox/*/site-packages/pyfaidx

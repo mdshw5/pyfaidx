@@ -4,4 +4,8 @@ __pycache__
 *.pyc
 .project
 .pydevproject
-
+.idea
+*.egg-info
+.tox
+.coverage
+.coverage.*
