@@ -4,9 +4,17 @@ from pyfaidx import Faidx, FastaIndexingError
 from nose.tools import raises
 from nose.plugins.skip import Skip, SkipTest
 from unittest import TestCase
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
 import time
 import platform
+import shutil
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
+import six.moves.builtins as builtins
 
 path = os.path.dirname(__file__)
 os.chdir(path)
@@ -182,3 +190,69 @@ class TestIndexing(TestCase):
         result_index = open(index_file).read()
         os.remove('data/issue_83.fasta.fai')
         assert result_index == expect_index
+
+    def test_build_issue_96_fail_build_faidx(self):
+        """ Ensure that the fasta file is closed if construction of the 'Faidx' file
+        when attempting to build an index.
+        See mdshw5/pyfaidx#96
+        """
+        tmp_dir = mkdtemp()
+        try:
+            fasta_path = os.path.join(tmp_dir, 'issue_96.fasta')
+            # Write simple fasta file with inconsistent sequence line lengths,
+            # so building an index raises a 'FastaIndexingError'
+            with open(fasta_path, 'w') as fasta_out:
+                fasta_out.write(">seq1\nCTCCGGGCCCAT\nAACACTTGGGGGTAGCTAAAGTGAA\nATAAAGCCTAAA\n")
+
+            builtins_open = builtins.open
+
+            opened_files=[]
+            def test_open(*args, **kwargs):
+                f = builtins_open(*args, **kwargs)
+                opened_files.append(f)
+                return f
+
+            with mock.patch('six.moves.builtins.open', side_effect=test_open):
+                try:
+                    Faidx(fasta_path)
+                    self.assertFail("Faidx construction should fail with 'FastaIndexingError'.")
+                except FastaIndexingError:
+                    pass
+            self.assertTrue(all(f.closed for f in opened_files))
+        finally:
+            shutil.rmtree(tmp_dir)
+
+    def test_build_issue_96_fail_read_malformed_index_duplicate_key(self):
+        """ Ensure that the fasta file is closed if construction of the 'Faidx' file
+        fails when attempting to read a pre-existing index. The index is malformed because
+        it contains mulitple occurrences of the same index.
+        See mdshw5/pyfaidx#96
+        """
+        tmp_dir = mkdtemp()
+        try:
+            fasta_path = os.path.join(tmp_dir, 'issue_96.fasta')
+            faidx_path = os.path.join(tmp_dir, 'issue_96.fasta.fai')
+            # Write simple fasta file
+            with open(fasta_path, 'w') as fasta_out:
+                fasta_out.write(">seq1\nCTCCGGGCCCAT\nATAAAGCCTAAA\n")
+            with open(faidx_path, 'w') as faidx_out:
+                faidx_out.write("seq1\t24\t6\t12\t13\nseq1\t24\t6\t12\t13\n")
+
+            builtins_open = builtins.open
+
+            opened_files=[]
+            def test_open(*args, **kwargs):
+                f = builtins_open(*args, **kwargs)
+                opened_files.append(f)
+                return f
+
+            with mock.patch('six.moves.builtins.open', side_effect=test_open):
+                try:
+                    Faidx(fasta_path)
+                    self.assertFail("Faidx construction should fail with 'ValueError'.")
+                except ValueError:
+                    pass
+            self.assertTrue(all(f.closed for f in opened_files))
+        finally:
+            shutil.rmtree(tmp_dir)
+
