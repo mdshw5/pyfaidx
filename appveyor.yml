@@ -20,6 +20,11 @@ install:
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
 
+  # Fix for problem building extensions for x64 under Python 3.3 and 3.4
+  # See: http://help.appveyor.com/discussions/problems/4278-cant-build-some-c-extensions-with-python-34-x64
+  # Used same solution as Matplotlib: https://github.com/matplotlib/matplotlib/blob/master/appveyor.yml
+  - cmd: copy ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
+
 build: off
 
 test_script:
