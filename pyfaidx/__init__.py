@@ -300,26 +300,24 @@ class Faidx(object):
             raise ValueError("read_ahead value must be int, not {0}".format(type(read_ahead)))
 
         self.mutable = mutable
-        self.lock.acquire()  # lock around index generation so only one thread calls method
-        try:
-            if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
-                self.read_fai(split_char)
-            elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
-                self.read_fai(split_char)
-                warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
-            else:
-                self.build_index()
-                self.read_fai(split_char)
-        except FastaIndexingError as e:
-            os.remove(self.indexname)
-            self.file.close()
-            raise FastaIndexingError(e)
-        except Exception:
-            # Handle potential exceptions other than 'FastaIndexingError'
-            self.file.close()
-            raise
-        finally:
-            self.lock.release()
+        with self.lock:  # lock around index generation so only one thread calls method
+            try:
+                if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
+                    self.read_fai(split_char)
+                elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
+                    self.read_fai(split_char)
+                    warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
+                else:
+                    self.build_index()
+                    self.read_fai(split_char)
+            except FastaIndexingError as e:
+                os.remove(self.indexname)
+                self.file.close()
+                raise FastaIndexingError(e)
+            except Exception:
+                # Handle potential exceptions other than 'FastaIndexingError'
+                self.file.close()
+                raise
 
     def __contains__(self, region):
         if not self.buffer['name']:
@@ -421,11 +419,10 @@ class Faidx(object):
             raise IOError("%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
 
     def write_fai(self):
-        self.lock.acquire()
-        with open(self.indexname, 'w') as outfile:
-            for k, v in self.index.items():
-                outfile.write('\t'.join([k, str(v)]))
-        self.lock.release()
+        with self.lock:
+            with open(self.indexname, 'w') as outfile:
+                for k, v in self.index.items():
+                    outfile.write('\t'.join([k, str(v)]))
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -480,10 +477,10 @@ class Faidx(object):
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
         bstart = i.offset + newlines_before + start0
-        self.lock.acquire()
-        self.file.seek(bstart)
 
-        try:
+        with self.lock:
+            self.file.seek(bstart)
+
             if bstart + seq_blen > i.bend and not self.strict_bounds:
                 seq_blen = i.bend - bstart
             elif bstart + seq_blen > i.bend and self.strict_bounds:
@@ -496,10 +493,7 @@ class Faidx(object):
             elif seq_blen <= 0 and self.strict_bounds:
                 raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                                  "invalid.\n".format(start, end))
-        except FetchError:
-            raise
-        finally:
-            self.lock.release()
+
         if not internals:
             return seq.replace('\n', '')
         else:
@@ -531,8 +525,8 @@ class Faidx(object):
         if not self.mutable:
             raise IOError("Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA.")
         file_seq, internals = self.from_file(rname, start, end, internals=True)
-        self.lock.acquire()
-        try:
+
+        with self.lock:
             if len(seq) != len(file_seq) - internals['newlines_inside']:
                 raise IOError("Specified replacement sequence needs to have the same length as original.")
             elif len(seq) == len(file_seq) - internals['newlines_inside']:
@@ -548,10 +542,6 @@ class Faidx(object):
                         n = m
                         m += line_len
                     self.file.write(seq[n:].encode())
-        except IOError:
-            raise
-        finally:
-            self.lock.release()
 
     def close(self):
         self.__exit__()
