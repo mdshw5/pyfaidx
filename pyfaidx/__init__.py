@@ -778,7 +778,7 @@ class FastaVariant(Fasta):
         else:
             seq_mut = list(seq.seq)
             del seq.seq
-        var = self.vcf.fetch(name, start, end)
+        var = self.vcf.fetch(name, start - 1, end)
         for record in var:
             if record.is_snp:  # skip indels
                 sample = record.genotype(self.sample)
