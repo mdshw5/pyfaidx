@@ -7,8 +7,8 @@ python:
     - '3.3'
     - '2.7'
     - '2.6'
-    - pypy
-    - pypy3
+    - 'pypy'
+    - 'pypy3'
 install:
     - pip wheel -f wheelhouse coverage biopython cython pysam pyvcf || true
     - pip install -f wheelhouse biopython cython pysam pyfasta coverage pyvcf || true
@@ -35,6 +35,8 @@ deploy:
 matrix:
   allow_failures:
     - python: 'nightly'
+    - python: 'pypy3'
+  fast_finish: true
 cache:
     directories:
         - tests/data
