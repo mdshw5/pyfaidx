@@ -50,17 +50,17 @@ class TestFastaRecord(TestCase):
         """ Check for pathogenic FastaRecord.long_name behavior in mdshw5/pyfaidx#62 """
         deflines = []
         line_len = None
-        with open('data/genes.fasta') as fasta_file:
-            with open('data/issue_62.fa', 'w') as fasta_uniform_len:
+        with open('data/genes.fasta', 'rb') as fasta_file:
+            with open('data/issue_62.fa', 'wb') as fasta_uniform_len:
                 for line in fasta_file:
-                    if line[0] == '>':
-                        deflines.append(line[1:-1])
+                    if line.startswith(b'>'):
+                        deflines.append(line[1:-1].decode('ascii'))
                         fasta_uniform_len.write(line)
                     elif line_len is None:
                         line_len = len(line)
                         fasta_uniform_len.write(line)
                     elif line_len > len(line):
-                        fasta_uniform_len.write(line.rstrip() + 'N' * (line_len - len(line)) + '\n')
+                        fasta_uniform_len.write(line.rstrip() + b'N' * (line_len - len(line)) + b'\n')
                     else:
                         fasta_uniform_len.write(line)
         fasta = Fasta('data/issue_62.fa', as_raw=True)
