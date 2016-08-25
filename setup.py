@@ -1,4 +1,5 @@
 from setuptools import setup
+from io import open
 import sys
 
 install_requires = ['six', 'setuptools >= 0.7']
@@ -17,7 +18,7 @@ def get_version(string):
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version=get_version(open('pyfaidx/__init__.py').read()),
+    version=get_version(open('pyfaidx/__init__.py', encoding='utf-8').read()),
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
