@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Landscape| |Coverage| |Depsy| |Appveyor|
+|Travis| |PyPI| |Landscape| |Coverage| |Depsy| |Appveyor| |Flattr|
 
 Description
 -----------
@@ -519,3 +519,8 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/80ihlw30a003596w?svg=true
    :target: https://ci.appveyor.com/project/mdshw5/pyfaidx
+   
+.. |Flattr| image:: http://button.flattr.com/flattr-badge-large.png
+   :target: https://flattr.com/submit/auto?fid=po00kq&url=https%3A%2F%2Fgithub.com%2Fmdshw5%2Fpyfaidx
+   
+
