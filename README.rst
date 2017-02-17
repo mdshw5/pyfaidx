@@ -37,6 +37,8 @@ or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
 ::
 
     python setup.py install
+    
+If using ``pip install --user`` make sure to add ``/home/$(whoami)/.local/bin`` to your ``$PATH`` if you want to run the ``faidx`` script.
 
 Usage
 -----
