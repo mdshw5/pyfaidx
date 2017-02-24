@@ -149,6 +149,7 @@ Complements and reverse complements just like DNA
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
 
 .. _keyfn:
+
 Custom key functions provide cleaner access:
 
 .. code:: python
