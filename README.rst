@@ -148,6 +148,7 @@ Complements and reverse complements just like DNA
     >NM_001282543.1 (complement):230-201
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
 
+.. _keyfn:
 Custom key functions provide cleaner access:
 
 .. code:: python
