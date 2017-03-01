@@ -314,6 +314,8 @@ cli script: faidx
       -m, --mask-with-default-seq
                             mask the FASTA file using --default-seq default: False
       -M, --mask-by-case    mask the FASTA file by changing to lowercase. default: False
+      -e HEADER_FUNCTION, --header-function HEADER_FUNCTION
+                            python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: None
       --no-rebuild          do not rebuild the .fai index even if it is out of date. default: False
       --version             print pyfaidx version number
 
@@ -428,8 +430,6 @@ Examples:
     AGCTTCCCTGTGGTTTCCCGAGGCTTCCTTGCTTCCCGCTCTGCGAGGAGCCTTTCATCCGAAGGCGGGA
     .......
 
-
-
     $ faidx --size-range 5500,6000 -i chromsizes tests/data/genes.fasta
     NM_000465.3	5523
 
@@ -438,6 +438,14 @@ Examples:
 
     $ faidx -M --bed regions.bed tests/data/genes.fasta
     ### Modifies tests/data/genes.fasta by masking regions using lowercase characters ###
+    
+    $ faidx -e "lambda x: x.split('.')[0]" tests/data/genes.fasta -i bed
+    AB821309	1	3510
+    KF435150	1	481
+    KF435149	1	642
+    NR_104216	1	4573
+    NR_104215	1	5317
+    .......
 
 
 Similar syntax as ``samtools faidx``
