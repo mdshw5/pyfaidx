@@ -20,7 +20,7 @@ def write_sequence(args):
         regions_to_fetch = fasta.keys()
     if args.invert_match:
         sequences_to_exclude = set([split_function(region)[0] for region in regions_to_fetch])
-        fasta = Fasta(args.fasta, default_seq=args.default_seq, strict_bounds=not args.lazy, split_char=args.delimiter, rebuild=not args.no_rebuild)
+        fasta = Fasta(args.fasta, default_seq=args.default_seq, key_fn=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, rebuild=not args.no_rebuild)
         regions_to_fetch = (key for key in fasta.keys() if key not in sequences_to_exclude)
         split_function = ucsc_split
 
@@ -152,6 +152,7 @@ def main(ext_args=None):
     masking = parser.add_mutually_exclusive_group()
     masking.add_argument('-m', '--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using --default-seq default: %(default)s")
     masking.add_argument('-M', '--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
+    parser.add_argument('-h', '--header-function', type=str, default='None', help='python function to modify header lines e.g: "lambda x: x.split('|')[0]". default: %(default)s')
     parser.add_argument('--no-rebuild', action="store_true", default=False, help="do not rebuild the .fai index even if it is out of date. default: %(default)s")
     parser.add_argument('--version', action="version", version=__version__, help="print pyfaidx version number")
     # print help usage if no arguments are supplied
