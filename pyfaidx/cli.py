@@ -13,14 +13,14 @@ def write_sequence(args):
     if ext:
         ext = ext[1:]  # remove the dot from extension
     filt_function = re.compile(args.regex).search
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, rebuild=not args.no_rebuild)
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=exec(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, rebuild=not args.no_rebuild)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
         regions_to_fetch = fasta.keys()
     if args.invert_match:
         sequences_to_exclude = set([split_function(region)[0] for region in regions_to_fetch])
-        fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, rebuild=not args.no_rebuild)
+        fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=exec(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, rebuild=not args.no_rebuild)
         regions_to_fetch = (key for key in fasta.keys() if key not in sequences_to_exclude)
         split_function = ucsc_split
 
