@@ -75,7 +75,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
         yield ''.join(['>', fasta[name].long_name, '\n'])
     else:
         if start or end:
-            yield ''.join(['>', sequence.longname, '\n'])
+            yield ''.join(['>', sequence.long_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
     for line in wrap_sequence(line_len, sequence.seq):
