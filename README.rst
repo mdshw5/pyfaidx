@@ -490,7 +490,7 @@ I try to fix as many bugs as possible, but most of this work is supported by a s
 Contributing
 ------------
 
-Create a new Pull Request with one feauture. If you add a new feature, please
+Create a new Pull Request with one feature. If you add a new feature, please
 create also the relevant test.
 
 To get test running on your machine:
