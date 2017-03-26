@@ -74,7 +74,7 @@ Acts like a dictionary.
     >>> genes['NM_001282543.1'][200:230].end
     230
 
-    >>> genes['NM_001282543.1'][200:230].longname
+    >>> genes['NM_001282543.1'][200:230].long_name
     'NM_001282543.1:201-230'
 
     >>> len(genes['NM_001282543.1'])
@@ -490,7 +490,7 @@ I try to fix as many bugs as possible, but most of this work is supported by a s
 Contributing
 ------------
 
-Create a new Pull Request with one feauture. If you add a new feature, please
+Create a new Pull Request with one feature. If you add a new feature, please
 create also the relevant test.
 
 To get test running on your machine:
