@@ -22,7 +22,7 @@ from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.8.3'
+__version__ = '0.4.8.4'
 
 
 class FastaIndexingError(Exception):
