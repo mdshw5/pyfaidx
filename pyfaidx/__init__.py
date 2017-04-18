@@ -554,6 +554,7 @@ class Faidx(object):
                         n = m
                         m += line_len
                     self.file.write(seq[n:].encode())
+                    self.file.flush()
 
     def close(self):
         self.__exit__()
