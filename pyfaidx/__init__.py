@@ -277,9 +277,9 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', '
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename, default_seq=None, key_function=None,
+    def __init__(self, filename, default_seq=None, key_function=lambda x: x.split()[0],
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, split_char=None, filt_function=None,
+                 mutable=False, split_char=None, filt_function=lambda x: True,
                  one_based_attributes=True,
                  sequence_always_upper=False, rebuild=True):
         """
@@ -296,8 +296,8 @@ class Faidx(object):
         else:
             self.file = open(filename, 'rb')
         self.indexname = filename + '.fai'
-        self.key_function = key_function if key_function else lambda rname: rname
-        self.filt_function = filt_function if filt_function else lambda x: True
+        self.key_function = key_function
+        self.filt_function = filt_function
         self.as_raw = as_raw
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
@@ -400,7 +400,7 @@ class Faidx(object):
                             clen = None
                             bad_lines = []
                             try:  # must catch empty deflines
-                                rname = line.rstrip('\n\r')[1:].split()[0]  # remove comments
+                                rname = self.key_function(line.rstrip('\n\r'))
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
@@ -673,9 +673,9 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=None, as_raw=False,
+    def __init__(self, filename, default_seq=None, key_function=lambda x: x.split()[0], as_raw=False,
                  strict_bounds=False, read_ahead=None, mutable=False, split_char=None,
-                 filt_function=None, one_based_attributes=True,
+                 filt_function=lambda x: True, one_based_attributes=True,
                  sequence_always_upper=False, rebuild=True):
         """
         An object that provides a pygr compatible interface.
