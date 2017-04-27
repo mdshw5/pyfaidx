@@ -55,6 +55,31 @@ class TestIndexing(TestCase):
         result_index = open(index_file).read()
         assert result_index == expect_index
 
+    def test_build_issue_111(self):
+        expect_index = ("gi|563317589|dbj|AB821309	3510	114	70	71\n"
+        "gi|557361099|gb|KF435150	481	3789	70	71\n"
+        "gi|557361097|gb|KF435149	642	4368	70	71\n"
+        "gi|543583796|ref|NR_104216	4573	5141	70	71\n"
+        "gi|543583795|ref|NR_104215	5317	9901	70	71\n"
+        "gi|543583794|ref|NR_104212	5374	15415	70	71\n"
+        "gi|543583788|ref|NM_001282545	4170	20980	70	71\n"
+        "gi|543583786|ref|NM_001282543	5466	25324	70	71\n"
+        "gi|543583785|ref|NM_000465	5523	30980	70	71\n"
+        "gi|543583740|ref|NM_001282549	3984	36696	70	71\n"
+        "gi|543583738|ref|NM_001282548	4113	40851	70	71\n"
+        "gi|530384540|ref|XM_005249645	2752	45151	70	71\n"
+        "gi|530384538|ref|XM_005249644	3004	48071	70	71\n"
+        "gi|530384536|ref|XM_005249643	3109	51246	70	71\n"
+        "gi|530384534|ref|XM_005249642	3097	54528	70	71\n"
+        "gi|530373237|ref|XM_005265508	2794	57830	70	71\n"
+        "gi|530373235|ref|XM_005265507	2848	60824	70	71\n"
+        "gi|530364726|ref|XR_241081	1009	63849	70	71\n"
+        "gi|530364725|ref|XR_241080	4884	65009	70	71\n"
+        "gi|530364724|ref|XR_241079	2819	70099	70	71\n")
+        index_file = Faidx('data/genes.fasta', key_function=lambda x: x.split('.')[0]).indexname
+        result_index = open(index_file).read()
+        assert result_index == expect_index
+
     def test_order(self):
         order = ("gi|563317589|dbj|AB821309.1|",
                  "gi|557361099|gb|KF435150.1|",
@@ -255,4 +280,3 @@ class TestIndexing(TestCase):
             self.assertTrue(all(f.closed for f in opened_files))
         finally:
             shutil.rmtree(tmp_dir)
-

@@ -20,8 +20,8 @@ install:
     - export PATH=$PATH:$PWD
     - cd ..
 before_script:
-    - /usr/local/bin/pip install --user biopython
-    - /usr/bin/python tests/data/download_gene_fasta.py
+    - env pip install biopython
+    - env python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi

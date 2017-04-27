@@ -34,6 +34,8 @@ def get_duplicated_gene_name(accession):
 
 class TestFeatureKeyFunction(TestCase):
     def setUp(self):
+        genes = Fasta('data/genes.fasta')
+        del genes  # Support feature introduced in #111
         pass
 
     def tearDown(self):
