@@ -399,9 +399,6 @@ class Faidx(object):
                     bad_lines = []  # lines > || < than blen
                     thisoffset = offset
 
-                    def getOffset():
-                        return fastafile.tell() if self._bgzf else offset
-
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
                         line_clen = len(line.rstrip('\n\r'))
@@ -425,7 +422,7 @@ class Faidx(object):
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
-                            thisoffset = getOffset()
+                            thisoffset = fastafile.tell() if self._bgzf else offset
                         else:  # check line and advance offset
                             if not blen:
                                 blen = line_blen
