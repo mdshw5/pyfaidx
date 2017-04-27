@@ -301,6 +301,7 @@ class Faidx(object):
         self.as_raw = as_raw
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
+        self.split_char = split_char
         self.one_based_attributes = one_based_attributes
         self.sequence_always_upper = sequence_always_upper
         self.index = OrderedDict()
@@ -400,7 +401,7 @@ class Faidx(object):
                             clen = None
                             bad_lines = []
                             try:  # must catch empty deflines
-                                rname = self.key_function(line.rstrip('\n\r'))
+                                rname = self.key_function(line.rstrip('\n\r')[1:])
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
