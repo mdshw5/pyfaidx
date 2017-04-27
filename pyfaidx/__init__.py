@@ -291,10 +291,26 @@ class Faidx(object):
           Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        if mutable:
-            self.file = open(filename, 'r+b')
+
+        filenameLower = filename.lower()
+        if filenameLower.endswith('.bgz'):
+            # Only try to import Bio if we actually need the bgzf reader.
+            try:
+                from Bio import bgzf
+            except ImportError:
+                raise ImportError(
+                    "BioPython must be installed to read .bgz files.")
+            else:
+                self._fasta_opener = bgzf.open
+                self._bgzf = True
+        elif filenameLower.endswith('.gz') or filenameLower.endswith('.bz2'):
+            raise RuntimeError("Compressed FASTA is only supported in BGZF "
+                               "format, via the BioPython bgzf module.")
         else:
-            self.file = open(filename, 'rb')
+            self._fasta_opener = open
+            self._bgzf = False
+
+        self.file = self._fasta_opener(filename, 'r+b' if mutable else 'rb')
         self.indexname = filename + '.fai'
         self.key_function = key_function if key_function else lambda rname: rname
         self.filt_function = filt_function if filt_function else lambda x: True
@@ -372,7 +388,7 @@ class Faidx(object):
 
     def build_index(self):
         try:
-            with open(self.filename, 'r') as fastafile:
+            with self._fasta_opener(self.filename, 'r') as fastafile:
                 with open(self.indexname, 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
@@ -381,6 +397,13 @@ class Faidx(object):
                     clen = None  # character line length
                     bad_lines = []  # lines > || < than blen
                     thisoffset = offset
+
+                    def getOffset():
+                        if self._bgzf:
+                            return fastafile.tell()
+                        else:
+                            return offset
+
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
                         line_clen = len(line.rstrip('\n\r'))
@@ -404,7 +427,7 @@ class Faidx(object):
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
-                            thisoffset = offset
+                            thisoffset = getOffset()
                         else:  # check line and advance offset
                             if not blen:
                                 blen = line_blen
