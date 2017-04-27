@@ -399,10 +399,7 @@ class Faidx(object):
                     thisoffset = offset
 
                     def getOffset():
-                        if self._bgzf:
-                            return fastafile.tell()
-                        else:
-                            return offset
+                        return fastafile.tell() if self._bgzf else offset
 
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
