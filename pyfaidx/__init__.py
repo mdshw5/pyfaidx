@@ -37,6 +37,12 @@ class BedError(Exception):
     """Indicates a malformed BED entry."""
 
 
+class RegionError(Exception):
+    # This exception class is currently unused, but has been retained for
+    # backwards compatibility.
+    """A region error occurred."""
+
+
 class UnsupportedCompressionFormat(Exception):
     """
     Raised when a FASTA file is given with a recognized but unsupported
