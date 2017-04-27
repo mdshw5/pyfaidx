@@ -293,7 +293,7 @@ class Faidx(object):
         self.filename = filename
 
         filenameLower = filename.lower()
-        if filenameLower.endswith('.bgz'):
+        if filenameLower.endswith('.bgz') or filenameLower.endswith('.gz'):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -303,14 +303,25 @@ class Faidx(object):
             else:
                 self._fasta_opener = bgzf.open
                 self._bgzf = True
-        elif filenameLower.endswith('.gz') or filenameLower.endswith('.bz2'):
-            raise RuntimeError("Compressed FASTA is only supported in BGZF "
-                               "format, via the BioPython bgzf module.")
+        elif filenameLower.endswith('.bz2') or filenameLower.endswith('.zip'):
+            raise RuntimeError(
+                "Compressed FASTA is only supported in BGZF format. Use "
+                "bgzip to compresss your FASTA.")
         else:
             self._fasta_opener = open
             self._bgzf = False
 
-        self.file = self._fasta_opener(filename, 'r+b' if mutable else 'rb')
+        try:
+            self.file = self._fasta_opener(filename, 'r+b' if mutable else 'rb')
+        except ValueError as e:
+            if str(e).find('BGZF') > -1:
+                raise RuntimeError(
+                    "Compressed FASTA is only supported in BGZF format. Use "
+                    "the samtools bgzip utility (instead of gzip) to "
+                    "compresss your FASTA.")
+            else:
+                raise
+
         self.indexname = filename + '.fai'
         self.key_function = key_function
         self.filt_function = filt_function
