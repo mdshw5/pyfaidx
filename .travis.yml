@@ -20,7 +20,7 @@ install:
     - export PATH=$PATH:$PWD
     - cd ..
 before_script:
-    - env pip install biopython
+    - if [ $(python --version) -gt 2.6 ]; then env pip install biopython; fi
     - env python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
