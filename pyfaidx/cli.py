@@ -52,7 +52,7 @@ def write_sequence(args):
                 for line in fetch_sequence(args, fasta, name, start, end):
                     outfile.write(line)
         except FetchError as e:
-            raise FetchError(e.msg.rstrip() + "Try setting --lazy.\n")
+            raise FetchError(str(e) + " Try setting --lazy.\n")
         if args.split_files:
             outfile.close()
     fasta.__exit__()

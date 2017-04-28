@@ -26,27 +26,28 @@ __version__ = '0.4.8.4'
 
 
 class FastaIndexingError(Exception):
-    def __init__(self, msg=None):
-        self.msg = msg
-        super(FastaIndexingError, self).__init__(self.msg)
+    """Raised if we encounter malformed FASTA that prevents indexing."""
 
 
 class FetchError(Exception):
-    def __init__(self, msg=None):
-        self.msg = msg
-        super(FetchError, self).__init__(self.msg)
+    """Raised if a request to fetch a FASTA sequence cannot be fulfilled."""
 
 
 class BedError(Exception):
-    def __init__(self, msg=None):
-        self.msg = 'Malformed BED entry!\n' if not msg else msg
-        super(BedError, self).__init__(self.msg)
+    """Indicates a malformed BED entry."""
 
 
 class RegionError(Exception):
-    def __init__(self, msg=None):
-        self.msg = 'Malformed region! Format = rname:start-end.\n' if not msg else msg
-        super(RegionError, self).__init__(self.msg)
+    # This exception class is currently unused, but has been retained for
+    # backwards compatibility.
+    """A region error occurred."""
+
+
+class UnsupportedCompressionFormat(Exception):
+    """
+    Raised when a FASTA file is given with a recognized but unsupported
+    compression extension.
+    """
 
 
 class Sequence(object):
@@ -291,10 +292,36 @@ class Faidx(object):
           Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
-        if mutable:
-            self.file = open(filename, 'r+b')
+
+        if filename.lower().endswith('.bgz') or filename.lower().endswith('.gz'):
+            # Only try to import Bio if we actually need the bgzf reader.
+            try:
+                from Bio import bgzf
+            except ImportError:
+                raise ImportError(
+                    "BioPython must be installed to read gzipped files.")
+            else:
+                self._fasta_opener = bgzf.open
+                self._bgzf = True
+        elif filename.lower().endswith('.bz2') or filename.lower().endswith('.zip'):
+            raise UnsupportedCompressionFormat(
+                "Compressed FASTA is only supported in BGZF format. Use "
+                "bgzip to compresss your FASTA.")
         else:
-            self.file = open(filename, 'rb')
+            self._fasta_opener = open
+            self._bgzf = False
+
+        try:
+            self.file = self._fasta_opener(filename, 'r+b' if mutable else 'rb')
+        except ValueError as e:
+            if str(e).find('BGZF') > -1:
+                raise UnsupportedCompressionFormat(
+                    "Compressed FASTA is only supported in BGZF format. Use "
+                    "the samtools bgzip utility (instead of gzip) to "
+                    "compresss your FASTA.")
+            else:
+                raise
+
         self.indexname = filename + '.fai'
         self.key_function = key_function
         self.filt_function = filt_function
@@ -323,10 +350,10 @@ class Faidx(object):
                 else:
                     self.build_index()
                     self.read_fai(split_char)
-            except FastaIndexingError as e:
+            except FastaIndexingError:
                 os.remove(self.indexname)
                 self.file.close()
-                raise FastaIndexingError(e)
+                raise
             except Exception:
                 # Handle potential exceptions other than 'FastaIndexingError'
                 self.file.close()
@@ -373,7 +400,7 @@ class Faidx(object):
 
     def build_index(self):
         try:
-            with open(self.filename, 'r') as fastafile:
+            with self._fasta_opener(self.filename, 'r') as fastafile:
                 with open(self.indexname, 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
@@ -382,6 +409,7 @@ class Faidx(object):
                     clen = None  # character line length
                     bad_lines = []  # lines > || < than blen
                     thisoffset = offset
+
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
                         line_clen = len(line.rstrip('\n\r'))
@@ -405,7 +433,7 @@ class Faidx(object):
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
-                            thisoffset = offset
+                            thisoffset = fastafile.tell() if self._bgzf else offset
                         else:  # check line and advance offset
                             if not blen:
                                 blen = line_blen

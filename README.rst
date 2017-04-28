@@ -474,6 +474,19 @@ A lower-level Faidx class is also available:
    where "filename.fa" is the original FASTA file.
 -  Start and end coordinates are 1-based.
 
+Support for compressed FASTA
+----------------------------
+
+``pyfaidx`` can create and read ``.fai`` indices for FASTA files that have
+been compressed using the `bgzip <http://www.htslib.org/doc/tabix.html>`_
+tool from `samtools <http://www.htslib.org/>`_. ``bgzip`` writes compressed
+data in a ``BGZF`` format. ``BGZF`` is ``gzip`` compatible, consisting of
+multiple concatenated ``gzip`` blocks, each with an additional ``gzip``
+header making it possible to build an index for rapid random access. I.e.,
+files compressed with ``bgzip`` are valid ``gzip`` and so can be read by
+``gunzip``.  See `this description
+<http://pydoc.net/Python/biopython/1.66/Bio.bgzf/>`_ for more details on
+``bgzip``.
 
 Changelog
 ---------
