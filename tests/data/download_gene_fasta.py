@@ -65,6 +65,18 @@ def fake_chr22(filename):
             chr22_len -= 70
         fake_file.write('N' * mod_70 + '\n')
 
+def bgzip_compress_fasta(filename):
+    from subprocess import call
+    import os
+    call(['curl', '-sL', 'https://github.com/samtools/htslib/releases/download/1.4/htslib-1.4.tar.bz2', '-o',
+          'htslib-1.4.tar.bz2'])
+    call(['tar', '-xjf', 'htslib-1.4.tar.bz2'])
+    os.chdir('htslib-1.4')
+    call(['make'])
+    os.chdir('..')
+    call(' '.join(['htslib-1.4/bgzip', '-c', filename, '>', filename + '.gz']), shell=True)
+
+
 def fetch_chr22_vcf(filename):
     from subprocess import call
     call(['curl', '-s', 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz',
@@ -83,3 +95,4 @@ if __name__ == "__main__":
         fetch_chr22_vcf("chr22.vcf.gz")
     if not os.path.isfile("chr22.fasta"):
         fetch_chr22("chr22.fasta")
+    bgzip_compress_fasta("genes.fasta")
