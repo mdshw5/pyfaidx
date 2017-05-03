@@ -35,7 +35,7 @@ deploy:
     secure: MbSaeuitkVTZqxa0PJ3RcR1aMf+B/sMbcx2sWOo9xfLlRFDFpYWJZ0EfXWEhrVu2YWXpBsasgunTDWSi0jNcZMH92MzOC+UTVYr45LO5sy6hm4iSiAgm/DPgYWdjP0SFKr7eL/HWPS+gHvgkXL1upleX21O358bxaezoasuKFvs=
   on:
     all_branches: true
-    python: 2.6
+    python: 2.7
     tags: true
     repo: mdshw5/pyfaidx
 matrix:
