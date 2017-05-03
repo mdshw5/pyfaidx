@@ -767,6 +767,7 @@ class FastaVariant(Fasta):
     """
     expr = set(('>', '<', '=', '!'))
     def __init__(self, filename, vcf_file, sample=None, het=True, hom=True, call_filter=None, **kwargs):
+        super(FastaVariant, self).__init__(filename, **kwargs)
         try:
             import pysam
         except ImportError:
@@ -804,7 +805,6 @@ class FastaVariant(Fasta):
             self.gt_type = set((2,))
         else:
             self.gt_type = set()
-        super(FastaVariant, self).__init__(filename, **kwargs)
 
     def __repr__(self):
         return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename, self.vcf.filename, str(self.gt_type))
