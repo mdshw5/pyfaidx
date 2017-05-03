@@ -413,6 +413,7 @@ class Faidx(object):
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
                         line_clen = len(line.rstrip('\n\r'))
+                        lastline = i
                         # write an index line
                         if line[0] == '>':
                             valid_entry = check_bad_lines(rname, bad_lines, i - 1)
@@ -448,7 +449,7 @@ class Faidx(object):
                             rlen += line_clen
 
                     # write the final index line
-                    valid_entry = check_bad_lines(rname, bad_lines, i)  # advance index since we're at the end of the file
+                    valid_entry = check_bad_lines(rname, bad_lines, lastline)  # advance index since we're at the end of the file
                     if not valid_entry:
                         raise FastaIndexingError("Line length of fasta"
                                                  " file is not "
