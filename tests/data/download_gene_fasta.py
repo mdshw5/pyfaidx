@@ -67,14 +67,7 @@ def fake_chr22(filename):
 
 def bgzip_compress_fasta(filename):
     from subprocess import call
-    import os
-    call(['curl', '-sL', 'https://github.com/samtools/htslib/releases/download/1.4/htslib-1.4.tar.bz2', '-o',
-          'htslib-1.4.tar.bz2'])
-    call(['tar', '-xjf', 'htslib-1.4.tar.bz2'])
-    os.chdir('htslib-1.4')
-    call(['make'])
-    os.chdir('..')
-    call(' '.join(['htslib-1.4/bgzip', '-c', filename, '>', filename + '.gz']), shell=True)
+    call(' '.join(['bgzip', '-c', filename, '>', filename + '.gz']), shell=True)
 
 
 def fetch_chr22_vcf(filename):
@@ -96,3 +89,4 @@ if __name__ == "__main__":
     if not os.path.isfile("chr22.fasta"):
         fetch_chr22("chr22.fasta")
     bgzip_compress_fasta("genes.fasta")
+    bgzip_compress_fasta("chr22.fasta")
