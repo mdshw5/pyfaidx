@@ -674,6 +674,10 @@ class FastaRecord(object):
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
+        if self._fasta_opener != open:
+            raise UnsupportedCompressionFormat(
+                "BGZF compressed FASTA is not supported for MutableFastaRecord. "
+                "Please decompress your FASTA file.") 
 
     def __setitem__(self, n, value):
         """Mutate sequence in region [start, end)

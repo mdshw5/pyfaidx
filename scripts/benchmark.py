@@ -48,6 +48,10 @@ def make_long_fasta(filename, nrecs=250, seqlen=SEQLEN):
                 f.write(line)
     return headers
 
+def bgzip_compress_fasta(filename):
+    from subprocess import call
+    call(' '.join(['bgzip', '-c', filename, '>', filename + '.gz']), shell=True)
+
 def read_dict(f, headers):
     for k in islice(headers, 0, None, 10):
         for start, end in intervals:
@@ -89,7 +93,10 @@ def read_samtools(f, headers):
 def main():
     fa_file = NamedTemporaryFile()
     index = fa_file.name + '.fai'
+    bgzf_index = fa_file.name + '.gz.fai'
     headers = make_long_fasta(fa_file.name)
+    bgzip_compress_fasta(fa_file.name)
+
     def pyfaidx_fasta(n):
         print('timings for pyfaidx.Fasta')
         ti = []
@@ -113,7 +120,30 @@ def main():
         print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
-    def pyfaidx_faidx(n):
+    def pyfaidx_bgzf_faidx(n):
+        print('timings for pyfaidx.Faidx with bgzf compression')
+        ti = []
+        tf = []
+        for _ in range(n):
+            t = time.time()
+            f = pyfaidx.Faidx(fa_file.name + '.gz')
+            ti.append(time.time() - t)
+
+            t = time.time()
+            read_faidx(f, headers)
+            tf.append(time.time() - t)
+            os.remove(index)
+        # profile memory usage and report timings
+        tracemalloc.start()
+        f = pyfaidx.Faidx(fa_file.name + '.gz')
+        read_faidx(f, headers)
+        os.remove(index)
+        print(tracemalloc.get_traced_memory())
+        print(mean(ti))
+        print(mean(tf)/nreads/10*1000*1000)
+        tracemalloc.stop()
+
+    def pyfaidx_bgzf_faidx(n):
         print('timings for pyfaidx.Faidx')
         ti = []
         tf = []
