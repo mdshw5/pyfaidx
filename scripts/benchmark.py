@@ -143,7 +143,7 @@ def main():
         print(mean(tf)/nreads/10*1000*1000)
         tracemalloc.stop()
 
-    def pyfaidx_bgzf_faidx(n):
+    def pyfaidx_faidx(n):
         print('timings for pyfaidx.Faidx')
         ti = []
         tf = []
@@ -306,6 +306,7 @@ def main():
     n = 3
     pyfaidx_fasta(n)
     pyfaidx_faidx(n)
+    pyfaidx_bgzf_faidx(n)
     pyfasta_fasta(n)
     pyfasta_fseek(n)
     seqio_read(n)

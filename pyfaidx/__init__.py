@@ -500,8 +500,8 @@ class Faidx(object):
         4. Seek to start position, taking newlines into account
         5. Read to end position, return sequence
         """
-        assert isinstance(start, integer_types)
-        assert isinstance(end, integer_types)
+        assert start == int(start)
+        assert end == int(end)
         try:
             i = self.index[rname]
         except KeyError:
@@ -664,6 +664,9 @@ class FastaRecord(object):
     @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
+        if self.faidx._fasta_opener != open:
+            raise NotImplementedError("Fasta.long_name does not work for BGZF compressed"
+                                      "files. Please see https://github.com/mdshw5/pyfaidx/issues/77")
         index_record = self._fa.faidx.index[self.name]
         prev_bend = index_record.prev_bend
         newline_len = index_record.lenb - index_record.lenc
@@ -674,10 +677,10 @@ class FastaRecord(object):
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self._fasta_opener != open:
+        if self.faidx._fasta_opener != open:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
-                "Please decompress your FASTA file.") 
+                "Please decompress your FASTA file.")
 
     def __setitem__(self, n, value):
         """Mutate sequence in region [start, end)
