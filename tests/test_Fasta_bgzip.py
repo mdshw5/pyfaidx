@@ -1,5 +1,6 @@
 import os
 from pyfaidx import Fasta, Faidx, UnsupportedCompressionFormat, FetchError
+from itertools import chain
 from unittest import TestCase
 from nose.tools import raises
 
@@ -33,7 +34,7 @@ class TestFastaBGZF(TestCase):
 
     def test_fetch_whole_fasta(self):
         expect = [line.rstrip('\n') for line in open('data/genes.fasta.gz') if line[0] != '>']
-        result = list(chain(*([line for line in record] for record in Fasta('data/genes.fasta.gz', as_raw=True))))
+        result = list(chain(*([line for line in record] for record in Fasta('data/genes.fasta', as_raw=True))))
         assert expect == result
 
     def test_line_len(self):
@@ -45,12 +46,13 @@ class TestFastaBGZF(TestCase):
     def test_mutable_bgzf(self):
         fasta = Fasta('data/genes.fasta.gz', mutable=True)
 
+    @raises(NotImplementedError)
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
         identical to deflines in the actual file.
         """
         deflines = []
-        with open('data/genes.fasta.gz') as fasta_file:
+        with open('data/genes.fasta') as fasta_file:
             for line in fasta_file:
                 if line[0] == '>':
                     deflines.append(line[1:-1])
