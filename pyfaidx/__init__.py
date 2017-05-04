@@ -664,7 +664,7 @@ class FastaRecord(object):
     @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
-        if self.faidx._fasta_opener != open:
+        if self._fa.faidx._fasta_opener != open:
             raise NotImplementedError("Fasta.long_name does not work for BGZF compressed"
                                       "files. Please see https://github.com/mdshw5/pyfaidx/issues/77")
         index_record = self._fa.faidx.index[self.name]
@@ -677,7 +677,7 @@ class FastaRecord(object):
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self.faidx._fasta_opener != open:
+        if self._fa.faidx._fasta_opener != open:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
                 "Please decompress your FASTA file.")
