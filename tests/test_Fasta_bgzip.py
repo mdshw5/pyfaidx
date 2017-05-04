@@ -33,8 +33,8 @@ class TestFastaBGZF(TestCase):
         assert expect == result
 
     def test_fetch_whole_fasta(self):
-        expect = [line.rstrip('\n') for line in open('data/genes.fasta.gz') if line[0] != '>']
-        result = list(chain(*([line for line in record] for record in Fasta('data/genes.fasta', as_raw=True))))
+        expect = [line.rstrip('\n') for line in open('data/genes.fasta') if line[0] != '>']
+        result = list(chain(*([line for line in record] for record in Fasta('data/genes.fasta.gz', as_raw=True))))
         assert expect == result
 
     def test_line_len(self):
