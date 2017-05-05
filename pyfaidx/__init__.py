@@ -522,6 +522,9 @@ class Faidx(object):
         newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
+        if seq_blen <= 0 and self.strict_bounds:
+            raise FetchError("Requested coordinates start={0:n} end={1:n} are "
+                             "invalid.\n".format(start, end))
         bstart = i.offset + newlines_before + start0
 
         with self.lock:
@@ -542,9 +545,6 @@ class Faidx(object):
                     seq = self.file.read(seq_blen).decode()
                 elif seq_blen <= 0 and not self.strict_bounds:
                     seq = ''
-                elif seq_blen <= 0 and self.strict_bounds:
-                    raise FetchError("Requested coordinates start={0:n} end={1:n} are "
-                                     "invalid.\n".format(start, end))
 
         if not internals:
             return seq.replace('\n', '')
