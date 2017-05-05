@@ -525,20 +525,26 @@ class Faidx(object):
         bstart = i.offset + newlines_before + start0
 
         with self.lock:
-            self.file.seek(bstart)
+            if self._bgzf:  # We can't add to virtual offsets, so we need to read from the beginning of the record and trim the beginning if needed
+                self.file.seek(i.offset)
+                chunk = start0 + newlines_before + newlines_inside + seq_len
+                chunk_seq = self.file.read(chunk).decode()
+                seq = chunk_seq[start0 + newlines_before:]
+            else:
+                self.file.seek(bstart)
 
-            if bstart + seq_blen > i.bend and not self.strict_bounds:
-                seq_blen = i.bend - bstart
-            elif bstart + seq_blen > i.bend and self.strict_bounds:
-                raise FetchError("Requested end coordinate {0:n} outside of {1}. "
-                                 "\n".format(end, rname))
-            if seq_blen > 0:
-                seq = self.file.read(seq_blen).decode()
-            elif seq_blen <= 0 and not self.strict_bounds:
-                seq = ''
-            elif seq_blen <= 0 and self.strict_bounds:
-                raise FetchError("Requested coordinates start={0:n} end={1:n} are "
-                                 "invalid.\n".format(start, end))
+                if bstart + seq_blen > i.bend and not self.strict_bounds:
+                    seq_blen = i.bend - bstart
+                elif bstart + seq_blen > i.bend and self.strict_bounds:
+                    raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                                     "\n".format(end, rname))
+                if seq_blen > 0:
+                    seq = self.file.read(seq_blen).decode()
+                elif seq_blen <= 0 and not self.strict_bounds:
+                    seq = ''
+                elif seq_blen <= 0 and self.strict_bounds:
+                    raise FetchError("Requested coordinates start={0:n} end={1:n} are "
+                                     "invalid.\n".format(start, end))
 
         if not internals:
             return seq.replace('\n', '')
