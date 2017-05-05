@@ -522,13 +522,13 @@ class Faidx(object):
         newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
+        bstart = i.offset + newlines_before + start0
         if seq_blen <= 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
         elif bstart + seq_blen > i.bend and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
-        bstart = i.offset + newlines_before + start0
 
         with self.lock:
             if self._bgzf:  # We can't add to virtual offsets, so we need to read from the beginning of the record and trim the beginning if needed
