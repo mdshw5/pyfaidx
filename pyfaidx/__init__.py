@@ -525,6 +525,9 @@ class Faidx(object):
         if seq_blen <= 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
+        elif bstart + seq_blen > i.bend and self.strict_bounds:
+            raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                             "\n".format(end, rname))
         bstart = i.offset + newlines_before + start0
 
         with self.lock:
@@ -538,9 +541,7 @@ class Faidx(object):
 
                 if bstart + seq_blen > i.bend and not self.strict_bounds:
                     seq_blen = i.bend - bstart
-                elif bstart + seq_blen > i.bend and self.strict_bounds:
-                    raise FetchError("Requested end coordinate {0:n} outside of {1}. "
-                                     "\n".format(end, rname))
+                
                 if seq_blen > 0:
                     seq = self.file.read(seq_blen).decode()
                 elif seq_blen <= 0 and not self.strict_bounds:
