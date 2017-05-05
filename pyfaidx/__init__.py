@@ -526,7 +526,7 @@ class Faidx(object):
         if seq_blen <= 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
-        elif bstart + seq_blen > i.bend and self.strict_bounds:
+        elif end - start0 > i.lenc and self.strict_bounds:
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
 
