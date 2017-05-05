@@ -22,7 +22,7 @@ from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.8.4'
+__version__ = '0.4.8.5'
 
 
 class FastaIndexingError(Exception):
@@ -301,6 +301,7 @@ class Faidx(object):
                 raise ImportError(
                     "BioPython must be installed to read gzipped files.")
             else:
+                warnings.warn("BGZF support is still experimental. See https://github.com/mdshw5/pyfaidx/issues/77", FutureWarning)
                 self._fasta_opener = bgzf.open
                 self._bgzf = True
         elif filename.lower().endswith('.bz2') or filename.lower().endswith('.zip'):
