@@ -410,6 +410,7 @@ class Faidx(object):
                     bad_lines = []  # lines > || < than blen
                     thisoffset = offset
 
+                    lastline = None
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
                         line_clen = len(line.rstrip('\n\r'))
@@ -448,15 +449,17 @@ class Faidx(object):
                             offset += line_blen
                             rlen += line_clen
 
-                    # write the final index line
-                    valid_entry = check_bad_lines(rname, bad_lines, lastline)  # advance index since we're at the end of the file
-                    if not valid_entry:
-                        raise FastaIndexingError("Line length of fasta"
-                                                 " file is not "
-                                                 "consistent! "
-                                                 "Inconsistent line found in >{0} at "
-                                                 "line {1:n}.".format(rname, bad_lines[0][0] + 1))
-                    indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                    # write the final index line, if there is one.
+                    if lastline is not None:
+                        valid_entry = check_bad_lines(rname, bad_lines, lastline)  # advance index since we're at the end of the file
+                        if valid_entry:
+                            indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                        else:
+                            raise FastaIndexingError("Line length of fasta"
+                                                     " file is not "
+                                                     "consistent! "
+                                                     "Inconsistent line found in >{0} at "
+                                                     "line {1:n}.".format(rname, bad_lines[0][0] + 1))
         except IOError:
             raise IOError("%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
 
