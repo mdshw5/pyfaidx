@@ -69,6 +69,8 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
         sequence = sequence.complement
     if args.reverse:
         sequence = sequence.reverse
+    if args.no_output:
+        continue    
     if args.no_names:
         pass
     elif args.full_names:
@@ -114,6 +116,8 @@ def split_regions(args):
 def transform_sequence(args, fasta, name, start=None, end=None):
     line_len = fasta.faidx.index[name].lenc
     s = fasta[name][start:end]
+    if args.no_output:
+        continue 
     if args.transform == 'bed':
         return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start, end=s.end)
     elif args.transform == 'chromsizes':
@@ -153,6 +157,7 @@ def main(ext_args=None):
     masking.add_argument('-m', '--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using --default-seq default: %(default)s")
     masking.add_argument('-M', '--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
     parser.add_argument('-e', '--header-function', type=str, default='lambda x: x.split()[0]', help='python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: %(default)s')
+    parser.add_argument('--no-output', action="store_true", default=False, help="do not output any sequence. default: %(default)s")
     parser.add_argument('--no-rebuild', action="store_true", default=False, help="do not rebuild the .fai index even if it is out of date. default: %(default)s")
     parser.add_argument('--version', action="version", version=__version__, help="print pyfaidx version number")
     # print help usage if no arguments are supplied
