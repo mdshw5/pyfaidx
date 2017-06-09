@@ -152,7 +152,7 @@ def main(ext_args=None):
     parser.add_argument('-u', '--duplicates-action', type=str, default="stop", choices=("stop", "first", "last", "longest", "shortest"), help='entry to take when duplicate sequence names are encountered. default: %(default)s')
     matcher = parser.add_mutually_exclusive_group()
     matcher.add_argument('-g', '--regex', type=str, default='.*', help='selected sequences are those matching regular expression. default: %(default)s')
-    matcher.add_argument('-v', '--invert-match', action="store_true", default=Falcse, help="selected sequences are those not matching 'regions' argument. default: %(default)s")
+    matcher.add_argument('-v', '--invert-match', action="store_true", default=False, help="selected sequences are those not matching 'regions' argument. default: %(default)s")
     masking = parser.add_mutually_exclusive_group()
     masking.add_argument('-m', '--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using --default-seq default: %(default)s")
     masking.add_argument('-M', '--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
