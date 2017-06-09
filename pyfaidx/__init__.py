@@ -415,6 +415,8 @@ class Faidx(object):
                         elif self.duplicate_action == "shortest":
                             if len(rec) < len(self.index[key]):
                                 self.index[key] = rec
+                    else:
+                        self.index[key] = rec
                 prev_bend = bend
 
     def build_index(self):
