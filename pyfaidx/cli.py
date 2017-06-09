@@ -70,7 +70,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.reverse:
         sequence = sequence.reverse
     if args.no_output:
-        continue
+        return
     if args.no_names:
         pass
     else:
