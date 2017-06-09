@@ -115,7 +115,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     line_len = fasta.faidx.index[name].lenc
     s = fasta[name][start:end]
     if args.no_output:
-        continue
+        return
     if args.transform == 'bed':
         return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start, end=s.end)
     elif args.transform == 'chromsizes':
