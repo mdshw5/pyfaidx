@@ -24,6 +24,8 @@ dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
 __version__ = '0.4.8.5'
 
+class KeyFunctionError(Exception):
+    """Raised if the key_function argument is invalid."""
 
 class FastaIndexingError(Exception):
     """Raised if we encounter malformed FASTA that prevents indexing."""
@@ -325,6 +327,14 @@ class Faidx(object):
 
         self.indexname = filename + '.fai'
         self.key_function = key_function
+        try:
+            key_fn_test = self.key_function(">TestingReturnType of_key_function")
+            assert isinstance(key_fn_test, string_types)
+        except Exception as e:
+            if isinstance(e, AssertionError):
+                raise KeyFunctionError("key_function argument should return a string, not {0}".format(type(key_fn_test)))
+            else:
+                raise KeyFunctionError("key_function evaluation failed:\n {0}".format(e))
         self.filt_function = filt_function
         self.as_raw = as_raw
         self.default_seq = default_seq
@@ -344,13 +354,13 @@ class Faidx(object):
         with self.lock:  # lock around index generation so only one thread calls method
             try:
                 if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
-                    self.read_fai(split_char)
+                    self.read_fai()
                 elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
-                    self.read_fai(split_char)
+                    self.read_fai()
                     warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
                 else:
                     self.build_index()
-                    self.read_fai(split_char)
+                    self.read_fai()
             except FastaIndexingError:
                 os.remove(self.indexname)
                 self.file.close()
@@ -372,7 +382,7 @@ class Faidx(object):
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
 
-    def read_fai(self, split_char):
+    def read_fai(self):
         duplicate_ids = []
         with open(self.indexname) as index:
             prev_bend = 0
@@ -382,19 +392,20 @@ class Faidx(object):
                 rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
                 newlines = int(ceil(rlen / lenc) * (lenb - lenc))
                 bend = offset + newlines + rlen
-                rname = filter(self.filt_function, self.key_function(rname).split(split_char))
+                rname = filter(self.filt_function, str(self.key_function(rname)).split(self.split_char))
                 for i, key in enumerate(rname):  # mdshw5/pyfaidx/issues/64
-                    if key in self.index and split_char is None:
+                    rec = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
+                    if key in self.index and self.split_char is None:
                         if i == 0:
                             raise ValueError('Duplicate key "%s"' % key)
                         else:
                             continue
-                    # eliminate duplicate keys if they result from split_char
-                    elif key in self.index and split_char:
+                    # eliminate duplicate keys if they result from split_char for key_function
+                    elif key in self.index and self.split_char:
                         duplicate_ids.append(key)
                         continue
                     else:
-                        self.index[key] = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
+                        self.index[key] = rec
                 prev_bend = bend
             for dup in duplicate_ids:
                 self.index.pop(dup, None)
@@ -432,7 +443,7 @@ class Faidx(object):
                             clen = None
                             bad_lines = []
                             try:  # must catch empty deflines
-                                rname = self.key_function(line.rstrip('\n\r')[1:])
+                                rname = self.key_function(line.rstrip('\n\r')[1:])  # duplicates are detected with read_fai
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
@@ -541,7 +552,7 @@ class Faidx(object):
 
                 if bstart + seq_blen > i.bend and not self.strict_bounds:
                     seq_blen = i.bend - bstart
-                
+
                 if seq_blen > 0:
                     seq = self.file.read(seq_blen).decode()
                 elif seq_blen <= 0 and not self.strict_bounds:
