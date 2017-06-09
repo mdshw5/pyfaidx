@@ -13,7 +13,7 @@ def write_sequence(args):
     if ext:
         ext = ext[1:]  # remove the dot from extension
     filt_function = re.compile(args.regex).search
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, rebuild=not args.no_rebuild)
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.full_names, rebuild=not args.no_rebuild)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
@@ -70,11 +70,9 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.reverse:
         sequence = sequence.reverse
     if args.no_output:
-        continue    
+        continue
     if args.no_names:
         pass
-    elif args.full_names:
-        yield ''.join(['>', fasta[name].long_name, '\n'])
     else:
         if start or end:
             yield ''.join(['>', sequence.long_name, '\n'])
@@ -117,7 +115,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     line_len = fasta.faidx.index[name].lenc
     s = fasta[name][start:end]
     if args.no_output:
-        continue 
+        continue
     if args.transform == 'bed':
         return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start, end=s.end)
     elif args.transform == 'chromsizes':
@@ -150,13 +148,14 @@ def main(ext_args=None):
     parser.add_argument('-l', '--lazy', action="store_true", default=False, help="fill in --default-seq for missing ranges. default: %(default)s")
     parser.add_argument('-s', '--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')
     parser.add_argument('-d', '--delimiter', type=str, default=None, help='delimiter for splitting names to multiple values (duplicate names will be discarded). default: %(default)s')
+    parser.add_argument('-e', '--header-function', type=str, default='lambda x: x.split()[0]', help='python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: %(default)s')
+    parser.add_argument('-u', '--duplicates-action', type=str, default="stop", choices=("stop", "first", "last", "longest", "shortest"), help='entry to take when duplicate sequence names are encountered. default: %(default)s')
     matcher = parser.add_mutually_exclusive_group()
     matcher.add_argument('-g', '--regex', type=str, default='.*', help='selected sequences are those matching regular expression. default: %(default)s')
-    matcher.add_argument('-v', '--invert-match', action="store_true", default=False, help="selected sequences are those not matching 'regions' argument. default: %(default)s")
+    matcher.add_argument('-v', '--invert-match', action="store_true", default=Falcse, help="selected sequences are those not matching 'regions' argument. default: %(default)s")
     masking = parser.add_mutually_exclusive_group()
     masking.add_argument('-m', '--mask-with-default-seq', action="store_true", default=False, help="mask the FASTA file using --default-seq default: %(default)s")
     masking.add_argument('-M', '--mask-by-case', action="store_true", default=False, help="mask the FASTA file by changing to lowercase. default: %(default)s")
-    parser.add_argument('-e', '--header-function', type=str, default='lambda x: x.split()[0]', help='python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: %(default)s')
     parser.add_argument('--no-output', action="store_true", default=False, help="do not output any sequence. default: %(default)s")
     parser.add_argument('--no-rebuild', action="store_true", default=False, help="do not rebuild the .fai index even if it is out of date. default: %(default)s")
     parser.add_argument('--version', action="version", version=__version__, help="print pyfaidx version number")

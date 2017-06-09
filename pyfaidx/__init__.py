@@ -277,13 +277,16 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', '
     def __str__(self):
         return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(**self._asdict())
 
+    def __len__(self):
+        return self.lenc
+
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename, default_seq=None, key_function=lambda x: x.split()[0],
+    def __init__(self, filename, default_seq=None, key_function=lambda x: x,
                  as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, split_char=None, filt_function=lambda x: True,
-                 one_based_attributes=True,
+                 mutable=False, split_char=None, duplicate_action="stop", filt_function=lambda x: True,
+                 one_based_attributes=True, read_long_names=False,
                  sequence_always_upper=False, rebuild=True):
         """
         filename: name of fasta file
@@ -326,9 +329,10 @@ class Faidx(object):
                 raise
 
         self.indexname = filename + '.fai'
+        self.read_long_names = read_long_names
         self.key_function = key_function
         try:
-            key_fn_test = self.key_function(">TestingReturnType of_key_function")
+            key_fn_test = self.key_function("TestingReturnType of_key_function")
             assert isinstance(key_fn_test, string_types)
         except Exception as e:
             if isinstance(e, AssertionError):
@@ -336,6 +340,8 @@ class Faidx(object):
             else:
                 raise KeyFunctionError("key_function evaluation failed:\n {0}".format(e))
         self.filt_function = filt_function
+        assert duplicate_action in ("stop", "first", "last", "longest", "shortest")
+        self.duplicate_action = duplicate_action
         self.as_raw = as_raw
         self.default_seq = default_seq
         self.strict_bounds = strict_bounds
@@ -383,7 +389,6 @@ class Faidx(object):
         return 'Faidx("%s")' % (self.filename)
 
     def read_fai(self):
-        duplicate_ids = []
         with open(self.indexname) as index:
             prev_bend = 0
             for line in index:
@@ -392,23 +397,25 @@ class Faidx(object):
                 rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
                 newlines = int(ceil(rlen / lenc) * (lenb - lenc))
                 bend = offset + newlines + rlen
+                rec = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
+                if self.read_long_names:
+                    rname = self._long_name_from_index_record(rec)
                 rname = filter(self.filt_function, str(self.key_function(rname)).split(self.split_char))
-                for i, key in enumerate(rname):  # mdshw5/pyfaidx/issues/64
-                    rec = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
-                    if key in self.index and self.split_char is None:
-                        if i == 0:
+                for key in rname:  # mdshw5/pyfaidx/issues/64
+                    if key in self.index:
+                        if self.duplicate_action == "stop":
                             raise ValueError('Duplicate key "%s"' % key)
-                        else:
+                        elif self.duplicate_action == "first":
                             continue
-                    # eliminate duplicate keys if they result from split_char for key_function
-                    elif key in self.index and self.split_char:
-                        duplicate_ids.append(key)
-                        continue
-                    else:
-                        self.index[key] = rec
+                        elif self.duplicate_action == "last":
+                            self.index[key] = rec
+                        elif self.duplicate_action == "longest":
+                            if len(rec) > len(self.index[key]):
+                                self.index[key] = rec
+                        elif self.duplicate_action == "shortest":
+                            if len(rec) < len(self.index[key]):
+                                self.index[key] = rec
                 prev_bend = bend
-            for dup in duplicate_ids:
-                self.index.pop(dup, None)
 
     def build_index(self):
         try:
@@ -442,8 +449,8 @@ class Faidx(object):
                             rlen = 0
                             clen = None
                             bad_lines = []
-                            try:  # must catch empty deflines
-                                rname = self.key_function(line.rstrip('\n\r')[1:])  # duplicates are detected with read_fai
+                            try:  # must catch empty deflines (actually these might be okay: https://github.com/samtools/htslib/pull/258)
+                                rname = line.rstrip('\n\r')[1:].split()[0]  # duplicates are detected with read_fai
                             except IndexError:
                                 raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
@@ -608,6 +615,18 @@ class Faidx(object):
                     self.file.write(seq[n:].encode())
                     self.file.flush()
 
+    def get_long_name(self, rname):
+        """ Return the full sequence defline and description. External method using the self.index """
+        index_record = self.index[rname]
+        return self._long_name_from_index_record(index_record)
+
+    def _long_name_from_index_record(self, index_record):
+        """ Return the full sequence defline and description. Internal method passing IndexRecord """
+        prev_bend = index_record.prev_bend
+        defline_end = index_record.offset
+        self.file.seek(prev_bend)
+        return self.file.read(defline_end - prev_bend).decode()[1:-1]
+
     def close(self):
         self.__exit__()
 
@@ -689,12 +708,7 @@ class FastaRecord(object):
         if self._fa.faidx._fasta_opener != open:
             raise NotImplementedError("Fasta.long_name does not work for BGZF compressed"
                                       "files. Please see https://github.com/mdshw5/pyfaidx/issues/77")
-        index_record = self._fa.faidx.index[self.name]
-        prev_bend = index_record.prev_bend
-        newline_len = index_record.lenb - index_record.lenc
-        defline_end = index_record.offset
-        self._fa.faidx.file.seek(prev_bend)
-        return self._fa.faidx.file.read(defline_end - prev_bend).decode()[1:-1]
+        return self._fa.faidx.get_long_name(self.name)
 
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
@@ -732,10 +746,10 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=lambda x: x.split()[0], as_raw=False,
+    def __init__(self, filename, default_seq=None, key_function=lambda x: x, as_raw=False,
                  strict_bounds=False, read_ahead=None, mutable=False, split_char=None,
-                 filt_function=lambda x: True, one_based_attributes=True,
-                 sequence_always_upper=False, rebuild=True):
+                 filt_function=lambda x: True, one_based_attributes=True, read_long_names=False,
+                 duplicate_action="stop", sequence_always_upper=False, rebuild=True):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
@@ -746,6 +760,7 @@ class Fasta(object):
                            default_seq=default_seq, strict_bounds=strict_bounds,
                            read_ahead=read_ahead, mutable=mutable, split_char=split_char,
                            filt_function=filt_function, one_based_attributes=one_based_attributes,
+                           read_long_names=read_long_names, duplicate_action=duplicate_action,
                            sequence_always_upper=sequence_always_upper, rebuild=rebuild)
         self.keys = self.faidx.index.keys
         if not self.mutable:
