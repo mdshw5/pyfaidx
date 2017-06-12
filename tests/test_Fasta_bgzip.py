@@ -3,6 +3,7 @@ from pyfaidx import Fasta, Faidx, UnsupportedCompressionFormat, FetchError
 from itertools import chain
 from unittest import TestCase
 from nose.tools import raises
+from nose.plugins.skip import SkipTest
 
 path = os.path.dirname(__file__)
 os.chdir(path)
