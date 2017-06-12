@@ -75,7 +75,7 @@ class TestFastaBGZF(TestCase):
                 'GAACTACAGAAGACGATATCCCCACACTGCCTACCTCAGAGCATAAATGCA'
                 'TACATTCTAGAGAAGGTGATTGAAGTGGGAAAAAATGATGACCTGGAGGACTC')
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             1, 482)
+                             1, 481)
         assert str(result) == expect
 
     def test_fetch_middle(self):
@@ -89,22 +89,24 @@ class TestFastaBGZF(TestCase):
         faidx = Faidx('data/genes.fasta.gz')
         expect = 'TC'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             480, 482)
+                             480, 481)
         assert str(result) == expect
 
+    @raises(FetchError)
     def test_fetch_border(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta.gz')
         expect = 'TC'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              480, 500)
+        print(result)
         assert str(result) == expect
 
     def test_rev(self):
         faidx = Faidx('data/genes.fasta.gz')
         expect = 'GA'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             480, 482)
+                             480, 481)
         assert str(-result) == expect, result
 
     @raises(FetchError)
@@ -200,10 +202,12 @@ class TestFastaBGZF(TestCase):
         print(s.__dict__)
         assert (105, 100) == (s.start, s.end)
 
+    @raises(UnsupportedCompressionFormat)
     def test_fetch_border_padded(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta.gz', default_seq='N')
         expect = 'TCNNNNNNNNNNNNNNNNNNN'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              480, 500)
+        print(result)
         assert str(result) == expect

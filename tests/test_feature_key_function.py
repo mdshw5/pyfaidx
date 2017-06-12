@@ -66,3 +66,15 @@ class TestFeatureKeyFunction(TestCase):
     @raises(ValueError)
     def test_duplicated_keys(self):
         genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name)
+
+    def test_duplicated_keys_shortest(self):
+        genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name, duplicate_action="shortest")
+        expect = 4573
+        result = len(genes["BARD1"])
+        assert expect == result
+
+    def test_duplicated_keys_longest(self):
+        genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name, duplicate_action="longest")
+        expect = 5317
+        result = len(genes["BARD1"])
+        assert expect == result

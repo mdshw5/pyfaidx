@@ -29,7 +29,7 @@ class TestFeatureBoundsCheck:
                 'GAACTACAGAAGACGATATCCCCACACTGCCTACCTCAGAGCATAAATGCA'
                 'TACATTCTAGAGAAGGTGATTGAAGTGGGAAAAAATGATGACCTGGAGGACTC')
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             1, 482)
+                             1, 481)
         assert str(result) == expect
 
     def test_fetch_middle(self):
@@ -43,7 +43,7 @@ class TestFeatureBoundsCheck:
         faidx = Faidx('data/genes.fasta')
         expect = 'TC'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             480, 482)
+                             480, 481)
         assert str(result) == expect
 
     def test_fetch_border(self):
@@ -58,7 +58,7 @@ class TestFeatureBoundsCheck:
         faidx = Faidx('data/genes.fasta')
         expect = 'GA'
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             480, 482)
+                             480, 481)
         assert str(-result) == expect, result
 
     @raises(FetchError)

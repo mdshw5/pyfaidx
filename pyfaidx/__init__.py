@@ -278,7 +278,7 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', '
         return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(**self._asdict())
 
     def __len__(self):
-        return self.lenc
+        return self.rlen
 
 
 class Faidx(object):
@@ -340,11 +340,16 @@ class Faidx(object):
             else:
                 raise KeyFunctionError("key_function evaluation failed:\n {0}".format(e))
         self.filt_function = filt_function
-        assert duplicate_action in ("stop", "first", "last", "longest", "shortest")
+        assert duplicate_action in ("stop", "first", "last", "longest", "shortest", "drop")
         self.duplicate_action = duplicate_action
         self.as_raw = as_raw
         self.default_seq = default_seq
-        self.strict_bounds = strict_bounds
+        if self._bgzf and self.default_seq is not None:
+            raise UnsupportedCompressionFormat("The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again.")
+        if self._bgzf:
+            self.strict_bounds = True
+        else:
+            self.strict_bounds = strict_bounds
         self.split_char = split_char
         self.one_based_attributes = one_based_attributes
         self.sequence_always_upper = sequence_always_upper
@@ -388,9 +393,15 @@ class Faidx(object):
     def __repr__(self):
         return 'Faidx("%s")' % (self.filename)
 
+    def _index_as_string(self):
+        """ Returns the string representation of the index as iterable """
+        for k, v in self.index.items():
+            yield '\t'.join([k, str(v)])
+
     def read_fai(self):
         with open(self.indexname) as index:
             prev_bend = 0
+            drop_keys = []
             for line in index:
                 line = line.rstrip()
                 rname, rlen, offset, lenc, lenb = line.split('\t')
@@ -400,7 +411,11 @@ class Faidx(object):
                 rec = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
                 if self.read_long_names:
                     rname = self._long_name_from_index_record(rec)
-                rname = filter(self.filt_function, str(self.key_function(rname)).split(self.split_char))
+                if self.split_char:
+                    rname = filter(self.filt_function, self.key_function(rname).split(self.split_char))
+                else:
+                    # filter must act on an iterable
+                    rname = filter(self.filt_function, [self.key_function(rname)])
                 for key in rname:  # mdshw5/pyfaidx/issues/64
                     if key in self.index:
                         if self.duplicate_action == "stop":
@@ -415,9 +430,14 @@ class Faidx(object):
                         elif self.duplicate_action == "shortest":
                             if len(rec) < len(self.index[key]):
                                 self.index[key] = rec
+                        elif self.duplicate_action == "drop":
+                            if key not in drop_keys:
+                                drop_keys.append(key)
                     else:
                         self.index[key] = rec
                 prev_bend = bend
+        for dup in drop_keys:
+            self.index.pop(dup, None)
 
     def build_index(self):
         try:
@@ -487,8 +507,8 @@ class Faidx(object):
     def write_fai(self):
         with self.lock:
             with open(self.indexname, 'w') as outfile:
-                for k, v in self.index.items():
-                    outfile.write('\t'.join([k, str(v)]))
+                for line in self._index_as_string:
+                    outfile.write(line)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -543,7 +563,7 @@ class Faidx(object):
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
         bstart = i.offset + newlines_before + start0
-        if seq_blen <= 0 and self.strict_bounds:
+        if seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
         elif end > i.rlen and self.strict_bounds:

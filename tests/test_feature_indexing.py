@@ -76,8 +76,8 @@ class TestIndexing(TestCase):
         "gi|530364726|ref|XR_241081	1009	63849	70	71\n"
         "gi|530364725|ref|XR_241080	4884	65009	70	71\n"
         "gi|530364724|ref|XR_241079	2819	70099	70	71\n")
-        index_file = Faidx('data/genes.fasta', key_function=lambda x: x.split('.')[0]).indexname
-        result_index = open(index_file).read()
+        index = Faidx('data/genes.fasta', read_long_names=True, key_function=lambda x: x.split('.')[0])
+        result_index = ''.join(index._index_as_string())
         assert result_index == expect_index
 
     def test_order(self):
