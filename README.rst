@@ -37,7 +37,7 @@ or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
 ::
 
     python setup.py install
-    
+
 If using ``pip install --user`` make sure to add ``/home/$(whoami)/.local/bin`` to your ``$PATH`` if you want to run the ``faidx`` script.
 
 Usage
@@ -162,6 +162,20 @@ Custom key functions provide cleaner access:
     >NR_104212:1-10
     CCCCGCCCCT
 
+If your `key_function` or `split_char` generates duplicate entries, you can choose what action to take:
+
+.. code:: python
+
+    # new in v0.4.9
+    >>> genes = Fasta('tests/data/genes.fasta', split_char="|", duplicate_action="longest")
+    >>> genes.keys()
+    dict_keys(['gi', '563317589', 'dbj', 'AB821309.1', '', '557361099', 'gb', 'KF435150.1', '557361097', 'KF435149.1', '543583796', 'ref', 'NR_104216.1',
+ '543583795', 'NR_104215.1', '543583794', 'NR_104212.1', '543583788', 'NM_001282545.1', '543583786', 'NM_001282543.1', '543583785', 'NM_000
+465.3', '543583740', 'NM_001282549.1', '543583738', 'NM_001282548.1', '530384540', 'XM_005249645.1', '530384538', 'XM_005249644.1', '530384
+536', 'XM_005249643.1', '530384534', 'XM_005249642.1', '530373237', 'XM_005265508.1', '530373235', 'XM_005265507.1', '530364726', 'XR_24108
+1.1', '530364725', 'XR_241080.1', '530364724', 'XR_241079.1'])
+
+
 Filter functions (returning True) limit the index:
 
 .. code:: python
@@ -229,6 +243,16 @@ Sequence names are truncated on any whitespace. This is a limitation of the inde
     gi|557361097|gb|KF435149.1|
     gi|557361097|gb|KF435149.1| Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
     ...
+
+    # new in v0.4.9
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta', read_long_names=True)
+    >>> for record in genes:
+    ...   print(record.name)
+    ...
+    gi|563317589|dbj|AB821309.1| Homo sapiens FGFR2-AHCYL1 mRNA for FGFR2-AHCYL1 fusion kinase protein, complete cds
+    gi|557361099|gb|KF435150.1| Homo sapiens MDM4 protein variant Y (MDM4) mRNA, complete cds, alternatively spliced
+    gi|557361097|gb|KF435149.1| Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
 
 .. role:: red
 
@@ -308,6 +332,10 @@ cli script: faidx
                             default base for missing positions and masking. default: N
       -d DELIMITER, --delimiter DELIMITER
                             delimiter for splitting names to multiple values (duplicate names will be discarded). default: None
+      -e HEADER_FUNCTION, --header-function HEADER_FUNCTION
+                            python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: lambda x: x.split()[0]
+      -u {stop,first,last,longest,shortest}, --duplicates-action {stop,first,last,longest,shortest}
+                            entry to take when duplicate sequence names are encountered. default: stop
       -g REGEX, --regex REGEX
                             selected sequences are those matching regular expression. default: .*
       -v, --invert-match    selected sequences are those not matching 'regions' argument. default: False
@@ -438,7 +466,7 @@ Examples:
 
     $ faidx -M --bed regions.bed tests/data/genes.fasta
     ### Modifies tests/data/genes.fasta by masking regions using lowercase characters ###
-    
+
     $ faidx -e "lambda x: x.split('.')[0]" tests/data/genes.fasta -i bed
     AB821309	1	3510
     KF435150	1	481
@@ -544,6 +572,3 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/80ihlw30a003596w?svg=true
    :target: https://ci.appveyor.com/project/mdshw5/pyfaidx
-   
-   
-
