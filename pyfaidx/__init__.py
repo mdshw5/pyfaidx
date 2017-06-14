@@ -659,7 +659,7 @@ class Faidx(object):
         prev_bend = index_record.prev_bend
         self.file.seek(prev_bend)
         header = []
-        break_chars = set('\n', '\r')
+        break_chars = set(('\n', '\r'))
         while True:
             n = self.file.read(1)
             if n not in break_chars:
