@@ -22,7 +22,7 @@ from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.8.5'
+__version__ = '0.4.9'
 
 class KeyFunctionError(Exception):
     """Raised if the key_function argument is invalid."""
@@ -640,7 +640,10 @@ class Faidx(object):
     def get_long_name(self, rname):
         """ Return the full sequence defline and description. External method using the self.index """
         index_record = self.index[rname]
-        return self._long_name_from_index_record(index_record)
+        if self._bgzf:
+            return self._long_name_from_bgzf(index_record)
+        else:
+            return self._long_name_from_index_record(index_record)
 
     def _long_name_from_index_record(self, index_record):
         """ Return the full sequence defline and description. Internal method passing IndexRecord """
@@ -648,6 +651,22 @@ class Faidx(object):
         defline_end = index_record.offset
         self.file.seek(prev_bend)
         return self.file.read(defline_end - prev_bend).decode()[1:-1]
+
+    def _long_name_from_bgzf(self, index_record):
+        """ Return the full sequence defline and description. Internal method passing IndexRecord
+        This method is present for compatibility with BGZF files, since we cannot subtract their offsets.
+        It may be possible to implement a more effecient method. """
+        prev_bend = index_record.prev_bend
+        self.file.seek(prev_bend)
+        header = []
+        break_chars = set('\n', '\r')
+        while True:
+            n = self.file.read(1)
+            if n not in break_chars:
+                header.append(n)
+            else:
+                break
+        return ''.join(header[1:])
 
     def close(self):
         self.__exit__()
@@ -727,9 +746,6 @@ class FastaRecord(object):
     @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
-        if self._fa.faidx._fasta_opener != open:
-            raise NotImplementedError("Fasta.long_name does not work for BGZF compressed"
-                                      "files. Please see https://github.com/mdshw5/pyfaidx/issues/77")
         return self._fa.faidx.get_long_name(self.name)
 
 class MutableFastaRecord(FastaRecord):
