@@ -656,6 +656,8 @@ class Faidx(object):
         """ Return the full sequence defline and description. Internal method passing IndexRecord
         This method is present for compatibility with BGZF files, since we cannot subtract their offsets.
         It may be possible to implement a more effecient method. """
+        raise NotImplementedError("FastaRecord.long_name and Fasta(read_long_names=True) "
+                                  "are not supported currently for BGZF compressed files.")
         prev_bend = index_record.prev_bend
         self.file.seek(prev_bend)
         defline = []

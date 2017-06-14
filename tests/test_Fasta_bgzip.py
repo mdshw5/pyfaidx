@@ -47,6 +47,7 @@ class TestFastaBGZF(TestCase):
     def test_mutable_bgzf(self):
         fasta = Fasta('data/genes.fasta.gz', mutable=True)
 
+    @raises(NotImplementedError)
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
         identical to deflines in the actual file.
