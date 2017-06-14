@@ -658,15 +658,13 @@ class Faidx(object):
         It may be possible to implement a more effecient method. """
         prev_bend = index_record.prev_bend
         self.file.seek(prev_bend)
-        header = []
-        break_chars = set(('\n', '\r'))
+        defline = []
         while True:
-            n = self.file.read(1)
-            if n not in break_chars:
-                header.append(n)
-            else:
+            chunk = self.file.read(4096)
+            defline.append(chunk)
+            if '\n' in chunk or '\r' in chunk:
                 break
-        return ''.join(header[1:])
+        return ''.join(defline)[1:].split('\n\r')[0]
 
     def close(self):
         self.__exit__()
