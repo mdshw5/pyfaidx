@@ -162,6 +162,15 @@ Custom key functions provide cleaner access:
     >NR_104212:1-10
     CCCCGCCCCT
 
+You can specify a character to split names on, which will generate additional entries:
+
+.. code:: python
+
+    >>> from pyfaidx import Fasta
+    >>> genes = Fasta('tests/data/genes.fasta', split_char='.', duplicate_action="first") # default duplicate_action="stop"
+    >>> genes.keys()
+    dict_keys(['.1', 'NR_104212', 'NM_001282543', 'XM_005249644', 'XM_005249645', 'NR_104216', 'XM_005249643', 'NR_104215', 'KF435150', 'AB821309', 'NM_001282549', 'XR_241081', 'KF435149', 'XR_241079', 'NM_000465', 'XM_005265508', 'XR_241080', 'XM_005249642', 'NM_001282545', 'XM_005265507', 'NM_001282548'])
+
 If your `key_function` or `split_char` generates duplicate entries, you can choose what action to take:
 
 .. code:: python
@@ -169,12 +178,7 @@ If your `key_function` or `split_char` generates duplicate entries, you can choo
     # new in v0.4.9
     >>> genes = Fasta('tests/data/genes.fasta', split_char="|", duplicate_action="longest")
     >>> genes.keys()
-    dict_keys(['gi', '563317589', 'dbj', 'AB821309.1', '', '557361099', 'gb', 'KF435150.1', '557361097', 'KF435149.1', '543583796', 'ref', 'NR_104216.1',
- '543583795', 'NR_104215.1', '543583794', 'NR_104212.1', '543583788', 'NM_001282545.1', '543583786', 'NM_001282543.1', '543583785', 'NM_000
-465.3', '543583740', 'NM_001282549.1', '543583738', 'NM_001282548.1', '530384540', 'XM_005249645.1', '530384538', 'XM_005249644.1', '530384
-536', 'XM_005249643.1', '530384534', 'XM_005249642.1', '530373237', 'XM_005265508.1', '530373235', 'XM_005265507.1', '530364726', 'XR_24108
-1.1', '530364725', 'XR_241080.1', '530364724', 'XR_241079.1'])
-
+    dict_keys(['gi', '563317589', 'dbj', 'AB821309.1', '', '557361099', 'gb', 'KF435150.1', '557361097', 'KF435149.1', '543583796', 'ref', 'NR_104216.1', '543583795', 'NR_104215.1', '543583794', 'NR_104212.1', '543583788', 'NM_001282545.1', '543583786', 'NM_001282543.1', '543583785', 'NM_000465.3', '543583740', 'NM_001282549.1', '543583738', 'NM_001282548.1', '530384540', 'XM_005249645.1', '530384538', 'XM_005249644.1', '530384536', 'XM_005249643.1', '530384534', 'XM_005249642.1', '530373237','XM_005265508.1', '530373235', 'XM_005265507.1', '530364726', 'XR_241081.1', '530364725', 'XR_241080.1', '530364724', 'XR_241079.1'])
 
 Filter functions (returning True) limit the index:
 
