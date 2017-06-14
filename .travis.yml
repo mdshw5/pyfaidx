@@ -42,6 +42,7 @@ matrix:
   allow_failures:
     - python: 'nightly'
     - python: 'pypy3'
+    - python: 'pypy'
   fast_finish: true
 cache:
     directories:
