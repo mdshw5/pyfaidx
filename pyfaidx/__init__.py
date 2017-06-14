@@ -324,7 +324,7 @@ class Faidx(object):
                 raise UnsupportedCompressionFormat(
                     "Compressed FASTA is only supported in BGZF format. Use "
                     "the samtools bgzip utility (instead of gzip) to "
-                    "compresss your FASTA.")
+                    "compress your FASTA.")
             else:
                 raise
 
