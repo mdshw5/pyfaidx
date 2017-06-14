@@ -660,7 +660,7 @@ class Faidx(object):
         self.file.seek(prev_bend)
         defline = []
         while True:
-            chunk = self.file.read(4096)
+            chunk = self.file.read(4096).decode()
             defline.append(chunk)
             if '\n' in chunk or '\r' in chunk:
                 break
