@@ -22,7 +22,7 @@ from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.4.9.1'
+__version__ = '0.4.9.2'
 
 class KeyFunctionError(Exception):
     """Raised if the key_function argument is invalid."""
