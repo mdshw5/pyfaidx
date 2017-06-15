@@ -333,12 +333,10 @@ class Faidx(object):
         self.key_function = key_function
         try:
             key_fn_test = self.key_function("TestingReturnType of_key_function")
-            assert isinstance(key_fn_test, string_types)
         except Exception as e:
-            if isinstance(e, AssertionError):
-                raise KeyFunctionError("key_function argument should return a string, not {0}".format(type(key_fn_test)))
-            else:
-                raise KeyFunctionError("key_function evaluation failed:\n {0}".format(e))
+            pass
+        if not isinstance(key_fn_test, string_types):
+            raise KeyFunctionError("key_function argument should return a string, not {0}".format(type(key_fn_test)))
         self.filt_function = filt_function
         assert duplicate_action in ("stop", "first", "last", "longest", "shortest", "drop")
         self.duplicate_action = duplicate_action
