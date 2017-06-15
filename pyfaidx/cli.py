@@ -4,9 +4,9 @@ import sys
 import os.path
 import re
 from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
+from collections import defaultdict
 
 keepcharacters = (' ', '.', '_')
-
 
 def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
@@ -45,7 +45,7 @@ def write_sequence(args):
         try:
             if args.transform:
                 if not header and args.transform == 'nucleotide':
-                    outfile.write("name\tstart\tend\tA\tT\tC\tG\tN\n")
+                    outfile.write("name\tstart\tend\tA\tT\tC\tG\tN\tothers\n")
                     header = True
                 outfile.write(transform_sequence(args, fasta, name, start, end))
             else:
@@ -121,9 +121,16 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     elif args.transform == 'chromsizes':
         return '{name}\t{length}\n'.format(name=s.name, length=len(s))
     elif args.transform == 'nucleotide':
-        nucs = Counter(dict([('A', 0), ('T', 0), ('C', 0), ('G', 0), ('N', 0)]))
-        nucs.update(str(s).upper())
-        return '{name}\t{start}\t{end}\t{A}\t{T}\t{C}\t{G}\t{N}\n'.format(name=s.name, start=s.start, end=s.end, **nucs)
+        ss = str(s).upper()
+        nucs = defaultdict(int)
+        nucs.update([(c, str(ss).count(c)) for c in set(str(ss))])
+        A = nucs.pop('A', 0)
+        T = nucs.pop('T', 0)
+        C = nucs.pop('C', 0)
+        G = nucs.pop('G', 0)
+        N = nucs.pop('N', 0)
+        others = '|'.join([':'.join((k, v)) for k, v in nucs.items()])
+        return '{sname}\t{sstart}\t{send}\t{A}\t{T}\t{C}\t{G}\t{N}\t{others}\n'.format(sname=s.name, sstart=s.start, send=s.end, **locals())
     elif args.transform == 'transposed':
         return '{name}\t{start}\t{end}\t{seq}\n'.format(name=s.name, start=s.start, end=s.end, seq=str(s))
 
