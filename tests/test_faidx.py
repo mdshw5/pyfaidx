@@ -45,5 +45,8 @@ class TestCLI(TestCase):
             with NamedTemporaryFile() as noto_strand:
                 main(['--auto-strand', '-o', auto_strand.name, 'data/genes.fasta', 'gi|557361099|gb|KF435150.1|:100-1'])
                 main(['--reverse', '--complement', '-o', noto_strand.name, 'data/genes.fasta', 'gi|557361099|gb|KF435150.1|:1-100'])
+                print(auto_strand.read())
+                print()
+                print(noto_strand.read())
                 self.assertTrue(filecmp.cmp(auto_strand.name, noto_strand.name))
         
