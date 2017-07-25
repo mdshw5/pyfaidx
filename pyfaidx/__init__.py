@@ -170,7 +170,7 @@ class Sequence(object):
         return self[::-1].complement
 
     def __repr__(self):
-        return '\n'.join([''.join(['>', self.long_name]), self.seq])
+        return '\n'.join([''.join(['>', self.fancy_name]), self.seq])
 
     def __len__(self):
         """
@@ -203,7 +203,7 @@ class Sequence(object):
         """
         msg = "The `Sequence.long_name` property is deprecated, and will be removed in future versions. Please use `Sequence.fancy_name` instead."
         warnings.warn(msg, DeprecationWarning, stacklevel=2)
-        return self.long_name
+        return self.fancy_name
 
 
     @property
