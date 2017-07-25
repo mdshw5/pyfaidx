@@ -75,7 +75,6 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.reverse:
         sequence = sequence.reverse
     if args.auto_strand:
-        
             sequence = sequence.complement
     if args.no_output:
         return
@@ -189,6 +188,11 @@ def main(ext_args=None):
     else:
         write_sequence(args)
 
+if args.auto_strand:
+    if args.complement:
+        sys.stderr.write("--auto-strand and --complement are both set. Are you sure this is what you want?\n")
+    if args.reverse:
+        sys.stderr.write("--auto-strand and --reverse are both set. Are you sure this is what you want?\n")
 
 def check_seq_length(value):
     if len(value) != 1:
