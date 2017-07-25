@@ -79,7 +79,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.no_names:
         pass
     else:
-        if start or end:
+        if (start or end) and not args.no_coords:
             yield ''.join(['>', sequence.long_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
@@ -159,7 +159,8 @@ def main(ext_args=None):
     output.add_argument('-a', '--size-range', type=parse_size_range, default=None, help='selected sequences are in the size range [low, high]. example: 1,1000 default: %(default)s')
     names = header.add_mutually_exclusive_group()
     names.add_argument('-n', '--no-names', action="store_true", default=False, help="omit sequence names from output. default: %(default)s")
-    names.add_argument('-f', '--full-names', action="store_true", default=False, help="output full names including description. default: %(default)s")
+    names.add_argument('-f', '--long-names', action="store_true", default=False, help="output full (long) names from the input fasta headers. default: headers are truncated after the first whitespace")
+    header.add_argument('-t', '--no-coords', action="store_true", default=False, help="omit coordinates (e.g. chr:start-end) from output headers. default: %(default)s")
     output.add_argument('-x', '--split-files', action="store_true", default=False, help="write each region to a separate file (names are derived from regions)")
     output.add_argument('-l', '--lazy', action="store_true", default=False, help="fill in --default-seq for missing ranges. default: %(default)s")
     output.add_argument('-s', '--default-seq', type=check_seq_length, default='N', help='default base for missing positions and masking. default: %(default)s')
