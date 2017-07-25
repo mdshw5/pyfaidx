@@ -180,10 +180,10 @@ class Sequence(object):
         return len(self.seq)
 
     @property
-    def long_name(self):
+    def fancy_name(self):
         """ Return the fancy name for the sequence, including start, end, and complementation.
         >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
-        >>> x.long_name
+        >>> x.fancy_name
         'chr1:1-6 (complement)'
         """
         name = self.name
@@ -192,16 +192,16 @@ class Sequence(object):
         if self.comp:
             name += ' (complement)'
         return name
-
-
-    def longname(self):
-        """ DEPRECATED: Use long_name instead.
+    
+    @property
+    def long_name(self):
+        """ DEPRECATED: Use fancy_name instead.
         Return the fancy name for the sequence, including start, end, and complementation.
         >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
         >>> x.long_name
         'chr1:1-6 (complement)'
         """
-        msg = "The `longname` method is deprecated, and will be removed in future versions. Please use `long_name` instead."
+        msg = "The `Sequence.long_name` property is deprecated, and will be removed in future versions. Please use `Sequence.fancy_name` instead."
         warnings.warn(msg, DeprecationWarning, stacklevel=2)
         return self.long_name
 
