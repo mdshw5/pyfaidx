@@ -74,8 +74,6 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
         sequence = sequence.complement
     if args.reverse:
         sequence = sequence.reverse
-    if args.auto_strand:
-            sequence = sequence.complement
     if args.no_output:
         return
     if args.no_names:
