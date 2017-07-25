@@ -74,7 +74,7 @@ Acts like a dictionary.
     >>> genes['NM_001282543.1'][200:230].end
     230
 
-    >>> genes['NM_001282543.1'][200:230].long_name
+    >>> genes['NM_001282543.1'][200:230].fancy_name
     'NM_001282543.1:201-230'
 
     >>> len(genes['NM_001282543.1'])
