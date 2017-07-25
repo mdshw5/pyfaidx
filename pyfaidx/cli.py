@@ -61,11 +61,12 @@ def write_sequence(args):
 def fetch_sequence(args, fasta, name, start=None, end=None):
     try:
         line_len = fasta.faidx.index[name].lenc
-        if start is not None and end is not None and start > end:
-            end, start = start, end
-            args.complement = not args.complement
-            args.reverse = not args.reverse
-        sequence = fasta[name][start:end]
+        if args.auto_strand and start > end and start is not None and end is not None:
+            # flip (0, 1] coordinates
+            sequence = fasta[name][end - 1:start + 1]
+            sequence = sequence.reverse.complement
+        else:
+            sequence = fasta[name][start:end]
     except KeyError:
         sys.stderr.write("warning: {name} not found in file\n".format(**locals()))
         return
@@ -73,6 +74,9 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
         sequence = sequence.complement
     if args.reverse:
         sequence = sequence.reverse
+    if args.auto_strand:
+        
+            sequence = sequence.complement
     if args.no_output:
         return
     if args.no_names:
@@ -151,6 +155,7 @@ def main(ext_args=None):
     parser.add_argument('-i', '--transform', type=str, choices=('bed', 'chromsizes', 'nucleotide', 'transposed'), help="transform the requested regions into another format. default: %(default)s")
     parser.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
     parser.add_argument('-r', '--reverse', action="store_true", default=False, help="reverse the sequence. default: %(default)s")
+    parser.add_argument('-y', '--auto-strand', action="store_true", default=False, help="reverse complement the sequence when start > end coordinate. default: %(default)s")
     parser.add_argument('-a', '--size-range', type=parse_size_range, default=None, help='selected sequences are in the size range [low, high]. example: 1,1000 default: %(default)s')
     names = parser.add_mutually_exclusive_group()
     names.add_argument('-n', '--no-names', action="store_true", default=False, help="omit sequence names from output. default: %(default)s")
