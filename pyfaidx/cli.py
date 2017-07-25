@@ -80,7 +80,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
         pass
     else:
         if (start or end) and not args.no_coords:
-            yield ''.join(['>', sequence.long_name, '\n'])
+            yield ''.join(['>', sequence.fancy_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
     for line in wrap_sequence(line_len, sequence.seq):
