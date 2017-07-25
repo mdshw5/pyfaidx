@@ -13,7 +13,7 @@ def write_sequence(args):
     if ext:
         ext = ext[1:]  # remove the dot from extension
     filt_function = re.compile(args.regex).search
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.full_names, rebuild=not args.no_rebuild)
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.long_names, rebuild=not args.no_rebuild)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
