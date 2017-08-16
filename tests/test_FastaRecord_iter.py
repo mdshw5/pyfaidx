@@ -25,3 +25,10 @@ class TestFastaRecordIter(TestCase):
         fasta = Fasta('data/genes.fasta')
         for record in fasta:
             assert len(next(iter(record))) == fasta.faidx.index[record.name].lenc
+
+    def test_reverse_iter(self):
+        expect = list(chain(*([line[::-1] for line in record][::-1] for record in Fasta('data/genes.fasta', as_raw=True))))
+        result = list(chain(*([line for line in reversed(record)] for record in Fasta('data/genes.fasta', as_raw=True))))
+        for a, b in zip(expect, result):
+            print(a, b)
+        assert expect == result

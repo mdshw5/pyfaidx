@@ -192,7 +192,7 @@ class Sequence(object):
         if self.comp:
             name += ' (complement)'
         return name
-    
+
     @property
     def long_name(self):
         """ DEPRECATED: Use fancy_name instead.
@@ -718,11 +718,65 @@ class FastaRecord(object):
                 raise StopIteration
             start += line_len
 
+    def __reversed__(self):
+        """ Reverse line-based iterator """
+        line_len = self._fa.faidx.index[self.name].lenc
+        # have to determine last line length
+        last_line = len(self) % line_len
+        if last_line == 0:
+            last_line = line_len
+        end = len(self)
+        start = end - last_line
+        while True:
+            if start > 0:
+                yield self[start:end][::-1]
+            else:
+                yield self[:end][::-1]
+                raise StopIteration
+            if end == len(self): # first iteration
+                end -= last_line
+            else:
+                end -= line_len
+            start = end - line_len
+
     def __repr__(self):
         return 'FastaRecord("%s")' % (self.name)
 
     def __len__(self):
         return self._fa.faidx.index[self.name].rlen
+
+    @property
+    def unpadded_len(self):
+        """ Returns the length of the contig without 5' and 3' N padding.
+        Functions the same as contigNonNSize in Fasta.cpp at
+        https://github.com/Illumina/hap.py/blob/master/src/c%2B%2B/lib/tools/Fasta.cpp#L284
+        """
+        length = len(self)
+        stop = False
+        for line in iter(self):
+            if stop:
+                break
+            if isinstance(line, Sequence):
+                line = line.seq
+            for base in line.upper():
+                if base == 'N':
+                    length -= 1
+                else:
+                    stop = True
+                    break
+        stop = False
+        for line in reversed(self):
+            if stop:
+                break
+            if isinstance(line, Sequence):
+                line = line.seq
+            for base in line.upper():
+                if base == 'N':
+                    length -= 1
+                else:
+                    stop = True
+                    break
+        return length
 
     def __str__(self):
         return str(self[:])

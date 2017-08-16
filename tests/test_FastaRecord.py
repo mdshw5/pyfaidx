@@ -75,6 +75,30 @@ class TestFastaRecord(TestCase):
         sys.stdout.writelines(tuple(Differ().compare(deflines, long_names)))
         assert deflines == long_names
 
+    def test_unpadded_length(self):
+        filename = "data/padded.fasta"
+        with open(filename, 'w') as padded:
+            padded.write(">test_padded\n")
+            for n in range(10):
+                padded.write("N" * 80)
+                padded.write("\n")
+            padded.write("N" * 30)
+            padded.write("A" * 20)
+            padded.write("N" * 30)
+            padded.write("\n")
+            for n in range(10):
+                padded.write("N" * 80)
+                padded.write("\n")
+
+        fasta = Fasta(filename)
+        expect = 20
+        result = fasta["test_padded"].unpadded_len
+        print (expect, result)
+        assert expect == result
+        os.remove('data/padded.fasta')
+        os.remove('data/padded.fasta.fai')
+
+
 class TestMutableFastaRecord(TestCase):
     def setUp(self):
         with open('data/genes_mutable.fasta', 'wb') as mutable:
