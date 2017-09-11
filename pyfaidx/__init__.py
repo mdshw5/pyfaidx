@@ -652,7 +652,7 @@ class Faidx(object):
     def _long_name_from_bgzf(self, index_record):
         """ Return the full sequence defline and description. Internal method passing IndexRecord
         This method is present for compatibility with BGZF files, since we cannot subtract their offsets.
-        It may be possible to implement a more effecient method. """
+        It may be possible to implement a more efficient method. """
         raise NotImplementedError("FastaRecord.long_name and Fasta(read_long_names=True) "
                                   "are not supported currently for BGZF compressed files.")
         prev_bend = index_record.prev_bend
