@@ -342,7 +342,7 @@ class Faidx(object):
         self.as_raw = as_raw
         self.default_seq = default_seq
         if self._bgzf and self.default_seq is not None:
-            raise UnsupportedCompressionFormat("The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again.")
+            raise FetchError("The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again.")
         if self._bgzf:
             self.strict_bounds = True
         else:
