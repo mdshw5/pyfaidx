@@ -49,5 +49,26 @@ class TestFeatureSplicedSeq(TestCase):
         
         intervals = zip(starts, ends) 
         result = fa.get_spliced_seq(chrom, intervals, rc=True)
-        
+        print(result.seq)
+        print("====")
+        print(expect)
+
         assert result.seq == expect
+
+    def test_get_seq_rc(self):
+        """ Check get_seq with rc argument """
+        fa = Fasta('data/chr17.hg19.part.fa')
+        
+        result = fa.get_seq("chr17", 11, 20, rc=False)
+        expect = "CCCTGTTCCT"
+        print("normal")
+        print(result.seq)
+        print(expect)
+        assert result.seq == expect
+        
+        result = fa.get_seq("chr17", 11, 20, rc=True)
+        expect = "AGGAACAGGG"
+        assert result.seq == expect
+        print("rc")
+        print(result.seq)
+        print(expect)
