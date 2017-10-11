@@ -5,7 +5,7 @@ try:
     from unittest import TestCase, expectedFailure
 except ImportError:
     from unittest import TestCase
-    from unittest import SkipTest as expectedFailure # python2.6
+    from nose.plugins.skip import SkipTest as expectedFailure # python2.6
 from nose.tools import raises
 from nose.plugins.skip import SkipTest
 
