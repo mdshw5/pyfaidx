@@ -885,6 +885,25 @@ class Fasta(object):
         # Get sequence from real genome object and save result.
         return self.faidx.fetch(name, start, end)
 
+    def get_spliced_seq(self, name, intervals, rc=False):
+        """Return a sequence by record name and list of intervals 
+        
+        Interval list is an iterable of [start, end].
+        Coordinates are 0-based, end-exclusive.
+        """
+        # Get sequence for all intervals
+        chunks = [self.faidx.fetch(name, s, e) for s,e in intervals]
+        start = chunks[0].start
+        end = chunks[-1].end
+
+        # reverce complement
+        if rc:
+            seq = "".join([(-chunk).seq for chunk in chunks[::-1]])
+        else:
+            seq = "".join([chunk.seq for chunk in chunks])
+
+        return Sequence(name=name, seq=seq, start=start, end=end) 
+    
     def close(self):
         self.__exit__()
 
