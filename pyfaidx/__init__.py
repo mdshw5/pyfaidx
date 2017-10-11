@@ -16,6 +16,7 @@ except ImportError: #python 2.6
 from collections import namedtuple
 import re
 import string
+import struct
 import warnings
 from math import ceil
 from threading import Lock
@@ -281,6 +282,21 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', '
         return self.rlen
 
 
+class BGZFblock(namedtuple('BGZFblock', ['cstart', 'clen', 'ustart', 'ulen'])):
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        if type(key) == str:
+            return getattr(self, key)
+        return tuple.__getitem__(self, key)
+
+    def as_bytes(self):
+        return struct.pack('<QQ', self.cstart, self.ustart)
+
+    def __len__(self):
+        return self.ulen
+
+
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
     def __init__(self, filename, default_seq=None, key_function=lambda x: x,
@@ -298,23 +314,23 @@ class Faidx(object):
         """
         self.filename = filename
 
-        if filename.lower().endswith('.bgz') or filename.lower().endswith('.gz'):
-            # Only try to import Bio if we actually need the bgzf reader.
-            try:
-                from Bio import bgzf
-            except ImportError:
-                raise ImportError(
-                    "BioPython must be installed to read gzipped files.")
+        with open(self.filename, 'rb') as sniffer:
+            snuff = sniffer.read(4)
+            if snuff == '\x1f\x8b\x08\x04':
+                try:
+                    from Bio import bgzf
+                except ImportError:
+                    raise ImportError(
+                        "BioPython must be installed to read BGZF files.")
+                else:
+                    self._fasta_opener = bgzf.open
+                    self._bgzf = True
+                    self.gzi_index = OrderedDict()
+                    self.gzi_indexname = filename + '.gzi'
+
             else:
-                self._fasta_opener = bgzf.open
-                self._bgzf = True
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith('.zip'):
-            raise UnsupportedCompressionFormat(
-                "Compressed FASTA is only supported in BGZF format. Use "
-                "bgzip to compresss your FASTA.")
-        else:
-            self._fasta_opener = open
-            self._bgzf = False
+                self._fasta_opener = open
+                self._bgzf = False
 
         try:
             self.file = self._fasta_opener(filename, 'r+b' if mutable else 'rb')
@@ -341,8 +357,6 @@ class Faidx(object):
         self.duplicate_action = duplicate_action
         self.as_raw = as_raw
         self.default_seq = default_seq
-        if self._bgzf and self.default_seq is not None:
-            raise UnsupportedCompressionFormat("The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again.")
         if self._bgzf:
             self.strict_bounds = True
         else:
@@ -369,6 +383,15 @@ class Faidx(object):
                 else:
                     self.build_index()
                     self.read_fai()
+                if self._bgzf:
+                    if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
+                        self.read_gzi()
+                    elif os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) < getmtime(self.gzi_indexname) and not rebuild:
+                        self.read_gzi()
+                        warnings.warn("BGZF Index file {0} is older than FASTA file {1}.".format(self.gzi_indexname, self.filename), RuntimeWarning)
+                    else:
+                        self.build_gzi()
+                        self.write_gzi()
             except FastaIndexingError:
                 os.remove(self.indexname)
                 self.file.close()
@@ -507,6 +530,34 @@ class Faidx(object):
                 for line in self._index_as_string:
                     outfile.write(line)
 
+    def build_gzi(self):
+        """ Build the htslib .gzi index format """
+        from Bio import bgzf
+        with open(self.filename, 'rb') as bgzf_file:
+            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
+                self.gzi_index[i] = BGZFblock(*values)
+
+    def write_gzi(self):
+        """ Write the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        with open(self.gzi_indexname, 'wb') as bzi_file:
+            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
+            for block in self.gzi_index.values():
+                bzi_file.write(block.as_bytes())
+
+    def read_gzi(self):
+        """ Read the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        from ctypes import c_uint64, sizeof
+        with open(self.gzi_indexname, 'rb') as bzi_file:
+            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
+            for i in range(number_of_blocks):
+                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
+                if cstart == '' or ustart == '':
+                    raise IndexError("Unexpected end of .gzi file. ")
+                else:
+                    self.gzi_index[i] = BGZFblock(cstart, None, ustart, None)
+
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
         i_end = end - self.buffer['start'] + 1
@@ -564,6 +615,10 @@ class Faidx(object):
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
         elif end > i.rlen and self.strict_bounds:
+            if self._bgzf:
+                raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                                 "strict_bounds=False is incompatible with BGZF compressed files."
+                                 "\n".format(end, rname))
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
 
