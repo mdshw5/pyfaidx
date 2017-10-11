@@ -1,7 +1,10 @@
 import os
 from pyfaidx import Fasta, Faidx, UnsupportedCompressionFormat, FetchError
 from itertools import chain
-from unittest import TestCase, expectedFailure
+try:
+    from unittest import TestCase, expectedFailure
+except ImportError:
+    from unittest2 import TestCase, expectedFailure # python2.6
 from nose.tools import raises
 from nose.plugins.skip import SkipTest
 
@@ -20,7 +23,7 @@ class TestIndexing(TestCase):
             os.remove('data/genes.fasta.gz.fai')
         except EnvironmentError:
             pass  # some tests may delete this file
-            
+
     @expectedFailure
     def test_build_issue_126(self):
         """ Samtools BGZF index should be identical to pyfaidx BGZF index """
