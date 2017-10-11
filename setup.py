@@ -4,7 +4,7 @@ import sys
 
 install_requires = ['six', 'setuptools >= 0.7']
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
-    install_requires.extend(['ordereddict', 'argparse'])
+    install_requires.extend(['ordereddict', 'argparse', 'unittest2'])
 
 
 def get_version(string):

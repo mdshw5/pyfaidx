@@ -25,7 +25,6 @@ install:
     - export PATH=$PATH:$PWD
     - cd ..
 before_script:
-    - if [ $(python --version) -lt 2.7 ]; then env pip install unittest2; fi
     - if [ $(python --version) -gt 2.6 ]; then env pip install biopython; fi
     - env python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
