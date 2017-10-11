@@ -25,7 +25,7 @@ class TestFeatureSplicedSeq(TestCase):
         fa = Fasta('data/chr17.hg19.part.fa')
         
         gene = Fasta("data/gene.bed12.fasta")
-        expect = gene[gene.keys()[0]][:].seq
+        expect = gene[list(gene.keys())[0]][:].seq
         
         bed = "data/gene.bed12"
         with open(bed) as fi:
