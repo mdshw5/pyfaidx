@@ -4,7 +4,8 @@ from itertools import chain
 try:
     from unittest import TestCase, expectedFailure
 except ImportError:
-    from unittest2 import TestCase, expectedFailure # python2.6
+    from unittest import TestCase
+    from unittest import SkipTest as expectedFailure # python2.6
 from nose.tools import raises
 from nose.plugins.skip import SkipTest
 
