@@ -110,27 +110,7 @@ Slices just like a string:
     >NM_001282543.1:1-5466
     CCCCGCCCCT........
 
-- Slicing start and end coordinates are 0-based, just like Python sequences.
-
-Sequence can be buffered in memory using a read-ahead buffer
-for fast sequential access:
-
-.. code:: python
-
-    >>> from timeit import timeit
-    >>> fetch = "genes['NM_001282543.1'][200:230]"
-    >>> read_ahead = "import pyfaidx; genes = pyfaidx.Fasta('tests/data/genes.fasta', read_ahead=10000)"
-    >>> no_read_ahead = "import pyfaidx; genes = pyfaidx.Fasta('tests/data/genes.fasta')"
-    >>> string_slicing = "genes = {}; genes['NM_001282543.1'] = 'N'*10000"
-
-    >>> timeit(fetch, no_read_ahead, number=10000)
-    0.2204863309962093
-    >>> timeit(fetch, read_ahead, number=10000)
-    0.1121859749982832
-    >>> timeit(fetch, string_slicing, number=10000)
-    0.0033553699977346696
-
-Read-ahead buffering can reduce runtime by 1/2 for sequential accesses to buffered regions.
+- Slicing start and end coordinates are 0-based, just like Python sequences.  
 
 Complements and reverse complements just like DNA
 
@@ -147,6 +127,29 @@ Complements and reverse complements just like DNA
     >>> -genes['NM_001282543.1'][200:230]
     >NM_001282543.1 (complement):230-201
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
+    
+``Fasta`` objects can also be accessed using method calls:
+
+.. code:: python
+
+    >>> genes.get_seq('NM_001282543.1', 201, 210)
+    >NM_001282543.1:201-210
+    CTCGTTCCGC
+    
+    >>> genes.get_seq('NM_001282543.1', 201, 210, rc=True)
+    >NM_001282543.1 (complement):210-201
+    GCGGAACGAG
+    
+Spliced sequences can be retrieved from a list of [start, end] coordinates:
+**TODO** update this section
+
+.. code:: python
+    
+    # new in v0.5.1
+    segments = [[1, 10], [50, 70]]
+    >>> genes.get_spliced_seq('NM_001282543.1', segments)
+    >gi|543583786|ref|NM_001282543.1|:1-70
+    CCCCGCCCCTGGTTTCGAGTCGCTGGCCTGC
 
 .. _keyfn:
 
@@ -257,6 +260,26 @@ Sequence names are truncated on any whitespace. This is a limitation of the inde
     gi|563317589|dbj|AB821309.1| Homo sapiens FGFR2-AHCYL1 mRNA for FGFR2-AHCYL1 fusion kinase protein, complete cds
     gi|557361099|gb|KF435150.1| Homo sapiens MDM4 protein variant Y (MDM4) mRNA, complete cds, alternatively spliced
     gi|557361097|gb|KF435149.1| Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
+
+Sequence can be buffered in memory using a read-ahead buffer
+for fast sequential access:
+
+.. code:: python
+
+    >>> from timeit import timeit
+    >>> fetch = "genes['NM_001282543.1'][200:230]"
+    >>> read_ahead = "import pyfaidx; genes = pyfaidx.Fasta('tests/data/genes.fasta', read_ahead=10000)"
+    >>> no_read_ahead = "import pyfaidx; genes = pyfaidx.Fasta('tests/data/genes.fasta')"
+    >>> string_slicing = "genes = {}; genes['NM_001282543.1'] = 'N'*10000"
+
+    >>> timeit(fetch, no_read_ahead, number=10000)
+    0.2204863309962093
+    >>> timeit(fetch, read_ahead, number=10000)
+    0.1121859749982832
+    >>> timeit(fetch, string_slicing, number=10000)
+    0.0033553699977346696
+
+Read-ahead buffering can reduce runtime by 1/2 for sequential accesses to buffered regions.
 
 .. role:: red
 
