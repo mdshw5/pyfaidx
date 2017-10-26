@@ -891,8 +891,8 @@ class Fasta(object):
             return seq
 
     def get_spliced_seq(self, name, intervals, rc=False):
-        """Return a sequence by record name and list of intervals 
-        
+        """Return a sequence by record name and list of intervals
+
         Interval list is an iterable of [start, end].
         Coordinates are 1-based, end-exclusive.
         If rc is set, reverse complement will be returned.
@@ -908,8 +908,10 @@ class Fasta(object):
         else:
             seq = "".join([chunk.seq for chunk in chunks])
 
-        return Sequence(name=name, seq=seq, start=start, end=end) 
-    
+        # Sequence coordinate validation wont work since
+        # len(Sequence.seq) != end - start
+        return Sequence(name=name, seq=seq, start=None, end=None)
+
     def close(self):
         self.__exit__()
 
