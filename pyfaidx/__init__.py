@@ -23,6 +23,7 @@ from threading import Lock
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
 __version__ = '0.5.1'
+DEBUG = False
 
 class KeyFunctionError(Exception):
     """Raised if the key_function argument is invalid."""
@@ -59,12 +60,17 @@ class Sequence(object):
     start, end = coordinates of subsequence (optional)
     comp = boolean switch for complement property
     """
-    def __init__(self, name='', seq='', start=None, end=None, comp=False):
+    def __init__(self, name='', seq='', start=None, end=None, comp=False, coordinates=None):
         self.name = name
         self.seq = seq
         self.start = start
         self.end = end
         self.comp = comp
+        if coordinates:
+            self.coordinates = coordinates
+        else:
+            self.coordinates = [(start, end)]
+
         assert isinstance(name, string_types)
         assert isinstance(seq, string_types)
 
@@ -112,16 +118,24 @@ class Sequence(object):
         if self.start is None or self.end is None:
             correction_factor = 0
         elif len(self.seq) == abs(self.end - self.start) + 1:  # determine coordinate system
-            one_based = True
             correction_factor = -1
         elif len(self.seq) == abs(self.end - self.start):
-            one_based = False
             correction_factor = 0
-        elif len(self.seq) != abs(self.end - self.start):
+        elif len(self.seq) != abs(self.end - self.start) and DEBUG:
             raise ValueError("Coordinates start=%s and end=%s imply a diffent length than sequence (length %s)." % (self.start, self.end, len(self.seq)))
 
         if isinstance(n, slice):
             slice_start, slice_stop, slice_step = n.indices(len(self))
+            if len(self.coordinates) > 1:
+                if n.start is not None or n.stop is not None or abs(slice_step) != 1:
+                    raise NotImplementedError("Slicing spliced Sequence objects is not supported yet.")
+                # maintain spliced sequence coordinates
+                start = self.start
+                end = self.end
+                if slice_stop == -1:
+                    start = self.end
+                    end = self.start
+                return self.__class__(self.name, self.seq[n], start, end, self.comp, [tuple(c[::slice_step]) for c in self.coordinates[::slice_step]])
             if self.start is None or self.end is None:  # there should never be self.start != self.end == None
                 start = None
                 end = None
@@ -147,8 +161,7 @@ class Sequence(object):
             if self.start:
                 return self.__class__(self.name, self.seq[n], self.start + n,
                                       self.start + n, self.comp)
-            else:
-                return self.__class__(self.name, self.seq[n], self.comp)
+            return self.__class__(self.name, self.seq[n], self.comp)
 
     def __str__(self):
         return self.seq
@@ -169,6 +182,35 @@ class Sequence(object):
         """
         return self[::-1].complement
 
+    def __add__(self, other):
+        """ Splice two Sequence objects together
+        >>> x = Sequence(name='chr1', seq='TTTAAA', start=1, end=6)
+        >>> y = Sequence(name='chr1', seq='CCCGGG', start=11, end=16)
+        >>> x + y
+        >chr1:[1-6, 11-16]
+        TTTAAACCCGGG
+        >>> z = x + y
+        >>> -z
+        >chr1:[16-11, 6-1]
+        CCCGGGTTTAAA
+        """
+        if not isinstance(other, Sequence):
+            raise TypeError("Expected {self} type but encountered {other}!".format(type(self),
+                                                                                   type(other)))
+        if self.name != other.name:
+            raise ValueError("Sequence names do not match: %s / %s!" % (self.name, other.name))
+
+        if self.comp != other.comp:
+            raise ValueError("Sequences must both have the same complementarity!")
+
+        spliced = Sequence(name=self.name,
+                           seq=''.join([self.seq, other.seq]),
+                           start=self.start,
+                           end=other.end,
+                           comp=self.comp)
+        spliced.coordinates = self.coordinates + other.coordinates
+        return spliced
+
     def __repr__(self):
         return '\n'.join([''.join(['>', self.fancy_name]), self.seq])
 
@@ -187,8 +229,11 @@ class Sequence(object):
         'chr1:1-6 (complement)'
         """
         name = self.name
-        if self.start is not None and self.end is not None:
+        if self.start is not None and self.end is not None and len(self.coordinates) == 1:
             name = ':'.join([name, '-'.join([str(self.start), str(self.end)])])
+        else:
+            formatted_intervals = ['-'.join([str(s), str(e)]) for s, e in self.coordinates]
+            name = ':'.join([name, '[' + ', '.join(formatted_intervals) + ']'])
         if self.comp:
             name += ' (complement)'
         return name
@@ -205,7 +250,6 @@ class Sequence(object):
         warnings.warn(msg, DeprecationWarning, stacklevel=2)
         return self.fancy_name
 
-
     @property
     def complement(self):
         """ Returns the compliment of self.
@@ -216,6 +260,7 @@ class Sequence(object):
         """
         comp = self.__class__(self.name, complement(self.seq),
                               start=self.start, end=self.end)
+        comp.coordinates = self.coordinates
         comp.comp = False if self.comp else True
         return comp
 
@@ -891,8 +936,8 @@ class Fasta(object):
             return seq
 
     def get_spliced_seq(self, name, intervals, rc=False):
-        """Return a sequence by record name and list of intervals 
-        
+        """Return a sequence by record name and list of intervals
+
         Interval list is an iterable of [start, end].
         Coordinates are 1-based, end-exclusive.
         If rc is set, reverse complement will be returned.
@@ -908,8 +953,8 @@ class Fasta(object):
         else:
             seq = "".join([chunk.seq for chunk in chunks])
 
-        return Sequence(name=name, seq=seq, start=start, end=end) 
-    
+        return Sequence(name=name, seq=seq, start=start, end=end)
+
     def close(self):
         self.__exit__()
 
@@ -1093,6 +1138,22 @@ def check_bad_lines(rname, bad_lines, i):
     raise RuntimeError("Unhandled exception during fasta indexing at entry " + rname + \
                        "Please report this issue at https://github.com/mdshw5/pyfaidx/issues " + \
                        str(bad_lines))
+
+def genomic_range(start, end):
+    """ Yield contiguous 1-based coordinates
+    >>> list(genomic_range(1, 4))
+    [1, 2, 3, 4]
+    >>> list(genomic_range(8, 5))
+    [8, 7, 6, 5]
+    """
+    if start < end:
+        while start <= end:
+            yield start
+            start += 1
+    else:
+        while start >= end:
+            yield end
+            end -= 1
 
 
 if __name__ == "__main__":
