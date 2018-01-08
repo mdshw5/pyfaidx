@@ -118,7 +118,7 @@ class Sequence(object):
             one_based = False
             correction_factor = 0
         elif len(self.seq) != abs(self.end - self.start):
-            raise ValueError("Coordinates start=%s and end=%s imply a diffent length than sequence (length %s)." % (self.start, self.end, len(self.seq)))
+            raise ValueError("Coordinates (Sequence.start=%s and Sequence.end=%s) imply a different length than Sequence.seq (len=%s). Did you modify Sequence.seq?" % (self.start, self.end, len(self.seq)))
 
         if isinstance(n, slice):
             slice_start, slice_stop, slice_step = n.indices(len(self))
