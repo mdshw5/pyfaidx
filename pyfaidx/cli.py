@@ -122,7 +122,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     if args.no_output:
         return
     if args.transform == 'bed':
-        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start, end=s.end)
+        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start - 1 , end=s.end)
     elif args.transform == 'chromsizes':
         return '{name}\t{length}\n'.format(name=s.name, length=len(s))
     elif args.transform == 'nucleotide':
