@@ -570,10 +570,13 @@ class Faidx(object):
                                 "Inconsistent line found in >{0} at "
                                 "line {1:n}.".format(rname,
                                                      bad_lines[0][0] + 1))
-        except IOError:
-            raise IOError(
-                "%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild."
-                % self.indexname)
+        except (IOError, FastaIndexingError) as e:
+            if isinstance(e, IOError):
+                raise IndexNotFoundError(
+                    "%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild."
+                    % self.indexname)
+            elif isinstance(e, FastaIndexingError):
+                raise e
 
     def write_fai(self):
         with self.lock:
