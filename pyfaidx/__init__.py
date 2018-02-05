@@ -1,5 +1,4 @@
 # pylint: disable=R0913, R0914, C0301
-
 """
 Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
@@ -11,7 +10,7 @@ from six import PY2, PY3, string_types, integer_types
 from six.moves import zip_longest
 try:
     from collections import OrderedDict
-except ImportError: #python 2.6
+except ImportError:  #python 2.6
     from ordereddict import OrderedDict
 from collections import namedtuple
 import re
@@ -24,18 +23,28 @@ dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
 __version__ = '0.5.3'
 
-class KeyFunctionError(Exception):
+
+class KeyFunctionError(ValueError):
     """Raised if the key_function argument is invalid."""
+
 
 class FastaIndexingError(Exception):
     """Raised if we encounter malformed FASTA that prevents indexing."""
 
 
-class FetchError(Exception):
+class IndexNotFoundError(IOError):
+    """Raised if read_fai cannot open the index file."""
+
+
+class FastaNotFoundError(IOError):
+    """Raised if the fasta file cannot be opened."""
+
+
+class FetchError(IndexError):
     """Raised if a request to fetch a FASTA sequence cannot be fulfilled."""
 
 
-class BedError(Exception):
+class BedError(ValueError):
     """Indicates a malformed BED entry."""
 
 
@@ -45,7 +54,7 @@ class RegionError(Exception):
     """A region error occurred."""
 
 
-class UnsupportedCompressionFormat(Exception):
+class UnsupportedCompressionFormat(IOError):
     """
     Raised when a FASTA file is given with a recognized but unsupported
     compression extension.
@@ -59,6 +68,7 @@ class Sequence(object):
     start, end = coordinates of subsequence (optional)
     comp = boolean switch for complement property
     """
+
     def __init__(self, name='', seq='', start=None, end=None, comp=False):
         self.name = name
         self.seq = seq
@@ -111,22 +121,26 @@ class Sequence(object):
         """
         if self.start is None or self.end is None:
             correction_factor = 0
-        elif len(self.seq) == abs(self.end - self.start) + 1:  # determine coordinate system
+        elif len(
+                self.seq
+        ) == abs(self.end - self.start) + 1:  # determine coordinate system
             one_based = True
             correction_factor = -1
         elif len(self.seq) == abs(self.end - self.start):
             one_based = False
             correction_factor = 0
         elif len(self.seq) != abs(self.end - self.start):
-            raise ValueError("Coordinates (Sequence.start=%s and Sequence.end=%s) imply a different length than Sequence.seq (len=%s). Did you modify Sequence.seq?" % (self.start, self.end, len(self.seq)))
+            raise ValueError(
+                "Coordinates (Sequence.start=%s and Sequence.end=%s) imply a different length than Sequence.seq (len=%s). Did you modify Sequence.seq?"
+                % (self.start, self.end, len(self.seq)))
 
         if isinstance(n, slice):
             slice_start, slice_stop, slice_step = n.indices(len(self))
             if self.start is None or self.end is None:  # there should never be self.start != self.end == None
                 start = None
                 end = None
-                return self.__class__(self.name, self.seq[n],
-                                      start, end, self.comp)
+                return self.__class__(self.name, self.seq[n], start, end,
+                                      self.comp)
             self_end, self_start = (self.end, self.start)
             if abs(slice_step) > 1:
                 start = None
@@ -140,7 +154,8 @@ class Sequence(object):
             else:
                 start = self_start + slice_start
                 end = self_start + slice_stop + correction_factor
-            return self.__class__(self.name, self.seq[n], start, end, self.comp)
+            return self.__class__(self.name, self.seq[n], start, end,
+                                  self.comp)
         elif isinstance(n, integer_types):
             if n < 0:
                 n = len(self) + n
@@ -205,7 +220,6 @@ class Sequence(object):
         warnings.warn(msg, DeprecationWarning, stacklevel=2)
         return self.fancy_name
 
-
     @property
     def complement(self):
         """ Returns the compliment of self.
@@ -214,8 +228,8 @@ class Sequence(object):
         >chr1 (complement)
         TAGCAT
         """
-        comp = self.__class__(self.name, complement(self.seq),
-                              start=self.start, end=self.end)
+        comp = self.__class__(
+            self.name, complement(self.seq), start=self.start, end=self.end)
         comp.comp = False if self.comp else True
         return comp
 
@@ -250,7 +264,6 @@ class Sequence(object):
         else:
             return None
 
-
     @property
     def gc(self):
         """ Return the GC content of seq as a float
@@ -266,7 +279,9 @@ class Sequence(object):
         return (g + c) / len(self.seq)
 
 
-class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', 'bend', 'prev_bend'])):
+class IndexRecord(
+        namedtuple('IndexRecord',
+                   ['rlen', 'offset', 'lenc', 'lenb', 'bend', 'prev_bend'])):
     __slots__ = ()
 
     def __getitem__(self, key):
@@ -275,7 +290,8 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', '
         return tuple.__getitem__(self, key)
 
     def __str__(self):
-        return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(**self._asdict())
+        return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(
+            **self._asdict())
 
     def __len__(self):
         return self.rlen
@@ -283,11 +299,23 @@ class IndexRecord(namedtuple('IndexRecord', ['rlen', 'offset', 'lenc', 'lenb', '
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
-    def __init__(self, filename, default_seq=None, key_function=lambda x: x,
-                 as_raw=False, strict_bounds=False, read_ahead=None,
-                 mutable=False, split_char=None, duplicate_action="stop", filt_function=lambda x: True,
-                 one_based_attributes=True, read_long_names=False,
-                 sequence_always_upper=False, rebuild=True):
+
+    def __init__(self,
+                 filename,
+                 default_seq=None,
+                 key_function=lambda x: x,
+                 as_raw=False,
+                 strict_bounds=False,
+                 read_ahead=None,
+                 mutable=False,
+                 split_char=None,
+                 duplicate_action="stop",
+                 filt_function=lambda x: True,
+                 one_based_attributes=True,
+                 read_long_names=False,
+                 sequence_always_upper=False,
+                 rebuild=True,
+                 build_index=True):
         """
         filename: name of fasta file
         key_function: optional callback function which should return a unique
@@ -298,7 +326,8 @@ class Faidx(object):
         """
         self.filename = filename
 
-        if filename.lower().endswith('.bgz') or filename.lower().endswith('.gz'):
+        if filename.lower().endswith('.bgz') or filename.lower().endswith(
+                '.gz'):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -308,7 +337,8 @@ class Faidx(object):
             else:
                 self._fasta_opener = bgzf.open
                 self._bgzf = True
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith('.zip'):
+        elif filename.lower().endswith('.bz2') or filename.lower().endswith(
+                '.zip'):
             raise UnsupportedCompressionFormat(
                 "Compressed FASTA is only supported in BGZF format. Use "
                 "bgzip to compresss your FASTA.")
@@ -317,32 +347,40 @@ class Faidx(object):
             self._bgzf = False
 
         try:
-            self.file = self._fasta_opener(filename, 'r+b' if mutable else 'rb')
-        except ValueError as e:
+            self.file = self._fasta_opener(filename, 'r+b'
+                                           if mutable else 'rb')
+        except (ValueError, IOError) as e:
             if str(e).find('BGZF') > -1:
                 raise UnsupportedCompressionFormat(
                     "Compressed FASTA is only supported in BGZF format. Use "
                     "the samtools bgzip utility (instead of gzip) to "
                     "compress your FASTA.")
             else:
-                raise
+                raise FastaNotFoundError(
+                    "Cannot read FASTA file %s" % filename)
 
         self.indexname = filename + '.fai'
         self.read_long_names = read_long_names
         self.key_function = key_function
         try:
-            key_fn_test = self.key_function("TestingReturnType of_key_function")
+            key_fn_test = self.key_function(
+                "TestingReturnType of_key_function")
             if not isinstance(key_fn_test, string_types):
-                raise KeyFunctionError("key_function argument should return a string, not {0}".format(type(key_fn_test)))
+                raise KeyFunctionError(
+                    "key_function argument should return a string, not {0}".
+                    format(type(key_fn_test)))
         except Exception as e:
             pass
         self.filt_function = filt_function
-        assert duplicate_action in ("stop", "first", "last", "longest", "shortest", "drop")
+        assert duplicate_action in ("stop", "first", "last", "longest",
+                                    "shortest", "drop")
         self.duplicate_action = duplicate_action
         self.as_raw = as_raw
         self.default_seq = default_seq
         if self._bgzf and self.default_seq is not None:
-            raise FetchError("The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again.")
+            raise FetchError(
+                "The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again."
+            )
         if self._bgzf:
             self.strict_bounds = True
         else:
@@ -352,23 +390,33 @@ class Faidx(object):
         self.sequence_always_upper = sequence_always_upper
         self.index = OrderedDict()
         self.lock = Lock()
-        self.buffer = dict((('seq', None), ('name', None), ('start', None), ('end', None)))
+        self.buffer = dict((('seq', None), ('name', None), ('start', None),
+                            ('end', None)))
         if not read_ahead or isinstance(read_ahead, integer_types):
             self.read_ahead = read_ahead
         elif not isinstance(read_ahead, integer_types):
-            raise ValueError("read_ahead value must be int, not {0}".format(type(read_ahead)))
+            raise ValueError("read_ahead value must be int, not {0}".format(
+                type(read_ahead)))
 
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
             try:
-                if os.path.exists(self.indexname) and getmtime(self.indexname) >= getmtime(self.filename):
+                if os.path.exists(self.indexname) and getmtime(
+                        self.indexname) >= getmtime(self.filename):
                     self.read_fai()
-                elif os.path.exists(self.indexname) and getmtime(self.indexname) < getmtime(self.filename) and not rebuild:
+                elif os.path.exists(self.indexname) and getmtime(
+                        self.indexname) < getmtime(
+                            self.filename) and not rebuild:
                     self.read_fai()
-                    warnings.warn("Index file {0} is older than FASTA file {1}.".format(self.indexname, self.filename), RuntimeWarning)
-                else:
+                    warnings.warn(
+                        "Index file {0} is older than FASTA file {1}.".format(
+                            self.indexname, self.filename), RuntimeWarning)
+                elif build_index:
                     self.build_index()
                     self.read_fai()
+                else:
+                    self.read_fai()
+
             except FastaIndexingError:
                 os.remove(self.indexname)
                 self.file.close()
@@ -396,45 +444,54 @@ class Faidx(object):
             yield '\t'.join([k, str(v)])
 
     def read_fai(self):
-        with open(self.indexname) as index:
-            prev_bend = 0
-            drop_keys = []
-            for line in index:
-                line = line.rstrip()
-                rname, rlen, offset, lenc, lenb = line.split('\t')
-                rlen, offset, lenc, lenb = map(int, (rlen, offset, lenc, lenb))
-                newlines = int(ceil(rlen / lenc) * (lenb - lenc))
-                bend = offset + newlines + rlen
-                rec = IndexRecord(rlen, offset, lenc, lenb, bend, prev_bend)
-                if self.read_long_names:
-                    rname = self._long_name_from_index_record(rec)
-                if self.split_char:
-                    rname = filter(self.filt_function, self.key_function(rname).split(self.split_char))
-                else:
-                    # filter must act on an iterable
-                    rname = filter(self.filt_function, [self.key_function(rname)])
-                for key in rname:  # mdshw5/pyfaidx/issues/64
-                    if key in self.index:
-                        if self.duplicate_action == "stop":
-                            raise ValueError('Duplicate key "%s"' % key)
-                        elif self.duplicate_action == "first":
-                            continue
-                        elif self.duplicate_action == "last":
-                            self.index[key] = rec
-                        elif self.duplicate_action == "longest":
-                            if len(rec) > len(self.index[key]):
-                                self.index[key] = rec
-                        elif self.duplicate_action == "shortest":
-                            if len(rec) < len(self.index[key]):
-                                self.index[key] = rec
-                        elif self.duplicate_action == "drop":
-                            if key not in drop_keys:
-                                drop_keys.append(key)
+        try:
+            with open(self.indexname) as index:
+                prev_bend = 0
+                drop_keys = []
+                for line in index:
+                    line = line.rstrip()
+                    rname, rlen, offset, lenc, lenb = line.split('\t')
+                    rlen, offset, lenc, lenb = map(int,
+                                                   (rlen, offset, lenc, lenb))
+                    newlines = int(ceil(rlen / lenc) * (lenb - lenc))
+                    bend = offset + newlines + rlen
+                    rec = IndexRecord(rlen, offset, lenc, lenb, bend,
+                                      prev_bend)
+                    if self.read_long_names:
+                        rname = self._long_name_from_index_record(rec)
+                    if self.split_char:
+                        rname = filter(self.filt_function,
+                                       self.key_function(rname).split(
+                                           self.split_char))
                     else:
-                        self.index[key] = rec
-                prev_bend = bend
-        for dup in drop_keys:
-            self.index.pop(dup, None)
+                        # filter must act on an iterable
+                        rname = filter(self.filt_function,
+                                       [self.key_function(rname)])
+                    for key in rname:  # mdshw5/pyfaidx/issues/64
+                        if key in self.index:
+                            if self.duplicate_action == "stop":
+                                raise ValueError('Duplicate key "%s"' % key)
+                            elif self.duplicate_action == "first":
+                                continue
+                            elif self.duplicate_action == "last":
+                                self.index[key] = rec
+                            elif self.duplicate_action == "longest":
+                                if len(rec) > len(self.index[key]):
+                                    self.index[key] = rec
+                            elif self.duplicate_action == "shortest":
+                                if len(rec) < len(self.index[key]):
+                                    self.index[key] = rec
+                            elif self.duplicate_action == "drop":
+                                if key not in drop_keys:
+                                    drop_keys.append(key)
+                        else:
+                            self.index[key] = rec
+                    prev_bend = bend
+            for dup in drop_keys:
+                self.index.pop(dup, None)
+        except IOError:
+            raise IndexNotFoundError(
+                "Could not read index file %s" % self.indexname)
 
     def build_index(self):
         try:
@@ -455,25 +512,34 @@ class Faidx(object):
                         lastline = i
                         # write an index line
                         if line[0] == '>':
-                            valid_entry = check_bad_lines(rname, bad_lines, i - 1)
+                            valid_entry = check_bad_lines(
+                                rname, bad_lines, i - 1)
                             if valid_entry and i > 0:
-                                indexfile.write("{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                                indexfile.write(
+                                    "{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(
+                                        rname, rlen, thisoffset, clen, blen))
                             elif not valid_entry:
-                                raise FastaIndexingError("Line length of fasta"
-                                                         " file is not "
-                                                         "consistent! "
-                                                         "Inconsistent line found in >{0} at "
-                                                         "line {1:n}.".format(rname, bad_lines[0][0] + 1))
+                                raise FastaIndexingError(
+                                    "Line length of fasta"
+                                    " file is not "
+                                    "consistent! "
+                                    "Inconsistent line found in >{0} at "
+                                    "line {1:n}.".format(
+                                        rname, bad_lines[0][0] + 1))
                             blen = None
                             rlen = 0
                             clen = None
                             bad_lines = []
                             try:  # must catch empty deflines (actually these might be okay: https://github.com/samtools/htslib/pull/258)
-                                rname = line.rstrip('\n\r')[1:].split()[0]  # duplicates are detected with read_fai
+                                rname = line.rstrip('\n\r')[1:].split()[
+                                    0]  # duplicates are detected with read_fai
                             except IndexError:
-                                raise FastaIndexingError("Bad sequence name %s at line %s." % (line.rstrip('\n\r'), str(i)))
+                                raise FastaIndexingError(
+                                    "Bad sequence name %s at line %s." %
+                                    (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
-                            thisoffset = fastafile.tell() if self._bgzf else offset
+                            thisoffset = fastafile.tell(
+                            ) if self._bgzf else offset
                         else:  # check line and advance offset
                             if not blen:
                                 blen = line_blen
@@ -489,17 +555,28 @@ class Faidx(object):
 
                     # write the final index line, if there is one.
                     if lastline is not None:
-                        valid_entry = check_bad_lines(rname, bad_lines, lastline)  # advance index since we're at the end of the file
+                        valid_entry = check_bad_lines(
+                            rname, bad_lines, lastline
+                        )  # advance index since we're at the end of the file
                         if valid_entry:
-                            indexfile.write("{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(rname, rlen, thisoffset, clen, blen))
+                            indexfile.write(
+                                "{0:s}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(
+                                    rname, rlen, thisoffset, clen, blen))
                         else:
-                            raise FastaIndexingError("Line length of fasta"
-                                                     " file is not "
-                                                     "consistent! "
-                                                     "Inconsistent line found in >{0} at "
-                                                     "line {1:n}.".format(rname, bad_lines[0][0] + 1))
-        except IOError:
-            raise IOError("%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild." % self.indexname)
+                            raise FastaIndexingError(
+                                "Line length of fasta"
+                                " file is not "
+                                "consistent! "
+                                "Inconsistent line found in >{0} at "
+                                "line {1:n}.".format(rname,
+                                                     bad_lines[0][0] + 1))
+        except (IOError, FastaIndexingError) as e:
+            if isinstance(e, IOError):
+                raise IOError(
+                    "%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild."
+                    % self.indexname)
+            elif isinstance(e, FastaIndexingError):
+                raise e
 
     def write_fai(self):
         with self.lock:
@@ -550,12 +627,13 @@ class Faidx(object):
                              "Please check your FASTA file.".format(rname))
         start0 = start - 1  # make coordinates [0,1)
         if start0 < 0:
-            raise FetchError("Requested start coordinate must be greater than 1.")
+            raise FetchError(
+                "Requested start coordinate must be greater than 1.")
         seq_len = end - start0
 
-
         # Calculate offset (https://github.com/samtools/htslib/blob/20238f354894775ed22156cdd077bc0d544fa933/faidx.c#L398)
-        newlines_before = int((start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 else 0
+        newlines_before = int(
+            (start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 else 0
         newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
@@ -591,7 +669,9 @@ class Faidx(object):
 
     def format_seq(self, seq, rname, start, end):
         start0 = start - 1
-        if len(seq) < end - start0 and self.default_seq:  # Pad missing positions with default_seq
+        if len(
+                seq
+        ) < end - start0 and self.default_seq:  # Pad missing positions with default_seq
             pad_len = end - start0 - len(seq)
             seq = ''.join([seq, pad_len * self.default_seq])
         else:  # Return less than requested range
@@ -606,19 +686,23 @@ class Faidx(object):
         if self.as_raw:
             return seq
         else:
-            return Sequence(name=rname, start=int(start),
-                            end=int(end), seq=seq)
+            return Sequence(
+                name=rname, start=int(start), end=int(end), seq=seq)
 
     def to_file(self, rname, start, end, seq):
         """ Write sequence in region from start-end, overwriting current
         contents of the FASTA file. """
         if not self.mutable:
-            raise IOError("Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA.")
+            raise IOError(
+                "Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA."
+            )
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
         with self.lock:
             if len(seq) != len(file_seq) - internals['newlines_inside']:
-                raise IOError("Specified replacement sequence needs to have the same length as original.")
+                raise IOError(
+                    "Specified replacement sequence needs to have the same length as original."
+                )
             elif len(seq) == len(file_seq) - internals['newlines_inside']:
                 line_len = internals['i'].lenc
                 self.file.seek(internals['bstart'])
@@ -653,8 +737,9 @@ class Faidx(object):
         """ Return the full sequence defline and description. Internal method passing IndexRecord
         This method is present for compatibility with BGZF files, since we cannot subtract their offsets.
         It may be possible to implement a more efficient method. """
-        raise NotImplementedError("FastaRecord.long_name and Fasta(read_long_names=True) "
-                                  "are not supported currently for BGZF compressed files.")
+        raise NotImplementedError(
+            "FastaRecord.long_name and Fasta(read_long_names=True) "
+            "are not supported currently for BGZF compressed files.")
         prev_bend = index_record.prev_bend
         self.file.seek(prev_bend)
         defline = []
@@ -732,7 +817,7 @@ class FastaRecord(object):
             else:
                 yield self[:end][::-1]
                 raise StopIteration
-            if end == len(self): # first iteration
+            if end == len(self):  # first iteration
                 end -= last_line
             else:
                 end -= line_len
@@ -788,16 +873,19 @@ class FastaRecord(object):
             for site in var:
                 if site.is_snp:
                     sample = site.genotype(self._fa.sample)
-                    if sample.gt_type in self._fa.gt_type and eval(self._fa.filter):
+                    if sample.gt_type in self._fa.gt_type and eval(
+                            self._fa.filter):
                         pos.append(site.POS)
             return tuple(pos)
         else:
-            raise NotImplementedError("variant_sites() only valid for FastaVariant.")
+            raise NotImplementedError(
+                "variant_sites() only valid for FastaVariant.")
 
     @property
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
         return self._fa.faidx.get_long_name(self.name)
+
 
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
@@ -835,27 +923,50 @@ class MutableFastaRecord(FastaRecord):
 
 
 class Fasta(object):
-    def __init__(self, filename, default_seq=None, key_function=lambda x: x, as_raw=False,
-                 strict_bounds=False, read_ahead=None, mutable=False, split_char=None,
-                 filt_function=lambda x: True, one_based_attributes=True, read_long_names=False,
-                 duplicate_action="stop", sequence_always_upper=False, rebuild=True):
+    def __init__(self,
+                 filename,
+                 default_seq=None,
+                 key_function=lambda x: x,
+                 as_raw=False,
+                 strict_bounds=False,
+                 read_ahead=None,
+                 mutable=False,
+                 split_char=None,
+                 filt_function=lambda x: True,
+                 one_based_attributes=True,
+                 read_long_names=False,
+                 duplicate_action="stop",
+                 sequence_always_upper=False,
+                 rebuild=True,
+                 build_index=True):
         """
         An object that provides a pygr compatible interface.
         filename: name of fasta file
         """
         self.filename = filename
         self.mutable = mutable
-        self.faidx = Faidx(filename, key_function=key_function, as_raw=as_raw,
-                           default_seq=default_seq, strict_bounds=strict_bounds,
-                           read_ahead=read_ahead, mutable=mutable, split_char=split_char,
-                           filt_function=filt_function, one_based_attributes=one_based_attributes,
-                           read_long_names=read_long_names, duplicate_action=duplicate_action,
-                           sequence_always_upper=sequence_always_upper, rebuild=rebuild)
+        self.faidx = Faidx(
+            filename,
+            key_function=key_function,
+            as_raw=as_raw,
+            default_seq=default_seq,
+            strict_bounds=strict_bounds,
+            read_ahead=read_ahead,
+            mutable=mutable,
+            split_char=split_char,
+            filt_function=filt_function,
+            one_based_attributes=one_based_attributes,
+            read_long_names=read_long_names,
+            duplicate_action=duplicate_action,
+            sequence_always_upper=sequence_always_upper,
+            rebuild=rebuild)
         self.keys = self.faidx.index.keys
         if not self.mutable:
-            self.records = dict([(rname, FastaRecord(rname, self)) for rname in self.keys()])
+            self.records = dict(
+                [(rname, FastaRecord(rname, self)) for rname in self.keys()])
         elif self.mutable:
-            self.records = dict([(rname, MutableFastaRecord(rname, self)) for rname in self.keys()])
+            self.records = dict([(rname, MutableFastaRecord(rname, self))
+                                 for rname in self.keys()])
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
@@ -898,7 +1009,7 @@ class Fasta(object):
         If rc is set, reverse complement will be returned.
         """
         # Get sequence for all intervals
-        chunks = [self.faidx.fetch(name, s, e) for s,e in intervals]
+        chunks = [self.faidx.fetch(name, s, e) for s, e in intervals]
         start = chunks[0].start
         end = chunks[-1].end
 
@@ -926,7 +1037,15 @@ class FastaVariant(Fasta):
     """ Return consensus sequence from FASTA and VCF inputs
     """
     expr = set(('>', '<', '=', '!'))
-    def __init__(self, filename, vcf_file, sample=None, het=True, hom=True, call_filter=None, **kwargs):
+
+    def __init__(self,
+                 filename,
+                 vcf_file,
+                 sample=None,
+                 het=True,
+                 hom=True,
+                 call_filter=None,
+                 **kwargs):
         super(FastaVariant, self).__init__(filename, **kwargs)
         try:
             import pysam
@@ -938,9 +1057,10 @@ class FastaVariant(Fasta):
             raise ImportError("PyVCF must be installed for FastaVariant.")
         if call_filter is not None:
             try:
-                key, expr, value = call_filter.split() # 'GQ > 30'
+                key, expr, value = call_filter.split()  # 'GQ > 30'
             except IndexError:
-                raise ValueError("call_filter must be a string in the format 'XX <>!= NN'")
+                raise ValueError(
+                    "call_filter must be a string in the format 'XX <>!= NN'")
             assert all([x in self.expr for x in list(expr)])
             assert all([x in string.ascii_uppercase for x in list(key)])
             assert all([x in string.printable for x in list(value)])
@@ -956,18 +1076,21 @@ class FastaVariant(Fasta):
         else:
             self.sample = self.vcf.samples[0]
             if len(self.vcf.samples) > 1 and sample is None:
-                warnings.warn("Using sample {0} genotypes.".format(self.sample), RuntimeWarning)
+                warnings.warn("Using sample {0} genotypes.".format(
+                    self.sample), RuntimeWarning)
         if het and hom:
             self.gt_type = set((1, 2))
         elif het:
-            self.gt_type = set((1,))
+            self.gt_type = set((1, ))
         elif hom:
-            self.gt_type = set((2,))
+            self.gt_type = set((2, ))
         else:
             self.gt_type = set()
 
     def __repr__(self):
-        return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename, self.vcf.filename, str(self.gt_type))
+        return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename,
+                                                      self.vcf.filename,
+                                                      str(self.gt_type))
 
     def get_seq(self, name, start, end):
         """Return a sequence by record name and interval [start, end).
@@ -1000,22 +1123,25 @@ class FastaVariant(Fasta):
 def wrap_sequence(n, sequence, fillvalue=''):
     args = [iter(sequence)] * n
     for line in zip_longest(fillvalue=fillvalue, *args):
-        yield ''.join(line + ("\n",))
+        yield ''.join(line + ("\n", ))
+
 
 # To take a complement, we map each character in the first string in this pair
 # to the corresponding character in the second string.
-complement_map = ('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx', 'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
+complement_map = ('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx',
+                  'TGACNtgacnRYWSMKHBDVXrywsmkhbdvx')
 invalid_characters_set = set(
     chr(x) for x in range(256) if chr(x) not in complement_map[0])
 invalid_characters_string = ''.join(invalid_characters_set)
 
 if PY3:
-    complement_table = str.maketrans(
-        complement_map[0], complement_map[1], invalid_characters_string)
-    translate_arguments = (complement_table,)
+    complement_table = str.maketrans(complement_map[0], complement_map[1],
+                                     invalid_characters_string)
+    translate_arguments = (complement_table, )
 elif PY2:
     complement_table = string.maketrans(complement_map[0], complement_map[1])
     translate_arguments = (complement_table, invalid_characters_string)
+
 
 def complement(seq):
     """ Returns the complement of seq.
@@ -1028,9 +1154,11 @@ def complement(seq):
     if len(result) != len(seq):
         first_invalid_position = next(
             i for i in range(len(seq)) if seq[i] in invalid_characters_set)
-        raise ValueError("Sequence contains non-DNA character '{0}' at position {1:n}\n".format(
-            seq[first_invalid_position], first_invalid_position + 1))
+        raise ValueError(
+            "Sequence contains non-DNA character '{0}' at position {1:n}\n".
+            format(seq[first_invalid_position], first_invalid_position + 1))
     return result
+
 
 def translate_chr_name(from_name, to_name):
     chr_name_map = dict(zip(from_name, to_name))
@@ -1062,6 +1190,7 @@ def ucsc_split(region):
     except (AttributeError, ValueError):
         start, end = (None, None)
     return (rname, start, end)
+
 
 def check_bad_lines(rname, bad_lines, i):
     """ Find inconsistent line lengths in the middle of an
