@@ -28,7 +28,7 @@ class KeyFunctionError(ValueError):
     """Raised if the key_function argument is invalid."""
 
 
-class FastaIndexingError(IOError):
+class FastaIndexingError(Exception):
     """Raised if we encounter malformed FASTA that prevents indexing."""
 
 
@@ -572,7 +572,7 @@ class Faidx(object):
                                                      bad_lines[0][0] + 1))
         except (IOError, FastaIndexingError) as e:
             if isinstance(e, IOError):
-                raise IndexNotFoundError(
+                raise IOError(
                     "%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild."
                     % self.indexname)
             elif isinstance(e, FastaIndexingError):
