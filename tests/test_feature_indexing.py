@@ -1,6 +1,6 @@
 import os
 from os.path import getmtime
-from pyfaidx import Faidx, FastaIndexingError
+from pyfaidx import Faidx, FastaIndexingError, IndexNotFoundError, FastaNotFoundError
 from nose.tools import raises
 from nose.plugins.skip import Skip, SkipTest
 from unittest import TestCase
@@ -76,13 +76,15 @@ class TestIndexing(TestCase):
                         "gi|530364726|ref|XR_241081	1009	63849	70	71\n"
                         "gi|530364725|ref|XR_241080	4884	65009	70	71\n"
                         "gi|530364724|ref|XR_241079	2819	70099	70	71\n")
-        index = Faidx('data/genes.fasta', read_long_names=True, key_function=lambda x: x.split('.')[0])
+        index = Faidx(
+            'data/genes.fasta',
+            read_long_names=True,
+            key_function=lambda x: x.split('.')[0])
         result_index = ''.join(index._index_as_string())
         assert result_index == expect_index
 
     def test_order(self):
-        order = ("gi|563317589|dbj|AB821309.1|",
-                 "gi|557361099|gb|KF435150.1|",
+        order = ("gi|563317589|dbj|AB821309.1|", "gi|557361099|gb|KF435150.1|",
                  "gi|557361097|gb|KF435149.1|",
                  "gi|543583796|ref|NR_104216.1|",
                  "gi|543583795|ref|NR_104215.1|",
@@ -227,11 +229,14 @@ class TestIndexing(TestCase):
             # Write simple fasta file with inconsistent sequence line lengths,
             # so building an index raises a 'FastaIndexingError'
             with open(fasta_path, 'w') as fasta_out:
-                fasta_out.write(">seq1\nCTCCGGGCCCAT\nAACACTTGGGGGTAGCTAAAGTGAA\nATAAAGCCTAAA\n")
+                fasta_out.write(
+                    ">seq1\nCTCCGGGCCCAT\nAACACTTGGGGGTAGCTAAAGTGAA\nATAAAGCCTAAA\n"
+                )
 
             builtins_open = builtins.open
 
-            opened_files=[]
+            opened_files = []
+
             def test_open(*args, **kwargs):
                 f = builtins_open(*args, **kwargs)
                 opened_files.append(f)
@@ -240,7 +245,9 @@ class TestIndexing(TestCase):
             with mock.patch('six.moves.builtins.open', side_effect=test_open):
                 try:
                     Faidx(fasta_path)
-                    self.assertFail("Faidx construction should fail with 'FastaIndexingError'.")
+                    self.assertFail(
+                        "Faidx construction should fail with 'FastaIndexingError'."
+                    )
                 except FastaIndexingError:
                     pass
             self.assertTrue(all(f.closed for f in opened_files))
@@ -265,7 +272,8 @@ class TestIndexing(TestCase):
 
             builtins_open = builtins.open
 
-            opened_files=[]
+            opened_files = []
+
             def test_open(*args, **kwargs):
                 f = builtins_open(*args, **kwargs)
                 opened_files.append(f)
@@ -274,9 +282,16 @@ class TestIndexing(TestCase):
             with mock.patch('six.moves.builtins.open', side_effect=test_open):
                 try:
                     Faidx(fasta_path)
-                    self.assertFail("Faidx construction should fail with 'ValueError'.")
+                    self.assertFail(
+                        "Faidx construction should fail with 'ValueError'.")
                 except ValueError:
                     pass
             self.assertTrue(all(f.closed for f in opened_files))
         finally:
             shutil.rmtree(tmp_dir)
+
+    @raises(IndexNotFoundError)
+    def test_issue_134_no_build_index(self):
+        """ Ensure that index file is not built when build_index=False. See mdshw5/pyfaidx#134.
+        """
+        faidx = Faidx('data/genes.fasta', build_index=False)
