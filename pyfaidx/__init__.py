@@ -761,6 +761,7 @@ class Faidx(object):
 
 
 class FastaRecord(object):
+    __slots__ = ['name', '_fa']
     def __init__(self, name, fa):
         self.name = name
         self._fa = fa
