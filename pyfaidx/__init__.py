@@ -960,7 +960,8 @@ class Fasta(object):
             read_long_names=read_long_names,
             duplicate_action=duplicate_action,
             sequence_always_upper=sequence_always_upper,
-            rebuild=rebuild)
+            rebuild=rebuild,
+            build_index=build_index)
         self.keys = self.faidx.index.keys
         if not self.mutable:
             self.records = dict(
