@@ -21,7 +21,7 @@ from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.3'
+__version__ = '0.5.3.1'
 
 
 class KeyFunctionError(ValueError):
