@@ -110,7 +110,7 @@ Slices just like a string:
     >NM_001282543.1:1-5466
     CCCCGCCCCT........
 
-- Slicing start and end coordinates are 0-based, just like Python sequences.  
+- Slicing start and end coordinates are 0-based, just like Python sequences.
 
 Complements and reverse complements just like DNA
 
@@ -127,7 +127,7 @@ Complements and reverse complements just like DNA
     >>> -genes['NM_001282543.1'][200:230]
     >NM_001282543.1 (complement):230-201
     CATCCGGTTCCATGGCGGGCGCGGAACGAG
-    
+
 ``Fasta`` objects can also be accessed using method calls:
 
 .. code:: python
@@ -135,16 +135,16 @@ Complements and reverse complements just like DNA
     >>> genes.get_seq('NM_001282543.1', 201, 210)
     >NM_001282543.1:201-210
     CTCGTTCCGC
-    
+
     >>> genes.get_seq('NM_001282543.1', 201, 210, rc=True)
     >NM_001282543.1 (complement):210-201
     GCGGAACGAG
-    
+
 Spliced sequences can be retrieved from a list of [start, end] coordinates:
 **TODO** update this section
 
 .. code:: python
-    
+
     # new in v0.5.1
     segments = [[1, 10], [50, 70]]
     >>> genes.get_spliced_seq('NM_001282543.1', segments)
@@ -260,6 +260,17 @@ Sequence names are truncated on any whitespace. This is a limitation of the inde
     gi|563317589|dbj|AB821309.1| Homo sapiens FGFR2-AHCYL1 mRNA for FGFR2-AHCYL1 fusion kinase protein, complete cds
     gi|557361099|gb|KF435150.1| Homo sapiens MDM4 protein variant Y (MDM4) mRNA, complete cds, alternatively spliced
     gi|557361097|gb|KF435149.1| Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
+
+Records can be accessed efficiently as numpy arrays:
+
+.. code:: python
+
+    # new in v0.5.4
+    >>> from pyfaidx import Fasta
+    >>> import numpy as np
+    >>> genes = Fasta('tests/data/genes.fasta')
+    >>> np.asarray(genes['NM_001282543.1'])
+    array(['C', 'C', 'C', ..., 'A', 'A', 'A'], dtype='|S1')
 
 Sequence can be buffered in memory using a read-ahead buffer
 for fast sequential access:
