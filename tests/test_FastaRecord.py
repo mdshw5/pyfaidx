@@ -107,7 +107,7 @@ class TestFastaRecord(TestCase):
         filename = "data/genes.fasta.lower"
         reference = Fasta(filename)
         np_array = numpy.asarray(reference[0])
-        assert isinstance(np_array, numpy.array)
+        assert isinstance(np_array, numpy.ndarray)
 
 
 class TestMutableFastaRecord(TestCase):
