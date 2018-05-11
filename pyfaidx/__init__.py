@@ -894,7 +894,7 @@ class FastaRecord(object):
             'shape': (len(self), ),
             'typestr': '|S1',
             'version': 3,
-            'data': buffer(str(self))
+            'data': buffer(str(self).encode('ascii'))
         }
 
 
