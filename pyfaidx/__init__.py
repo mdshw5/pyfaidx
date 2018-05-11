@@ -21,7 +21,7 @@ from threading import Lock
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.3.1'
+__version__ = '0.5.4'
 
 
 class KeyFunctionError(ValueError):
@@ -886,6 +886,15 @@ class FastaRecord(object):
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
         return self._fa.faidx.get_long_name(self.name)
+    
+    @property
+    def __array_interface__(self):
+        return {
+            'shape': (len(self), ),
+            'typestr': '|S1',
+            'version': 3,
+            'data': buffer(self[:])
+        }
 
 
 class MutableFastaRecord(FastaRecord):
