@@ -9,6 +9,7 @@ from difflib import Differ
 path = os.path.dirname(__file__)
 os.chdir(path)
 
+
 class TestFastaRecord(TestCase):
     def setUp(self):
         pass
@@ -28,8 +29,9 @@ class TestFastaRecord(TestCase):
         reference_upper = Fasta(filename, sequence_always_upper=True)
         reference_normal = Fasta(filename)
         os.remove('data/genes.fasta.lower.fai')
-        assert reference_upper['gi|557361099|gb|KF435150.1|'][1:100].seq == reference_normal['gi|557361099|gb|KF435150.1|'][1:100].seq.upper()
-
+        assert reference_upper['gi|557361099|gb|KF435150.1|'][
+            1:100].seq == reference_normal['gi|557361099|gb|KF435150.1|'][
+                1:100].seq.upper()
 
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
@@ -60,7 +62,8 @@ class TestFastaRecord(TestCase):
                         line_len = len(line)
                         fasta_uniform_len.write(line)
                     elif line_len > len(line):
-                        fasta_uniform_len.write(line.rstrip() + b'N' * (line_len - len(line)) + b'\n')
+                        fasta_uniform_len.write(line.rstrip() + b'N' *
+                                                (line_len - len(line)) + b'\n')
                     else:
                         fasta_uniform_len.write(line)
         fasta = Fasta('data/issue_62.fa', as_raw=True)
@@ -93,10 +96,18 @@ class TestFastaRecord(TestCase):
         fasta = Fasta(filename)
         expect = 20
         result = fasta["test_padded"].unpadded_len
-        print (expect, result)
+        print(expect, result)
         assert expect == result
         os.remove('data/padded.fasta')
         os.remove('data/padded.fasta.fai')
+
+    def test_numpy_array(self):
+        """ Test the __array_interface__ """
+        import numpy
+        filename = "data/genes.fasta.lower"
+        reference = Fasta(filename)
+        np_array = numpy.asarray(reference[0])
+        assert isinstance(np_array, numpy.array)
 
 
 class TestMutableFastaRecord(TestCase):
@@ -124,7 +135,8 @@ class TestMutableFastaRecord(TestCase):
         fasta = Fasta('data/genes.fasta', mutable=False)
         chunk = fasta['gi|557361099|gb|KF435150.1|'][0:100]
         mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk.seq
-        assert str(fasta['gi|557361099|gb|KF435150.1|']) == str(mutable['gi|557361099|gb|KF435150.1|'])
+        assert str(fasta['gi|557361099|gb|KF435150.1|']) == str(
+            mutable['gi|557361099|gb|KF435150.1|'])
 
     def test_mutate_fasta_to_N(self):
         mutable = Fasta('data/genes_mutable.fasta', mutable=True)
