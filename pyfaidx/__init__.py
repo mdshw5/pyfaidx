@@ -762,6 +762,7 @@ class Faidx(object):
 
 class FastaRecord(object):
     __slots__ = ['name', '_fa']
+
     def __init__(self, name, fa):
         self.name = name
         self._fa = fa
@@ -886,14 +887,14 @@ class FastaRecord(object):
     def long_name(self):
         """ Read the actual defline from self._fa.faidx mdshw5/pyfaidx#54 """
         return self._fa.faidx.get_long_name(self.name)
-    
+
     @property
     def __array_interface__(self):
         return {
             'shape': (len(self), ),
             'typestr': '|S1',
             'version': 3,
-            'data': buffer(self[:])
+            'data': buffer(str(self))
         }
 
 
