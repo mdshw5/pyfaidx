@@ -892,8 +892,8 @@ class FastaRecord(object):
     @property
     def __array_interface__(self):
         """ Implement numpy array interface for issue #139"""
-        if sys.version_info > (3,):
-...         buffer = memoryview
+        if sys.version_info > (3, ):
+            buffer = memoryview
         return {
             'shape': (len(self), ),
             'typestr': '|S1',
