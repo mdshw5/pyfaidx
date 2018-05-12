@@ -20,6 +20,9 @@ import warnings
 from math import ceil
 from threading import Lock
 
+if sys.version_info > (3, ):
+    buffer = memoryview
+
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
 __version__ = '0.5.4'
@@ -892,8 +895,6 @@ class FastaRecord(object):
     @property
     def __array_interface__(self):
         """ Implement numpy array interface for issue #139"""
-        if sys.version_info > (3, ):
-            buffer = memoryview
         return {
             'shape': (len(self), ),
             'typestr': '|S1',
