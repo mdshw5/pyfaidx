@@ -5,6 +5,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 import os
+import sys
 from os.path import getmtime
 from six import PY2, PY3, string_types, integer_types
 from six.moves import zip_longest
@@ -890,6 +891,9 @@ class FastaRecord(object):
 
     @property
     def __array_interface__(self):
+        """ Implement numpy array interface for issue #139"""
+        if sys.version_info > (3,):
+...         buffer = memoryview
         return {
             'shape': (len(self), ),
             'typestr': '|S1',
