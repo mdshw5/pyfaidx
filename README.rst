@@ -367,7 +367,7 @@ cli script: faidx
       -x, --split-files     write each region to a separate file (names are derived from regions)
       -l, --lazy            fill in --default-seq for missing ranges. default: False
       -s DEFAULT_SEQ, --default-seq DEFAULT_SEQ
-                            default base for missing positions and masking. default: N
+                            default base for missing positions and masking. default: None
       -d DELIMITER, --delimiter DELIMITER
                             delimiter for splitting names to multiple values (duplicate names will be discarded). default: None
       -e HEADER_FUNCTION, --header-function HEADER_FUNCTION
