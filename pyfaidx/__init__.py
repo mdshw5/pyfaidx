@@ -25,7 +25,7 @@ if sys.version_info > (3, ):
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.4.1'
+__version__ = '0.5.4.2'
 
 
 class KeyFunctionError(ValueError):
@@ -499,7 +499,7 @@ class Faidx(object):
 
     def build_index(self):
         try:
-            with self._fasta_opener(self.filename, 'r') as fastafile:
+            with self._fasta_opener(self.filename, 'rb') as fastafile:
                 with open(self.indexname, 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
@@ -512,6 +512,7 @@ class Faidx(object):
                     lastline = None
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
+                        line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
                         # write an index line
@@ -667,7 +668,7 @@ class Faidx(object):
                     seq = ''
 
         if not internals:
-            return seq.replace('\n', '')
+            return seq.replace('\n', '').replace('\r', '')
         else:
             return (seq, locals())
 
@@ -709,14 +710,20 @@ class Faidx(object):
                 )
             elif len(seq) == len(file_seq) - internals['newlines_inside']:
                 line_len = internals['i'].lenc
+                if '\r\n' in file_seq:
+                    newline_char = '\r\n'
+                elif '\r' in file_seq:
+                    newline_char = '\r'
+                else:
+                    newline_char = '\n'
                 self.file.seek(internals['bstart'])
                 if internals['newlines_inside'] == 0:
                     self.file.write(seq.encode())
                 elif internals['newlines_inside'] > 0:
                     n = 0
-                    m = file_seq.index('\n')
+                    m = file_seq.index(newline_char)
                     while m < len(seq):
-                        self.file.write(''.join([seq[n:m], '\n']).encode())
+                        self.file.write(''.join([seq[n:m], newline_char]).encode())
                         n = m
                         m += line_len
                     self.file.write(seq[n:].encode())

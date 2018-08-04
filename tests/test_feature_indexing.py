@@ -55,6 +55,33 @@ class TestIndexing(TestCase):
         result_index = open(index_file).read()
         assert result_index == expect_index
 
+    def test_build_issue_141(self):
+        expect_index = ("gi|563317589|dbj|AB821309.1|	3510	115	70	72\n"
+                        "gi|557361099|gb|KF435150.1|	481	3842	70	72\n"
+                        "gi|557361097|gb|KF435149.1|	642	4429	70	72\n"
+                        "gi|543583796|ref|NR_104216.1|	4573	5213	70	72\n"
+                        "gi|543583795|ref|NR_104215.1|	5317	10040	70	72\n"
+                        "gi|543583794|ref|NR_104212.1|	5374	15631	70	72\n"
+                        "gi|543583788|ref|NM_001282545.1|	4170	21274	70	72\n"
+                        "gi|543583786|ref|NM_001282543.1|	5466	25679	70	72\n"
+                        "gi|543583785|ref|NM_000465.3|	5523	31415	70	72\n"
+                        "gi|543583740|ref|NM_001282549.1|	3984	37211	70	72\n"
+                        "gi|543583738|ref|NM_001282548.1|	4113	41424	70	72\n"
+                        "gi|530384540|ref|XM_005249645.1|	2752	45784	70	72\n"
+                        "gi|530384538|ref|XM_005249644.1|	3004	48745	70	72\n"
+                        "gi|530384536|ref|XM_005249643.1|	3109	51964	70	72\n"
+                        "gi|530384534|ref|XM_005249642.1|	3097	55292	70	72\n"
+                        "gi|530373237|ref|XM_005265508.1|	2794	58640	70	72\n"
+                        "gi|530373235|ref|XM_005265507.1|	2848	61675	70	72\n"
+                        "gi|530364726|ref|XR_241081.1|	1009	64742	70	72\n"
+                        "gi|530364725|ref|XR_241080.1|	4884	65918	70	72\n"
+                        "gi|530364724|ref|XR_241079.1|	2819	71079	70	72\n")
+        index_file = Faidx('data/issue_141.fasta').indexname
+        result_index = open(index_file).read()
+        os.remove('data/issue_141.fasta.fai')
+        print(result_index)
+        assert result_index == expect_index
+
     def test_build_issue_111(self):
         expect_index = ("gi|563317589|dbj|AB821309	3510	114	70	71\n"
                         "gi|557361099|gb|KF435150	481	3789	70	71\n"
