@@ -335,9 +335,12 @@ class Faidx(object):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
+                from distutils.version import LooseVersion
+                if LooseVersion(Bio.__version__) < LooseVersion('1.73'):
+                    raise ImportError
             except ImportError:
                 raise ImportError(
-                    "BioPython must be installed to read gzipped files.")
+                    "BioPython >= 1.73 must be installed to read block gzip files.")
             else:
                 self._fasta_opener = bgzf.open
                 self._bgzf = True
