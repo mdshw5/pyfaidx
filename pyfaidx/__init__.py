@@ -335,8 +335,9 @@ class Faidx(object):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
+                from Bio import __version__ as bgzf_version
                 from distutils.version import LooseVersion
-                if LooseVersion(Bio.__version__) < LooseVersion('1.73'):
+                if LooseVersion(bgzf_version) < LooseVersion('1.73'):
                     raise ImportError
             except ImportError:
                 raise ImportError(
