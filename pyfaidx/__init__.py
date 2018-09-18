@@ -25,7 +25,7 @@ if sys.version_info > (3, ):
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.6'
+__version__ = '0.5.5'
 
 
 class KeyFunctionError(ValueError):
