@@ -50,3 +50,11 @@ class TestCLI(TestCase):
                 print(noto_strand.read())
                 self.assertTrue(filecmp.cmp(auto_strand.name, noto_strand.name))
         
+    def test_regexp(self):
+        main(['data/genes.fasta', '-g', 'XR'])
+
+    def test_not_regexp(self):
+        main(['data/genes.fasta', '-g', 'XR','-v'])
+
+    def test_not_regexp_multi(self):
+        main(['data/genes.fasta', '-g', 'XR', '-g', 'XM', '-v'])
