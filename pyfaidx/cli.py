@@ -12,17 +12,17 @@ def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
     if ext:
         ext = ext[1:]  # remove the dot from extension
+
     filt_function = re.compile(args.regex).search
+
+    if args.invert_match:
+        filt_function = lambda x: not re.compile(args.regex).search(x)
+
     fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.long_names, rebuild=not args.no_rebuild)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
         regions_to_fetch = fasta.keys()
-    if args.invert_match:
-        sequences_to_exclude = set([split_function(region)[0] for region in regions_to_fetch])
-        fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, rebuild=not args.no_rebuild)
-        regions_to_fetch = (key for key in fasta.keys() if key not in sequences_to_exclude)
-        split_function = ucsc_split
 
     header = False
     for region in regions_to_fetch:
@@ -167,7 +167,7 @@ def main(ext_args=None):
     header.add_argument('-d', '--delimiter', type=str, default=None, help='delimiter for splitting names to multiple values (duplicate names will be discarded). default: %(default)s')
     header.add_argument('-e', '--header-function', type=str, default='lambda x: x.split()[0]', help='python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: %(default)s')
     header.add_argument('-u', '--duplicates-action', type=str, default="stop", choices=("stop", "first", "last", "longest", "shortest"), help='entry to take when duplicate sequence names are encountered. default: %(default)s')
-    matcher = header.add_mutually_exclusive_group()
+    matcher = parser.add_argument_group('matching arguments')
     matcher.add_argument('-g', '--regex', type=str, default='.*', help='selected sequences are those matching regular expression. default: %(default)s')
     matcher.add_argument('-v', '--invert-match', action="store_true", default=False, help="selected sequences are those not matching 'regions' argument. default: %(default)s")
     masking = output.add_mutually_exclusive_group()
