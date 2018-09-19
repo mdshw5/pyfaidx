@@ -12,7 +12,8 @@ python:
     - 'pypy3'
 install:
     - pip wheel -f wheelhouse cython pysam numpy || true
-    - pip install -f wheelhouse biopython cython pysam pyfasta coverage pyvcf numpy || true
+    - pip install -f wheelhouse cython pysam pyfasta coverage pyvcf numpy || true
+    - pip install -f wheelhouse -e git+https://github.com/biopython/biopython.git#egg=biopython
     - python setup.py install
     - if [ ! -f samtools-1.2 ]; then curl -sL https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjv; fi
     - cd samtools-1.2
@@ -25,7 +26,7 @@ install:
     - export PATH=$PATH:$PWD
     - cd ..
 before_script:
-    - if [ $(python --version) -gt 2.6 ]; then env pip install -e git+https://github.com/biopython/biopython.git#egg=biopython; fi
+    - if [ $(python --version) -gt 2.6 ]; then env pip install biopython; fi
     - env python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
