@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile, mkdtemp
 import time
 import platform
 import shutil
+from smart_open import smart_open
 
 try:
     from unittest import mock
@@ -77,7 +78,7 @@ class TestIndexing(TestCase):
                         "gi|530364725|ref|XR_241080.1|	4884	65918	70	72\n"
                         "gi|530364724|ref|XR_241079.1|	2819	71079	70	72\n")
         index_file = Faidx('data/issue_141.fasta').indexname
-        result_index = open(index_file).read()
+        result_index = smart_open(index_file, encoding='utf8').read()
         os.remove('data/issue_141.fasta.fai')
         print(result_index)
         assert result_index == expect_index
@@ -241,7 +242,7 @@ class TestIndexing(TestCase):
         """
         expect_index = ("MT	119	4	70	71\nGL000207.1	60	187	60	61\n")
         index_file = Faidx('data/issue_83.fasta').indexname
-        result_index = open(index_file).read()
+        result_index = smart_open(index_file, encoding='utf8').read()
         os.remove('data/issue_83.fasta.fai')
         assert result_index == expect_index
 
