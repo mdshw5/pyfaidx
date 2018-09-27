@@ -505,7 +505,7 @@ class Faidx(object):
     def build_index(self):
         try:
             with self._fasta_opener(self.filename, 'rb') as fastafile:
-                with smart_open(self.indexname, 'w', server_side_encryption="AES256") as indexfile:
+                with smart_open(self.indexname, 'w', ServerSideEncryption="AES256") as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -590,7 +590,7 @@ class Faidx(object):
 
     def write_fai(self):
         with self.lock:
-            with smart_open(self.indexname, 'w', server_side_encryption="AES256") as outfile:
+            with smart_open(self.indexname, 'w', ServerSideEncryption="AES256") as outfile:
                 for line in self._index_as_string:
                     outfile.write(line)
 
