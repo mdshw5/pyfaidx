@@ -38,7 +38,7 @@ def write_sequence(args):
         if args.split_files:  # open output file based on sequence name
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
-            outfile = smart_open(filename, 'w', encoding='utf8')
+            outfile = smart_open(filename, 'w')
         elif args.out:
             outfile = args.out
         else:
