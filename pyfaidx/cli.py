@@ -3,7 +3,7 @@ import argparse
 import sys
 import os.path
 import re
-from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
+from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, s3_config
 from collections import defaultdict
 from smart_open import smart_open
 
@@ -38,7 +38,7 @@ def write_sequence(args):
         if args.split_files:  # open output file based on sequence name
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
-            outfile = smart_open(filename, 'w', ServerSideEncryption="AES256")
+            outfile = smart_open(filename, 'w', config=s3_config)
         elif args.out:
             outfile = args.out
         else:
