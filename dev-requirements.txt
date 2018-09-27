@@ -2,4 +2,5 @@ six
 nose
 biopython
 setuptools >= 0.7
+smart_open >= 1.7.1
 mock; python_version < '3.3'

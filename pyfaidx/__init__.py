@@ -19,6 +19,7 @@ import string
 import warnings
 from math import ceil
 from threading import Lock
+from smart_open import smart_open
 
 if sys.version_info > (3, ):
     buffer = memoryview
@@ -27,6 +28,8 @@ dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
 __version__ = '0.5.5'
 
+s3_config = {"ServerSideEncryption": "AES256",
+             "GrantFullControl": 'emailaddress=aws-master-admins@humanlongevity.com;emailaddress=aws-sdrad-admins@humanlongevity.com'}
 
 class KeyFunctionError(ValueError):
     """Raised if the key_function argument is invalid."""
@@ -329,6 +332,8 @@ class Faidx(object):
           Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
+        self.s3_config = {"ServerSideEncryption": "AES256",
+                          "GrantFullControl": 'emailaddress=aws-master-admins@humanlongevity.com;emailaddress=aws-sdrad-admins@humanlongevity.com'}
 
         if filename.lower().endswith('.bgz') or filename.lower().endswith(
                 '.gz'):
@@ -351,7 +356,7 @@ class Faidx(object):
                 "Compressed FASTA is only supported in BGZF format. Use "
                 "bgzip to compresss your FASTA.")
         else:
-            self._fasta_opener = open
+            self._fasta_opener = smart_open
             self._bgzf = False
 
         try:
@@ -453,7 +458,7 @@ class Faidx(object):
 
     def read_fai(self):
         try:
-            with open(self.indexname) as index:
+            with smart_open(self.indexname, encoding='utf8') as index:
                 prev_bend = 0
                 drop_keys = []
                 for line in index:
@@ -504,7 +509,7 @@ class Faidx(object):
     def build_index(self):
         try:
             with self._fasta_opener(self.filename, 'rb') as fastafile:
-                with open(self.indexname, 'w') as indexfile:
+                with smart_open(self.indexname, 'w', config=s3_config) as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -589,7 +594,7 @@ class Faidx(object):
 
     def write_fai(self):
         with self.lock:
-            with open(self.indexname, 'w') as outfile:
+            with smart_open(self.indexname, 'w', confg=s3_config) as outfile:
                 for line in self._index_as_string:
                     outfile.write(line)
 
@@ -917,7 +922,7 @@ class FastaRecord(object):
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self._fa.faidx._fasta_opener != open:
+        if self._fa.faidx._fasta_opener != smart_open:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
                 "Please decompress your FASTA file.")
