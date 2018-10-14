@@ -567,7 +567,7 @@ class Faidx(object):
                     if not valid_entry:
                         raise FastaIndexingError(
                             "The FASTA file %s does not contain a valid sequence. "
-                            "Check that sequence definition lines start with '>'." %s self.filename)
+                            "Check that sequence definition lines start with '>'." % self.filename)
 
                     # write the final index line, if there is one.
                     if lastline is not None:
