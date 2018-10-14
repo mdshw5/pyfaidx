@@ -519,6 +519,7 @@ class Faidx(object):
                         line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
+                        valid_entry = False
                         # write an index line
                         if line[0] == '>':
                             valid_entry = check_bad_lines(
@@ -561,6 +562,12 @@ class Faidx(object):
                                 bad_lines.append((i, line_blen))
                             offset += line_blen
                             rlen += line_clen
+                    
+                    # check that we find at least 1 valid FASTA record
+                    if not valid_entry:
+                        raise FastaIndexingError(
+                            "The FASTA file %s does not contain a valid sequence. "
+                            "Check that sequence definition lines start with '>'." %s self.filename)
 
                     # write the final index line, if there is one.
                     if lastline is not None:
