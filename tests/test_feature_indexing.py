@@ -322,3 +322,18 @@ class TestIndexing(TestCase):
         """ Ensure that index file is not built when build_index=False. See mdshw5/pyfaidx#134.
         """
         faidx = Faidx('data/genes.fasta', build_index=False)
+        
+    @raises(FastaIndexingError)
+    def test_issue_144_no_defline(self):
+        """ Ensure that an exception is raised when a file contains no deflines. See mdshw5/pyfaidx#144.
+        """
+        tmp_dir = mkdtemp()
+        try:
+            fasta_path = os.path.join(tmp_dir, 'issue_144.fasta')
+            # Write simple fasta file
+            with open(fasta_path, 'w') as fasta_out:
+                fasta_out.write("CTCCGGGCCCAT\nATAAAGCCTAAA\n")
+            faidx = Faidx(fasta_path)
+        finally:
+            shutil.rmtree(tmp_dir)
+            
