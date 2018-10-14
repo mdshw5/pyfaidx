@@ -512,14 +512,13 @@ class Faidx(object):
                     clen = None  # character line length
                     bad_lines = []  # lines > || < than blen
                     thisoffset = offset
-
+                    valid_entry = False
                     lastline = None
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
                         line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
-                        valid_entry = False
                         # write an index line
                         if line[0] == '>':
                             valid_entry = check_bad_lines(
