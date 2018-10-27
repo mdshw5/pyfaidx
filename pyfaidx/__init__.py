@@ -813,7 +813,7 @@ class FastaRecord(object):
             raise
 
     def __iter__(self):
-        """ Construct a line-based iterator that respects the original line lengths. """
+        """ Construct a line-based generator that respects the original line lengths. """
         line_len = self._fa.faidx.index[self.name].lenc
         start = 0
         while True:
@@ -822,11 +822,11 @@ class FastaRecord(object):
                 yield self[start:end]
             else:
                 yield self[start:]
-                raise StopIteration
+                return
             start += line_len
 
     def __reversed__(self):
-        """ Reverse line-based iterator """
+        """ Reverse line-based generator """
         line_len = self._fa.faidx.index[self.name].lenc
         # have to determine last line length
         last_line = len(self) % line_len
@@ -839,7 +839,7 @@ class FastaRecord(object):
                 yield self[start:end][::-1]
             else:
                 yield self[:end][::-1]
-                raise StopIteration
+                return
             if end == len(self):  # first iteration
                 end -= last_line
             else:
