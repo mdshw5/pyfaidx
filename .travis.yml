@@ -2,6 +2,7 @@ language: python
 sudo: false
 python:
     - 'nightly'
+    - '3.7'
     - '3.6'
     - '3.5'
     - '3.4'
@@ -36,7 +37,7 @@ deploy:
     secure: MbSaeuitkVTZqxa0PJ3RcR1aMf+B/sMbcx2sWOo9xfLlRFDFpYWJZ0EfXWEhrVu2YWXpBsasgunTDWSi0jNcZMH92MzOC+UTVYr45LO5sy6hm4iSiAgm/DPgYWdjP0SFKr7eL/HWPS+gHvgkXL1upleX21O358bxaezoasuKFvs=
   on:
     all_branches: true
-    python: 2.7
+    python: 3.6
     tags: true
     repo: mdshw5/pyfaidx
 matrix:
