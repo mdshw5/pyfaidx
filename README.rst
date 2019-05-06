@@ -545,7 +545,7 @@ Support for compressed FASTA
 ----------------------------
 
 ``pyfaidx`` can create and read ``.fai`` indices for FASTA files that have
-been compressed using the `bgzip <http://www.htslib.org/doc/tabix.html>`_
+been compressed using the `bgzip <https://www.htslib.org/doc/bgzip.html>`_
 tool from `samtools <http://www.htslib.org/>`_. ``bgzip`` writes compressed
 data in a ``BGZF`` format. ``BGZF`` is ``gzip`` compatible, consisting of
 multiple concatenated ``gzip`` blocks, each with an additional ``gzip``
