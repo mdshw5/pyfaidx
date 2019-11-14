@@ -3,10 +3,8 @@ import argparse
 import sys
 import os.path
 import re
-from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split
+from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
 from collections import defaultdict
-
-keepcharacters = (' ', '.', '_')
 
 def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
@@ -36,7 +34,7 @@ def write_sequence(args):
                 continue
         if args.split_files:  # open output file based on sequence name
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
-            filename = ''.join(c for c in filename if c.isalnum() or c in keepcharacters)
+            filename = get_valid_filename(filename)
             outfile = open(filename, 'w')
         elif args.out:
             outfile = args.out
