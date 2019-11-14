@@ -1258,6 +1258,21 @@ def check_bad_lines(rname, bad_lines, i):
     raise RuntimeError("Unhandled exception during fasta indexing at entry " + rname + \
                        "Please report this issue at https://github.com/mdshw5/pyfaidx/issues " + \
                        str(bad_lines))
+    
+def get_valid_filename(s):
+    """
+    From https://github.com/django/django/blob/efc3e32d6d7fb9bb41be73b80c8607b653c1fbd6/django/utils/text.py#L222-L232
+    Return the given string converted to a string that can be used for a clean
+    filename. Remove leading and trailing spaces; convert other spaces to
+    underscores; and remove anything that is not an alphanumeric, dash,
+    underscore, or dot.
+    >>> get_valid_filename("HPV16_144-1.fa")
+    'HPV16_144-1.fa'
+    >>> get_valid_filename("chromosome 6.fa")
+    'chromosome_6.fa'
+    """
+    s = str(s).strip().replace(' ', '_')
+    return re.sub(r'(?u)[^-\w.]', '', s)
 
 
 if __name__ == "__main__":
