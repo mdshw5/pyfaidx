@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Landscape| |Coverage| |Depsy| |Appveyor|
+|Travis| |PyPI| |Coverage| |Depsy|
 
 Description
 -----------
