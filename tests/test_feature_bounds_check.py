@@ -30,6 +30,28 @@ GC""")
         fasta = Fasta('data/zero_length.fasta')
         b = fasta["B"]
         assert str(b) == ''
+        
+class TestZeroLengthSequenceSubRange(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except EnvironmentError:
+            pass  # some tests may delete this file
+        
+    def test_as_raw_zero_length_subsequence(self):
+        fasta = Fasta('data/genes.fasta', as_raw=True, strict_bounds=True)
+        expect = ''
+        result = fasta['gi|557361099|gb|KF435150.1|'][100:100]
+        assert result == expect
+
+    def test_zero_length_subsequence(self):
+        fasta = Fasta('data/genes.fasta', strict_bounds=True)
+        expect = ''
+        result = fasta['gi|557361099|gb|KF435150.1|'][100:100]
+        assert result.seq == expect
 
 class TestFeatureBoundsCheck:
     def setUp(self):
