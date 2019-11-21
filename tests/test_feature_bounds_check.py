@@ -6,6 +6,31 @@ from unittest import TestCase
 path = os.path.dirname(__file__)
 os.chdir(path)
 
+class TestFeatureZeroLength:
+    """Tests for handling zero-length entries, added in #155"""
+    def setUp(self):
+        with open('data/zero_length.fasta', 'w') as fasta:
+            fasta.write(""">A
+ATCG
+>B
+>C
+
+>D
+GTA
+GC""")
+
+    def tearDown(self):
+        os.remove('data/zero_length.fasta')
+        os.remove('data/zero_length.fasta.fai')
+              
+    def test_index_zero_length(self):
+        fasta = Fasta('data/zero_length.fasta')
+        
+    def test_fetch_zero_length(self):
+        fasta = Fasta('data/zero_length.fasta')
+        b = fasta["B"]
+        assert str(b) == ''
+
 class TestFeatureBoundsCheck:
     def setUp(self):
         pass
