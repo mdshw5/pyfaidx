@@ -6,6 +6,53 @@ from unittest import TestCase
 path = os.path.dirname(__file__)
 os.chdir(path)
 
+class TestFeatureZeroLength:
+    """Tests for handling zero-length entries, added in #155"""
+    def setUp(self):
+        with open('data/zero_length.fasta', 'w') as fasta:
+            fasta.write(""">A
+ATCG
+>B
+>C
+
+>D
+GTA
+GC""")
+
+    def tearDown(self):
+        os.remove('data/zero_length.fasta')
+        os.remove('data/zero_length.fasta.fai')
+              
+    def test_index_zero_length(self):
+        fasta = Fasta('data/zero_length.fasta')
+        
+    def test_fetch_zero_length(self):
+        fasta = Fasta('data/zero_length.fasta')
+        b = fasta["B"]
+        assert str(b) == ''
+        
+class TestZeroLengthSequenceSubRange(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        try:
+            os.remove('data/genes.fasta.fai')
+        except EnvironmentError:
+            pass  # some tests may delete this file
+        
+    def test_as_raw_zero_length_subsequence(self):
+        fasta = Fasta('data/genes.fasta', as_raw=True, strict_bounds=True)
+        expect = ''
+        result = fasta['gi|557361099|gb|KF435150.1|'][100:100]
+        assert result == expect
+
+    def test_zero_length_subsequence(self):
+        fasta = Fasta('data/genes.fasta', strict_bounds=True)
+        expect = ''
+        result = fasta['gi|557361099|gb|KF435150.1|'][100:100]
+        assert result.seq == expect
+
 class TestFeatureBoundsCheck:
     def setUp(self):
         pass

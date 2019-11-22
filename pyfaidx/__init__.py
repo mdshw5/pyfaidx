@@ -25,7 +25,7 @@ if sys.version_info > (3, ):
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.5.2'
+__version__ = '0.5.6'
 
 
 class KeyFunctionError(ValueError):
@@ -123,7 +123,7 @@ class Sequence(object):
         >chr1
         AC
         """
-        if self.start is None or self.end is None:
+        if self.start is None or self.end is None or len(self.seq) == 0:
             correction_factor = 0
         elif len(
                 self.seq
@@ -461,7 +461,7 @@ class Faidx(object):
                     rname, rlen, offset, lenc, lenb = line.split('\t')
                     rlen, offset, lenc, lenb = map(int,
                                                    (rlen, offset, lenc, lenb))
-                    newlines = int(ceil(rlen / lenc) * (lenb - lenc))
+                    newlines = int(ceil(rlen / lenc) * (lenb - lenc)) if lenc else 0
                     bend = offset + newlines + rlen
                     rec = IndexRecord(rlen, offset, lenc, lenb, bend,
                                       prev_bend)
@@ -508,8 +508,8 @@ class Faidx(object):
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
-                    blen = None  # binary line length (includes newline)
-                    clen = None  # character line length
+                    blen = 0  # binary line length (includes newline)
+                    clen = 0  # character line length
                     bad_lines = []  # lines > || < than blen
                     thisoffset = offset
                     valid_entry = False
@@ -535,9 +535,9 @@ class Faidx(object):
                                     "Inconsistent line found in >{0} at "
                                     "line {1:n}.".format(
                                         rname, bad_lines[0][0] + 1))
-                            blen = None
+                            blen = 0
                             rlen = 0
-                            clen = None
+                            clen = 0
                             bad_lines = []
                             try:  # must catch empty deflines (actually these might be okay: https://github.com/samtools/htslib/pull/258)
                                 rname = line.rstrip('\n\r')[1:].split()[
@@ -648,8 +648,8 @@ class Faidx(object):
 
         # Calculate offset (https://github.com/samtools/htslib/blob/20238f354894775ed22156cdd077bc0d544fa933/faidx.c#L398)
         newlines_before = int(
-            (start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 else 0
-        newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc))
+            (start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 and i.lenc else 0
+        newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc)) if i.lenc else 0
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
         bstart = i.offset + newlines_before + start0
@@ -669,12 +669,15 @@ class Faidx(object):
             else:
                 self.file.seek(bstart)
 
+                # If the requested sequence exceeds len(FastaRecord), return as much as possible
                 if bstart + seq_blen > i.bend and not self.strict_bounds:
                     seq_blen = i.bend - bstart
-
+                # Otherwise it should be safe to read the sequence
                 if seq_blen > 0:
                     seq = self.file.read(seq_blen).decode()
-                elif seq_blen <= 0 and not self.strict_bounds:
+                # If the requested sequence is negative, we will pad the empty string with default_seq.
+                # This was changed to support #155 with strict_bounds=True.
+                elif seq_blen <= 0:
                     seq = ''
 
         if not internals:
