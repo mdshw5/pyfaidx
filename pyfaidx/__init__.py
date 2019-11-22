@@ -669,12 +669,15 @@ class Faidx(object):
             else:
                 self.file.seek(bstart)
 
+                # If the requested sequence exceeds len(FastaRecord), return as much as possible
                 if bstart + seq_blen > i.bend and not self.strict_bounds:
                     seq_blen = i.bend - bstart
-
+                # Otherwise it should be safe to read the sequence
                 if seq_blen > 0:
                     seq = self.file.read(seq_blen).decode()
-                elif seq_blen <= 0 and not self.strict_bounds:
+                # If the requested sequence is negative, we will pad the empty string with default_seq.
+                # This was changed to support #155 with strict_bounds=True.
+                elif seq_blen <= 0:
                     seq = ''
 
         if not internals:
