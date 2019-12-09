@@ -998,6 +998,8 @@ class Fasta(object):
             rebuild=rebuild,
             build_index=build_index)
         self.keys = self.faidx.index.keys
+        self.values = self.faidx.index.values
+        self.items = self.faidx.index.items
         if not self.mutable:
             self.records = dict(
                 [(rname, FastaRecord(rname, self)) for rname in self.keys()])
