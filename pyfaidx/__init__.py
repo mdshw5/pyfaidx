@@ -998,11 +998,12 @@ class Fasta(object):
             rebuild=rebuild,
             build_index=build_index)
         if not self.mutable:
-            self.records = dict(
-                [(rname, FastaRecord(rname, self)) for rname in self.keys()])
+            self.records = {rname: FastaRecord(rname, self)
+                            for rname in self.faidx.index.keys()}
         elif self.mutable:
-            self.records = dict([(rname, MutableFastaRecord(rname, self))
-                                 for rname in self.keys()])
+            self.records = {rname: MutableFastaRecord(rname, self)
+                            for rname in self.faidx.index.keys()}
+
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
@@ -1060,6 +1061,7 @@ class Fasta(object):
         return Sequence(name=name, seq=seq, start=None, end=None)
 
     def keys(self):
+        print('using our keys')
         return self.records.keys()
 
     def values(self):
