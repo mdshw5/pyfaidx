@@ -25,7 +25,7 @@ if sys.version_info > (3, ):
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.6'
+__version__ = '0.5.7'
 
 
 class KeyFunctionError(ValueError):
@@ -997,13 +997,9 @@ class Fasta(object):
             sequence_always_upper=sequence_always_upper,
             rebuild=rebuild,
             build_index=build_index)
-        self.keys = self.faidx.index.keys
-        if not self.mutable:
-            self.records = dict(
-                [(rname, FastaRecord(rname, self)) for rname in self.keys()])
-        elif self.mutable:
-            self.records = dict([(rname, MutableFastaRecord(rname, self))
-                                 for rname in self.keys()])
+        
+        _record_constructor = MutableFastaRecord if self.mutable else FastaRecord
+        self.records = OrderedDict([(rname, _record_constructor(rname, self)) for rname in self.faidx.index.keys()])
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
@@ -1059,6 +1055,15 @@ class Fasta(object):
         # Sequence coordinate validation wont work since
         # len(Sequence.seq) != end - start
         return Sequence(name=name, seq=seq, start=None, end=None)
+
+    def keys(self):
+        return self.records.keys()
+
+    def values(self):
+        return self.records.values()
+
+    def items(self):
+        return self.records.items()
 
     def close(self):
         self.__exit__()

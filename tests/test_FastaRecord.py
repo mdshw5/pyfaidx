@@ -46,6 +46,7 @@ class TestFastaRecord(TestCase):
         long_names = []
         for record in fasta:
             long_names.append(record.long_name)
+        print(tuple(zip(deflines, long_names)))
         assert deflines == long_names
 
     def test_issue_62(self):
