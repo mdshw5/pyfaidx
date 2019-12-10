@@ -997,9 +997,6 @@ class Fasta(object):
             sequence_always_upper=sequence_always_upper,
             rebuild=rebuild,
             build_index=build_index)
-        self.keys = self.faidx.index.keys
-        self.values = self.faidx.index.values
-        self.items = self.faidx.index.items
         if not self.mutable:
             self.records = dict(
                 [(rname, FastaRecord(rname, self)) for rname in self.keys()])
@@ -1061,6 +1058,15 @@ class Fasta(object):
         # Sequence coordinate validation wont work since
         # len(Sequence.seq) != end - start
         return Sequence(name=name, seq=seq, start=None, end=None)
+
+    def keys(self):
+        return self.records.keys()
+
+    def values(self):
+        return self.records.values()
+
+    def items(self):
+        return self.records.items()
 
     def close(self):
         self.__exit__()
