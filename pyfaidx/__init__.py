@@ -1061,7 +1061,6 @@ class Fasta(object):
         return Sequence(name=name, seq=seq, start=None, end=None)
 
     def keys(self):
-        print('using our keys')
         return self.records.keys()
 
     def values(self):
