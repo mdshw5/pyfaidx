@@ -997,13 +997,9 @@ class Fasta(object):
             sequence_always_upper=sequence_always_upper,
             rebuild=rebuild,
             build_index=build_index)
-        if not self.mutable:
-            self.records = {rname: FastaRecord(rname, self)
-                            for rname in self.faidx.index.keys()}
-        elif self.mutable:
-            self.records = {rname: MutableFastaRecord(rname, self)
-                            for rname in self.faidx.index.keys()}
-
+        
+        _record_constructor = MutableFastaRecord if self.mutable else FastaRecord
+        self.records = OrderedDict([(rname, _record_constructor(rname, self)) for rname in self.faidx.index.keys()])
 
     def __contains__(self, rname):
         """Return True if genome contains record."""
