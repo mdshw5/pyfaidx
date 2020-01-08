@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import os.path
 
-ftp_timeout = 300
-
 def fetch_genes(filename, suffix=None):
     from Bio import Entrez
     Entrez.email = "mdshw5@gmail.com"
@@ -38,32 +36,23 @@ def fetch_genes(filename, suffix=None):
 def fetch_chr22(filename):
     import gzip
     import shutil
-    from io import BytesIO
-    import ftplib
+    import urllib.request
 
-    remote = 'human_b36_male.fa.gz'
-    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov', timeout=ftp_timeout) 
-    ftp.login()
-    ftp.cwd("1000genomes/ftp/pilot_data/technical/reference/")
-    compressed = BytesIO()
-    ftp.retrbinary('RETR %s' % remote, compressed.write)
-    ftp.quit()
-    compressed.seek(0)
-    with gzip.GzipFile(fileobj = compressed) as gz:
-        with open(filename, 'w') as fasta:
-            chr22 = False
-            for line in gz:
-                if line[0:3] == '>22':
-                    fasta.write(line)
-                    chr22 = True
-                elif not chr22:
-                    continue
-                elif chr22 and line[0] == '>':
-                    curl.kill()
-                    break
-                elif chr22:
-                    fasta.write(line)
-    compressed.close()
+    with urllib.request.urlopen('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz') as compressed:
+        with gzip.GzipFile(fileobj = compressed) as gz:
+            with open(filename, 'w') as fasta:
+                chr22 = False
+                for line in gz:
+                    if line[0:3] == '>22':
+                        fasta.write(line)
+                        chr22 = True
+                    elif not chr22:
+                        continue
+                    elif chr22 and line[0] == '>':
+                        curl.kill()
+                        break
+                    elif chr22:
+                        fasta.write(line)
 
 def fake_chr22(filename):
     """ Fake up some data """
@@ -83,16 +72,14 @@ def bgzip_compress_fasta(filename):
             compressed.write(line)
 
 def fetch_chr22_vcf(filename):
-    import ftplib
-
-    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov', timeout=ftp_timeout) 
-    ftp.login()
-    ftp.cwd("1000genomes/ftp/pilot_data/release/2010_07/exon/snps/")
-    with open(filename, 'wb') as vcf:
-        ftp.retrbinary('RETR CEU.exon.2010_03.genotypes.vcf.gz', vcf.write)
-    with open(filename, 'wb') as tbi:
-        ftp.retrbinary('RETR CEU.exon.2010_03.genotypes.vcf.gz.tbi', tbi.write)
-    ftp.quit()
+    import urllib.request
+    
+    with urllib.request.urlopen('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz') as vcf:
+        with open(filename, 'wb') as out:
+            out.write(vcf.read())
+    with urllib.request.urlopen('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz.tbi') as tbi:
+        with open(filename + '.tbi', 'wb') as out:
+            out.write(tbi.read())
 
 
 if __name__ == "__main__":
