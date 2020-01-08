@@ -46,12 +46,13 @@ matrix:
       before_install:
         - choco install python3
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-        - virtualenv $HOME/venv
+        - python -m virtualenv $HOME/venv
         - source $HOME/venv/Scripts/activate
   allow_failures:
-    - python: 'nightly'
-    - python: 'pypy3'
-    - python: 'pypy'
+    - python: nightly
+    - python: pypy3
+    - python: pypy
+    - os: windows
   fast_finish: true
 cache:
     directories:
