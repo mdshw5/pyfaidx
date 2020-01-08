@@ -34,25 +34,22 @@ def fetch_genes(filename, suffix=None):
                 lower.write(line)
 
 def fetch_chr22(filename):
-    import gzip
-    import shutil
-    import urllib.request
+    import requests
 
-    with urllib.request.urlopen('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz') as compressed:
-        with gzip.GzipFile(fileobj = compressed) as gz:
-            with open(filename, 'w') as fasta:
-                chr22 = False
-                for line in gz:
-                    if line[0:3] == '>22':
-                        fasta.write(line)
-                        chr22 = True
-                    elif not chr22:
-                        continue
-                    elif chr22 and line[0] == '>':
-                        curl.kill()
-                        break
-                    elif chr22:
-                        fasta.write(line)
+    with requests.get('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz') as compressed:
+        with open(filename, 'w') as fasta:
+            chr22 = False
+            for line in compressed.content:
+                if line[0:3] == '>22':
+                    fasta.write(line)
+                    chr22 = True
+                elif not chr22:
+                    continue
+                elif chr22 and line[0] == '>':
+                    curl.kill()
+                    break
+                elif chr22:
+                    fasta.write(line)
 
 def fake_chr22(filename):
     """ Fake up some data """
@@ -72,14 +69,14 @@ def bgzip_compress_fasta(filename):
             compressed.write(line)
 
 def fetch_chr22_vcf(filename):
-    import urllib.request
+    import requests
     
-    with urllib.request.urlopen('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz') as vcf:
+    with requests.get('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz') as vcf:
         with open(filename, 'wb') as out:
-            out.write(vcf.read())
-    with urllib.request.urlopen('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz.tbi') as tbi:
+            out.write(vcf.content)
+    with requests.get('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz.tbi') as tbi:
         with open(filename + '.tbi', 'wb') as out:
-            out.write(tbi.read())
+            out.write(tbi.content)
 
 
 if __name__ == "__main__":
