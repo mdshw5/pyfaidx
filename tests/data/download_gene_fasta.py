@@ -34,15 +34,23 @@ def fetch_genes(filename, suffix=None):
                 lower.write(line)
 
 def fetch_chr22(filename):
-    from subprocess import Popen, PIPE
+    import gzip
+    import shutil
+    from io import BytesIO
+    import ftplib
 
-    grch36 = 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz'
-    curl = Popen(['curl', '-s', grch36], stdout=PIPE)
-    gz = Popen(['gzip', '-dcq'], stdin=curl.stdout, stdout=PIPE)
-    with gz.stdout as remote:
+    remote = 'human_b36_male.fa.gz'
+    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov') 
+    ftp.login()
+    ftp.cwd("1000genomes/ftp/pilot_data/technical/reference/")
+    compressed = BytesIO()
+    ftp.retrbinary('RETR %s' % remote, compressed.write)
+    ftp.quit()
+    compressed.seek(0)
+    with gzip.GzipFile(fileobj = compressed) as gz:
         with open(filename, 'w') as fasta:
             chr22 = False
-            for line in remote:
+            for line in gz:
                 if line[0:3] == '>22':
                     fasta.write(line)
                     chr22 = True
@@ -53,6 +61,7 @@ def fetch_chr22(filename):
                     break
                 elif chr22:
                     fasta.write(line)
+    compressed.close()
 
 def fake_chr22(filename):
     """ Fake up some data """
@@ -66,17 +75,22 @@ def fake_chr22(filename):
         fake_file.write('N' * mod_70 + '\n')
 
 def bgzip_compress_fasta(filename):
-    from subprocess import call
-    call(' '.join(['bgzip', '-c', filename, '>', filename + '.gz']), shell=True)
-
+    from Bio.bgzf import BgzfWriter
+    with BgzfWriter(filename=filename + '.gz') as compressed, open(filename, 'r') as fasta:
+        for line in fasta:
+            compressed.write(line)
 
 def fetch_chr22_vcf(filename):
-    from subprocess import call
-    call(['curl', '-s', 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz',
-          '-o', filename])
-    call(['curl', '-s', 'ftp://ftp-trace.ncbi.nih.gov//1000genomes/ftp/pilot_data/release/2010_07/exon/snps/CEU.exon.2010_03.genotypes.vcf.gz.tbi',
-          '-o', filename + '.tbi'])
+    import ftplib
 
+    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov') 
+    ftp.login()
+    ftp.cwd("1000genomes/ftp/pilot_data/release/2010_07/exon/snps/")
+    with open(filename, 'wb') as vcf:
+        ftp.retrbinary('RETR CEU.exon.2010_03.genotypes.vcf.gz', vcf.write)
+    with open(filename, 'wb') as tbi:
+        ftp.retrbinary('RETR CEU.exon.2010_03.genotypes.vcf.gz.tbi', tbi.write)
+    ftp.quit()
 
 
 if __name__ == "__main__":
