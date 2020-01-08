@@ -36,10 +36,19 @@ deploy:
     secure: MbSaeuitkVTZqxa0PJ3RcR1aMf+B/sMbcx2sWOo9xfLlRFDFpYWJZ0EfXWEhrVu2YWXpBsasgunTDWSi0jNcZMH92MzOC+UTVYr45LO5sy6hm4iSiAgm/DPgYWdjP0SFKr7eL/HWPS+gHvgkXL1upleX21O358bxaezoasuKFvs=
   on:
     all_branches: true
-    python: 3.6
+    python: 3.7
     tags: true
     repo: mdshw5/pyfaidx
 matrix:
+  include:
+    - os: windows
+      language: sh
+      python: "3.7"
+      before_install:
+        - choco install python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - virtualenv $HOME/venv
+        - source $HOME/venv/Scripts/activate
   allow_failures:
     - python: 'nightly'
     - python: 'pypy3'
@@ -53,4 +62,4 @@ cache:
         - wheelhouse
 after_success:
     - bash <(curl -s https://codecov.io/bash)
-    - if [ $TRAVIS_PYTHON_VERSION == '3.4' ] && [ $TRAVIS_TAG ]; then python scripts/benchmark.py 1000; fi
+
