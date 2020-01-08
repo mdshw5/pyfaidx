@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os.path
 
+ftp_timeout = 300
+
 def fetch_genes(filename, suffix=None):
     from Bio import Entrez
     Entrez.email = "mdshw5@gmail.com"
@@ -40,7 +42,7 @@ def fetch_chr22(filename):
     import ftplib
 
     remote = 'human_b36_male.fa.gz'
-    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov') 
+    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov', timeout=ftp_timeout) 
     ftp.login()
     ftp.cwd("1000genomes/ftp/pilot_data/technical/reference/")
     compressed = BytesIO()
@@ -83,7 +85,7 @@ def bgzip_compress_fasta(filename):
 def fetch_chr22_vcf(filename):
     import ftplib
 
-    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov') 
+    ftp = ftplib.FTP('ftp-trace.ncbi.nih.gov', timeout=ftp_timeout) 
     ftp.login()
     ftp.cwd("1000genomes/ftp/pilot_data/release/2010_07/exon/snps/")
     with open(filename, 'wb') as vcf:
