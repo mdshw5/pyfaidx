@@ -35,11 +35,12 @@ def fetch_genes(filename, suffix=None):
 
 def fetch_chr22(filename):
     import requests
+    import gzip
 
     with requests.get('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz') as compressed:
-        with open(filename, 'w') as fasta:
+        with open(filename, 'w') as fasta, gzip.GzipFile(fileobj=compressed.raw) as gz:
             chr22 = False
-            for line in compressed.content:
+            for line in gz:
                 if line[0:3] == '>22':
                     fasta.write(line)
                     chr22 = True
