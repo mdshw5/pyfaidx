@@ -6,13 +6,12 @@ python:
     - '3.7'
     - '3.6'
     - '3.5'
-    - '3.4'
     - '2.7'
     - 'pypy'
     - 'pypy3'
 install:
     - pip wheel -f wheelhouse cython pysam numpy || true
-    - pip install -f wheelhouse cython pysam biopython requests pyfasta 'coverage==4.5.4' pyvcf numpy || true
+    - pip install -f wheelhouse cython pysam biopython requests pyfasta coverage pyvcf numpy || true
     - python setup.py install
     - if [ ! -f samtools-1.2 ]; then curl -sL https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjv; fi
     - cd samtools-1.2
