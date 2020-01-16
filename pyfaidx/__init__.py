@@ -198,6 +198,13 @@ class Sequence(object):
         """
         return len(self.seq)
 
+    def __eq__(self, other):
+        """
+        >>> Sequence('chr1', 'ACT') == 'ACT'
+        True
+        """
+        return str(self) == str(other)
+
     @property
     def fancy_name(self):
         """ Return the fancy name for the sequence, including start, end, and complementation.
