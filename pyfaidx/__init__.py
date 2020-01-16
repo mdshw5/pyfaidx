@@ -1020,6 +1020,10 @@ class Fasta(object):
     def __iter__(self):
         for rname in self.keys():
             yield self[rname]
+            
+    def __len__(self):
+        """Return the cumulative length of all FastaRecords in self.records."""
+        return sum(len(record) for record in self)
 
     def get_seq(self, name, start, end, rc=False):
         """Return a sequence by record name and interval [start, end).
