@@ -27,7 +27,7 @@ install:
 before_install: 
     - 
 before_script:
-    - env pip3 install --user biopython
+    - env pip3 install biopython
     - env python3 tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
