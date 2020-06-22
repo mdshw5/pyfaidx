@@ -1,8 +1,9 @@
 language: python
 sudo: required
-dist: xenial
+dist: bionic
 python:
     - 'nightly'
+    - '3.8'
     - '3.7'
     - '3.6'
     - '3.5'
@@ -10,7 +11,8 @@ python:
     - 'pypy'
     - 'pypy3'
 install:
-    - pip install cython pysam biopython requests coverage pyfasta pyvcf numpy
+    - pip install cython pysam requests coverage pyfasta pyvcf numpy
+    - pip install biopython || true
     - python setup.py install
     - if [ ! -f samtools-1.2 ]; then curl -sL https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 | tar -xjv; fi
     - cd samtools-1.2
@@ -22,8 +24,10 @@ install:
     - make
     - export PATH=$PATH:$PWD
     - cd ..
-before_script:
-    - python tests/data/download_gene_fasta.py
+before_install: 
+    - sudo apt-get install -y python3.6 python3-pip
+    - env python3.6 -m pip install biopython
+    - env python3.6 tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi
@@ -32,7 +36,7 @@ deploy:
     secure: MbSaeuitkVTZqxa0PJ3RcR1aMf+B/sMbcx2sWOo9xfLlRFDFpYWJZ0EfXWEhrVu2YWXpBsasgunTDWSi0jNcZMH92MzOC+UTVYr45LO5sy6hm4iSiAgm/DPgYWdjP0SFKr7eL/HWPS+gHvgkXL1upleX21O358bxaezoasuKFvs=
   on:
     all_branches: true
-    python: 3.7
+    python: 3.8
     tags: true
     repo: mdshw5/pyfaidx
 matrix:

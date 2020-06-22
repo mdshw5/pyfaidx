@@ -4,21 +4,25 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
 
 from __future__ import division
+
 import os
+import re
+import string
 import sys
+import warnings
+from collections import namedtuple
+from itertools import islice
+from math import ceil
 from os.path import getmtime
-from six import PY2, PY3, string_types, integer_types
+from threading import Lock
+
+from six import PY2, PY3, integer_types, string_types
 from six.moves import zip_longest
+
 try:
     from collections import OrderedDict
 except ImportError:  #python 2.6
     from ordereddict import OrderedDict
-from collections import namedtuple
-import re
-import string
-import warnings
-from math import ceil
-from threading import Lock
 
 if sys.version_info > (3, ):
     buffer = memoryview
@@ -1015,7 +1019,7 @@ class Fasta(object):
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
         if isinstance(rname, integer_types):
-            rname = tuple(self.keys())[rname]
+            rname = next(islice(self.records.keys(), rname, None))
         try:
             return self.records[rname]
         except KeyError:
@@ -1025,9 +1029,8 @@ class Fasta(object):
         return 'Fasta("%s")' % (self.filename)
 
     def __iter__(self):
-        for rname in self.keys():
-            yield self[rname]
-            
+        return iter(self.records.values())
+
     def __len__(self):
         """Return the cumulative length of all FastaRecords in self.records."""
         return sum(len(record) for record in self)
