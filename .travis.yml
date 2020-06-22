@@ -24,8 +24,10 @@ install:
     - make
     - export PATH=$PATH:$PWD
     - cd ..
+before_install: 
+    - 
 before_script:
-    - env pip install biopython
+    - sudo apt-get -y install python-biopython
     - env python tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
