@@ -27,8 +27,8 @@ install:
 before_install: 
     - sudo apt-get install -y python3.6
 before_script:
-    - env pip3 install biopython
-    - env python3 tests/data/download_gene_fasta.py
+    - env pip3.6 install biopython
+    - env python3.6 tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi
