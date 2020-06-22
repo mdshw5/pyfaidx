@@ -25,7 +25,7 @@ install:
     - export PATH=$PATH:$PWD
     - cd ..
 before_install: 
-    - sudo apt-get install -y python3.6
+    - sudo apt-get install -y python3.6 python3-pip
     - env python3.6 -m pip install biopython
     - env python3.6 tests/data/download_gene_fasta.py
 script: nosetests --with-coverage --cover-package=pyfaidx
