@@ -1,4 +1,4 @@
->gi|563317589|dbj|AB821309.1| Homo sapiens FGFR2-AHCYL1 mRNA for FGFR2-AHCYL1 fusion kinase protein, complete cds
+>AB821309.1 Homo sapiens FGFR2-AHCYL1 mRNA for FGFR2-AHCYL1 fusion kinase protein, complete cds
 atggtcagctggggtcgtttcatctgcctggtcgtggtcaccatggcaaccttgtccctggcccggccct
 ccttcagtttagttgaggataccacattagagccagaagatgccatctcatccggagatgatgaggatga
 caccgatggtgcggaagattttgtcagtgagaacagtaacaacaagagagcaccatactggaccaacaca
@@ -50,7 +50,7 @@ agccacaacacaggctttggcactgatagaactctataatgcacccgaggggcgatacaagcaggatgtg
 tacttgcttcctaagaaaatggatgaatacgttgccagcttgcatctgccatcatttgatgcccacctta
 cagagctgacagatgaccaagcaaaatatctgggactcaacaaaaatgggccattcaaacctaattatta
 cagatactaa
->gi|557361099|gb|KF435150.1| Homo sapiens MDM4 protein variant Y (MDM4) mRNA, complete cds, alternatively spliced
+>KF435150.1 Homo sapiens MDM4 protein variant Y (MDM4) mRNA, complete cds, alternatively spliced
 atgacatcattttccacctctgctcagtgttcaacatctgacagtgcttgcaggatctctcctggacaaa
 tcaatcaggtacgaccaaaactgccgcttttgaagattttgcatgcagcaggtgcgcaaggtgaaatgtt
 cactgttaaagaggtcatgcactatttaggtcagtacataatggtgaagcaactttatgatcagcaggag
@@ -58,7 +58,7 @@ cagcatatggtatattgtggtggagatcttttgggagaactactgggacgtcagagcttctccgtgaaag
 acccaagccctctctatgatatgctaagaaagaatcttgtcactttagccactgctactacagcaaagtg
 cagaggaaagttccacttccagaaaaagaactacagaagacgatatccccacactgcctacctcagagca
 taaatgcatacattctagagaaggtgattgaagtgggaaaaaatgatgacctggaggactc
->gi|557361097|gb|KF435149.1| Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
+>KF435149.1 Homo sapiens MDM4 protein variant G (MDM4) mRNA, complete cds
 atgacatcattttccacctctgctcagtgttcaacatctgacagtgcttgcaggatctctcctggacaaa
 tcaatcaggtacgaccaaaactgccgcttttgaagattttgcatgcagcaggtgcgcaaggtgaaatgtt
 cactgttaaagaggtcatgcactatttaggtcagtacataatggtgaagcaactttatgatcagcaggag
@@ -69,7 +69,7 @@ taaatgcatacattctagagaagatgaagacttaattgaaaatttagcccaagatgaaacatctaggctg
 gaccttggatttgaggagtgggatgtagctggcctgccttggtggtttttaggaaacttgagaagcaact
 atacacctagaagtaatggctcaactgatttacagacaaatcaggtgattgaagtgggaaaaaatgatga
 cctggaggactc
->gi|543583796|ref|NR_104216.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 8, non-coding RNA
+>NR_104216.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 8, non-coding RNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -136,7 +136,7 @@ tgggcctcattacagtcacaattgtctattctgtttcctaccctgaacacattaaaatggtaggaactaa
 tgcttgtcttatttaattactaaaagccaccattttctttgatagattgagctacagattgtaaacttca
 tgtatttctttataagtcaacccttttcaaagatacgcacatcaaactgaatgaataaataaatattgag
 aagttgaaaaaaaaaaaaaaaaa
->gi|543583795|ref|NR_104215.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 7, non-coding RNA
+>NR_104215.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 7, non-coding RNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -213,7 +213,7 @@ atgggtcagtgtggaaaatgcattaatcatattctaaacgttcatgggcctcattacagtcacaattgtc
 tattctgtttcctaccctgaacacattaaaatggtaggaactaatgcttgtcttatttaattactaaaag
 ccaccattttctttgatagattgagctacagattgtaaacttcatgtatttctttataagtcaacccttt
 tcaaagatacgcacatcaaactgaatgaataaataaatattgagaagttgaaaaaaaaaaaaaaaaa
->gi|543583794|ref|NR_104212.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 6, non-coding RNA
+>NR_104212.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 6, non-coding RNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -291,7 +291,7 @@ gaaaatgcattaatcatattctaaacgttcatgggcctcattacagtcacaattgtctattctgtttcct
 accctgaacacattaaaatggtaggaactaatgcttgtcttatttaattactaaaagccaccattttctt
 tgatagattgagctacagattgtaaacttcatgtatttctttataagtcaacccttttcaaagatacgca
 catcaaactgaatgaataaataaatattgagaagttgaaaaaaaaaaaaaaaaa
->gi|543583788|ref|NM_001282545.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 3, mRNA
+>NM_001282545.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 3, mRNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -352,7 +352,7 @@ catattctaaacgttcatgggcctcattacagtcacaattgtctattctgtttcctaccctgaacacatt
 aaaatggtaggaactaatgcttgtcttatttaattactaaaagccaccattttctttgatagattgagct
 acagattgtaaacttcatgtatttctttataagtcaacccttttcaaagatacgcacatcaaactgaatg
 aataaataaatattgagaagttgaaaaaaaaaaaaaaaaa
->gi|543583786|ref|NM_001282543.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 2, mRNA
+>NM_001282543.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 2, mRNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -432,7 +432,7 @@ acaattgtctattctgtttcctaccctgaacacattaaaatggtaggaactaatgcttgtcttatttaat
 tactaaaagccaccattttctttgatagattgagctacagattgtaaacttcatgtatttctttataagt
 caacccttttcaaagatacgcacatcaaactgaatgaataaataaatattgagaagttgaaaaaaaaaaa
 aaaaaa
->gi|543583785|ref|NM_000465.3| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 1, mRNA
+>NM_000465.3 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 1, mRNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -512,7 +512,7 @@ gtcagtgtggaaaatgcattaatcatattctaaacgttcatgggcctcattacagtcacaattgtctatt
 ctgtttcctaccctgaacacattaaaatggtaggaactaatgcttgtcttatttaattactaaaagccac
 cattttctttgatagattgagctacagattgtaaacttcatgtatttctttataagtcaacccttttcaa
 agatacgcacatcaaactgaatgaataaataaatattgagaagttgaaaaaaaaaaaaaaaaa
->gi|543583740|ref|NM_001282549.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 5, mRNA
+>NM_001282549.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 5, mRNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -570,7 +570,7 @@ ggtcagtgtggaaaatgcattaatcatattctaaacgttcatgggcctcattacagtcacaattgtctat
 tctgtttcctaccctgaacacattaaaatggtaggaactaatgcttgtcttatttaattactaaaagcca
 ccattttctttgatagattgagctacagattgtaaacttcatgtatttctttataagtcaacccttttca
 aagatacgcacatcaaactgaatgaataaataaatattgagaagttgaaaaaaaaaaaaaaaaa
->gi|543583738|ref|NM_001282548.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 4, mRNA
+>NM_001282548.1 Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 4, mRNA
 ccccgcccctctggcggcccgccgtcccagacgcgggaagagcttggccggtttcgagtcgctggcctgc
 agcttccctgtggtttcccgaggcttccttgcttcccgctctgcgaggagcctttcatccgaaggcggga
 cgatgccggataatcggcagccgaggaaccggcagccgaggatccgctccgggaacgagcctcgttccgc
@@ -630,7 +630,7 @@ aaaatgcattaatcatattctaaacgttcatgggcctcattacagtcacaattgtctattctgtttccta
 ccctgaacacattaaaatggtaggaactaatgcttgtcttatttaattactaaaagccaccattttcttt
 gatagattgagctacagattgtaaacttcatgtatttctttataagtcaacccttttcaaagatacgcac
 atcaaactgaatgaataaataaatattgagaagttgaaaaaaaaaaaaaaaaa
->gi|530384540|ref|XM_005249645.1| PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X4, mRNA
+>XM_005249645.1 PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X4, mRNA
 gtgctgggactacagagtccagtgtcgtgctgctgcaggagcacccctgcctggtggagctgctgtccca
 tgtgctgaaagtccaggacctgagttctggggtcctctccttctcactgcgcctggcaggaaccttcgca
 gcccaggaaaactgcttccagtatcttcagcagggggagttactaccagggctctttggggagccaggac
@@ -671,7 +671,7 @@ ccgactgctactgagcagaaccagagtctgccactggggctcaggaccaagggaggcagcaccatgtcct
 tctgtgggacactgccagccccagggctccagcccagcccggtggatcctctggggaagccaggaccagg
 agagaagcaaggtcaagaaatcccacagtttgatgtattaaagaaatgacttatttctactcaaaataaa
 tggcattgaagtctttctttaa
->gi|530384538|ref|XM_005249644.1| PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X3, mRNA
+>XM_005249644.1 PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X3, mRNA
 accggatgctcggcatgaaccactaggcgcctggcgggggtgatctgtcggagcgaccggcttggcgcct
 gcctgtccccagcccctctcagcttgaactccttccttcaagtctgggccctcgaggcttccagagcggc
 ctccaggggtgcagtctcagttccccacgccagccgtctccgtcctccgcctcctccgggcctggcaggt
@@ -715,7 +715,7 @@ aggacatgctggccacgggaggcttcctgcagggggacgaggccgactgctactgagcagaaccagagtc
 tgccactggggctcaggaccaagggaggcagcaccatgtccttctgtgggacactgccagccccagggct
 ccagcccagcccggtggatcctctggggaagccaggaccaggagagaagcaaggtcaagaaatcccacag
 tttgatgtattaaagaaatgacttatttctactcaaaataaatggcattgaagtctttctttaa
->gi|530384536|ref|XM_005249643.1| PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X2, mRNA
+>XM_005249643.1 PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X2, mRNA
 tctgtcggagcgaccggcttggcgcctgcctgtccccagcccctctcagcttgaactccttccttcaagt
 ctgggccctcgaggcttccagagcggcctccaggggtgcagtctcagttccccacgccagccgtctccgt
 cctccgcctcctccgggcctggcaggtggcactgtccggaggcggagccttgggcgaggggtggttgcgg
@@ -761,7 +761,7 @@ gacgaggccgactgctactgagcagaaccagagtctgccactggggctcaggaccaagggaggcagcacc
 atgtccttctgtgggacactgccagccccagggctccagcccagcccggtggatcctctggggaagccag
 gaccaggagagaagcaaggtcaagaaatcccacagtttgatgtattaaagaaatgacttatttctactca
 aaataaatggcattgaagtctttctttaa
->gi|530384534|ref|XM_005249642.1| PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X1, mRNA
+>XM_005249642.1 PREDICTED: Homo sapiens BRCA1-associated ATM activator 1 (BRAT1), transcript variant X1, mRNA
 gcgaccggcttggcgcctgcctgtccccagcccctctcagcttgaactccttccttcaagtctgggccct
 cgaggcttccagagcggcctccaggggtgcagtctcagttccccacgccagccgtctccgtcctccgcct
 cctccgggcctggcaggtggcactgtccggaggcggagccttgggcgaggggtggttgcggcggaggacg
@@ -807,7 +807,7 @@ tgctactgagcagaaccagagtctgccactggggctcaggaccaagggaggcagcaccatgtccttctgt
 gggacactgccagccccagggctccagcccagcccggtggatcctctggggaagccaggaccaggagaga
 agcaaggtcaagaaatcccacagtttgatgtattaaagaaatgacttatttctactcaaaataaatggca
 ttgaagtctttctttaa
->gi|530373237|ref|XM_005265508.1| PREDICTED: Homo sapiens BRCA1 associated protein-1 (ubiquitin carboxy-terminal hydrolase) (BAP1), transcript variant X2, mRNA
+>XM_005265508.1 PREDICTED: Homo sapiens BRCA1 associated protein-1 (ubiquitin carboxy-terminal hydrolase) (BAP1), transcript variant X2, mRNA
 gcatgcccgcatctgctgtccgacaggcggaagacgagcccagaggcggagcagggccgtcgcgccttgg
 tgacgtctgccgccggcgcgggcgggtgacgcgactgggcccgttgtctgtgtgtgggactgaggggccc
 cgggggcggtgggggctcccggtgggggcagcggtggggagggagggcctggacatggcgctgaggggcc
@@ -848,7 +848,7 @@ gaatagtcccagctggagagtccaggccctgggaatgggaggaaccaggccacattccttccatcgtgcc
 ctgaggcctgacacggcagatcagccccatagtgctcaggaggcagcatctggagttggggcacagcgag
 gtactgcagcttcctccacagccggctgtggagcagcaggacctggcccttctgcctgggcagcagaata
 tatattttacctatcagagacatctatttttctgggctccaacccaacatgccaccatgttgac
->gi|530373235|ref|XM_005265507.1| PREDICTED: Homo sapiens BRCA1 associated protein-1 (ubiquitin carboxy-terminal hydrolase) (BAP1), transcript variant X1, mRNA
+>XM_005265507.1 PREDICTED: Homo sapiens BRCA1 associated protein-1 (ubiquitin carboxy-terminal hydrolase) (BAP1), transcript variant X1, mRNA
 gcatgcccgcatctgctgtccgacaggcggaagacgagcccagaggcggagcagggccgtcgcgccttgg
 tgacgtctgccgccggcgcgggcgggtgacgcgactgggcccgttgtctgtgtgtgggactgaggggccc
 cgggggcggtgggggctcccggtgggggcagcggtggggagggagggcctggacatggcgctgaggggcc
@@ -890,7 +890,7 @@ agagtccaggccctgggaatgggaggaaccaggccacattccttccatcgtgccctgaggcctgacacgg
 cagatcagccccatagtgctcaggaggcagcatctggagttggggcacagcgaggtactgcagcttcctc
 cacagccggctgtggagcagcaggacctggcccttctgcctgggcagcagaatatatattttacctatca
 gagacatctatttttctgggctccaacccaacatgccaccatgttgac
->gi|530364726|ref|XR_241081.1| PREDICTED: Homo sapiens Mdm4 p53 binding protein homolog (mouse) (MDM4), transcript variant X4, misc_RNA
+>XR_241081.1 PREDICTED: Homo sapiens Mdm4 p53 binding protein homolog (mouse) (MDM4), transcript variant X4, misc_RNA
 gtgtgggaggccggaagttgcggcttcattactcgccatttcaaaatgctgccgaggccctaggatctgt
 gactgccacccctccccccacccgggctcggcgggggagcgactcatggagctgccgtaagttttaccaa
 cagactgcagtttcttcactaccaaaatgacatcattttccacctctgctcagtgttcaacatctgacag
@@ -906,7 +906,7 @@ gtgattgaagtgggaaaaaatgatgacctggaggactctaagtccttaagtgatgataccgatgtagagg
 ttacctctgaggatgagtggcagtgtactgaatgcaagaaatttaactctccaagcaagaggtactgttt
 tcgttgttgggccttgaggaaggattggtattcagattgttcaaagttaacccattctctctccacgtct
 gatatcactgccatacctgaaaaggaaaa
->gi|530364725|ref|XR_241080.1| PREDICTED: Homo sapiens Mdm4 p53 binding protein homolog (mouse) (MDM4), transcript variant X3, misc_RNA
+>XR_241080.1 PREDICTED: Homo sapiens Mdm4 p53 binding protein homolog (mouse) (MDM4), transcript variant X3, misc_RNA
 gtgtgggaggccggaagttgcggcttcattactcgccatttcaaaatgctgccgaggccctaggatctgt
 gactgccacccctccccccacccgggctcggcgggggagcgactcatggagctgccgtaagttttaccaa
 cagactgcagtttcttcactaccaaaatgacatcattttccacctctgctcagtgttcaacatctgacag
@@ -977,7 +977,7 @@ aaaggggccagactgtgttgccttcttgagcctggtctgactcctgagtggaagtctgattccaggtaca
 tgagataagcactaatacctccagtttgcagattaagagactgaggtcctgaagaggttaaagaacttgg
 ctcaagtcacatagctggtgagcagcaagatacaagaatcaacccaagtccagggggctgtgtgccgttt
 acacttcacatctgtgctgccagggctgtagctataaaagcttgaaaaccatta
->gi|530364724|ref|XR_241079.1| PREDICTED: Homo sapiens Mdm4 p53 binding protein homolog (mouse) (MDM4), transcript variant X2, misc_RNA
+>XR_241079.1 PREDICTED: Homo sapiens Mdm4 p53 binding protein homolog (mouse) (MDM4), transcript variant X2, misc_RNA
 aagttgcggcttcattactcgccatttcaaaatgctgccgaggccctaggatctgtgactgccacccctc
 cccccacccgggctcggcgggggagcgactcatggagctgccgtaagttttaccaacagactgcagtttc
 ttcactaccaaaatgacatcattttccacctctgctcagtgttcaacatctgacagtgcttgcaggatct

@@ -25,7 +25,6 @@ class TestIndexing(TestCase):
         except EnvironmentError:
             pass  # some tests may delete this file
 
-    @expectedFailure
     def test_build_issue_126(self):
         """ Samtools BGZF index should be identical to pyfaidx BGZF index """
         expect_index = ("gi|563317589|dbj|AB821309.1|	3510	114	70	71\n"
@@ -121,6 +120,7 @@ class TestFastaBGZF(TestCase):
                 'TACATTCTAGAGAAGGTGATTGAAGTGGGAAAAAATGATGACCTGGAGGACTC')
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                              1, 481)
+        print(result)
         assert str(result) == expect
 
     def test_fetch_middle(self):
@@ -185,7 +185,9 @@ class TestFastaBGZF(TestCase):
     def test_blank_string(self):
         """ seq[0:0] should return a blank string mdshw5/pyfaidx#53 """
         fasta = Fasta('data/genes.fasta.gz', as_raw=True)
-        assert fasta['gi|557361099|gb|KF435150.1|'][0:0] == ''
+        result = fasta['gi|557361099|gb|KF435150.1|'][0:0]
+        print(result)
+        assert result == ''
 
     def test_slice_from_beginning(self):
         fasta = Fasta('data/genes.fasta.gz', as_raw=True)
