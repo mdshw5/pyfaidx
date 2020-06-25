@@ -338,7 +338,7 @@ class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
 	            return True
 	        else:
 	            return False
-
+	            
 
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
