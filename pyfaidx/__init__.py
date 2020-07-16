@@ -15,6 +15,7 @@ from itertools import islice
 from math import ceil
 from os.path import getmtime
 from threading import Lock
+import fsspec
 
 from six import PY2, PY3, integer_types, string_types
 from six.moves import zip_longest
@@ -362,12 +363,15 @@ class Faidx(object):
                 "Compressed FASTA is only supported in BGZF format. Use "
                 "bgzip to compresss your FASTA.")
         else:
-            self._fasta_opener = open
+            self._fasta_opener = fsspec.open
             self._bgzf = False
 
         try:
-            self.file = self._fasta_opener(filename, 'r+b'
-                                           if mutable else 'rb')
+            if not self._bgzf:
+                self.file = self._fasta_opener(filename, 'r+' if mutable else 'r').open()
+            else:
+                self.file = self._fasta_opener(filename, 'r+' if mutable else 'r')
+
         except (ValueError, IOError) as e:
             if str(e).find('BGZF') > -1:
                 raise UnsupportedCompressionFormat(
@@ -514,7 +518,7 @@ class Faidx(object):
 
     def build_index(self):
         try:
-            with self._fasta_opener(self.filename, 'rb') as fastafile:
+            with self._fasta_opener(self.filename, 'r') as fastafile:
                 with open(self.indexname, 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
@@ -527,7 +531,7 @@ class Faidx(object):
                     lastline = None
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
-                        line = line.decode()
+                        #line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
                         # write an index line
@@ -675,7 +679,7 @@ class Faidx(object):
             if self._bgzf:  # We can't add to virtual offsets, so we need to read from the beginning of the record and trim the beginning if needed
                 self.file.seek(i.offset)
                 chunk = start0 + newlines_before + newlines_inside + seq_len
-                chunk_seq = self.file.read(chunk).decode()
+                chunk_seq = self.file.read(chunk)
                 seq = chunk_seq[start0 + newlines_before:]
             else:
                 self.file.seek(bstart)
@@ -685,7 +689,7 @@ class Faidx(object):
                     seq_blen = i.bend - bstart
                 # Otherwise it should be safe to read the sequence
                 if seq_blen > 0:
-                    seq = self.file.read(seq_blen).decode()
+                    seq = self.file.read(seq_blen)
                 # If the requested sequence is negative, we will pad the empty string with default_seq.
                 # This was changed to support #155 with strict_bounds=True.
                 elif seq_blen <= 0:
@@ -742,15 +746,15 @@ class Faidx(object):
                     newline_char = '\n'
                 self.file.seek(internals['bstart'])
                 if internals['newlines_inside'] == 0:
-                    self.file.write(seq.encode())
+                    self.file.write(seq)
                 elif internals['newlines_inside'] > 0:
                     n = 0
                     m = file_seq.index(newline_char)
                     while m < len(seq):
-                        self.file.write(''.join([seq[n:m], newline_char]).encode())
+                        self.file.write(''.join([seq[n:m], newline_char]))
                         n = m
                         m += line_len
-                    self.file.write(seq[n:].encode())
+                    self.file.write(seq[n:])
                     self.file.flush()
 
     def get_long_name(self, rname):
@@ -766,7 +770,7 @@ class Faidx(object):
         prev_bend = index_record.prev_bend
         defline_end = index_record.offset
         self.file.seek(prev_bend)
-        return self.file.read(defline_end - prev_bend).decode()[1:-1]
+        return self.file.read(defline_end - prev_bend)[1:-1]
 
     def _long_name_from_bgzf(self, index_record):
         """ Return the full sequence defline and description. Internal method passing IndexRecord
@@ -779,7 +783,7 @@ class Faidx(object):
         self.file.seek(prev_bend)
         defline = []
         while True:
-            chunk = self.file.read(4096).decode()
+            chunk = self.file.read(4096)
             defline.append(chunk)
             if '\n' in chunk or '\r' in chunk:
                 break
@@ -930,14 +934,14 @@ class FastaRecord(object):
             'shape': (len(self), ),
             'typestr': '|S1',
             'version': 3,
-            'data': buffer(str(self).encode('ascii'))
+            'data': buffer(str(self))
         }
 
 
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self._fa.faidx._fasta_opener != open:
+        if self._fa.faidx._bgzf:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
                 "Please decompress your FASTA file.")
