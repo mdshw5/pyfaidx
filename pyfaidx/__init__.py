@@ -460,7 +460,7 @@ class Faidx(object):
     def _index_as_string(self):
         """ Returns the string representation of the index as iterable """
         for k, v in self.index.items():
-            yield '\t'.join([k, str(v)])
+          yield '{k}\t{v.rlen:d}\t{v.offset:d}\t{v.lenc:d}\t{v.lenb:d}\n'.format(k=k, v=v)
 
     def read_fai(self):
         try:
@@ -607,7 +607,7 @@ class Faidx(object):
     def write_fai(self):
         with self.lock:
             with open(self.indexname, 'w') as outfile:
-                for line in self._index_as_string:
+                for line in self._index_as_string():
                     outfile.write(line)
 
     def from_buffer(self, start, end):
