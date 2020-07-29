@@ -305,7 +305,7 @@ class IndexRecord(
         return tuple.__getitem__(self, key)
 
     def __str__(self):
-        return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(
+        return "{rlen:d}\t{offset:d}\t{lenc:d}\t{lenb:d}".format(
             **self._asdict())
 
     def __len__(self):
@@ -460,7 +460,7 @@ class Faidx(object):
     def _index_as_string(self):
         """ Returns the string representation of the index as iterable """
         for k, v in self.index.items():
-          yield '{k}\t{v.rlen:d}\t{v.offset:d}\t{v.lenc:d}\t{v.lenb:d}\n'.format(k=k, v=v)
+          yield '{k}\t{v}\n'.format(k=k, v=str(v))
 
     def read_fai(self):
         try:
