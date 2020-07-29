@@ -317,12 +317,24 @@ class TestIndexing(TestCase):
         finally:
             shutil.rmtree(tmp_dir)
 
+    def test_read_back_index(self):
+        """Ensure that index files written with write_fai() can be read back"""
+        import locale
+        old_locale = locale.getlocale(locale.LC_NUMERIC)
+        try:
+            locale.setlocale(locale.LC_NUMERIC, 'en_US.utf8')
+            faidx = Faidx('data/genes.fasta')
+            faidx.write_fai()
+            faidx = Faidx('data/genes.fasta', build_index=False)
+        finally:
+            locale.setlocale(locale.LC_NUMERIC, old_locale)
+
     @raises(IndexNotFoundError)
     def test_issue_134_no_build_index(self):
         """ Ensure that index file is not built when build_index=False. See mdshw5/pyfaidx#134.
         """
         faidx = Faidx('data/genes.fasta', build_index=False)
-        
+
     @raises(FastaIndexingError)
     def test_issue_144_no_defline(self):
         """ Ensure that an exception is raised when a file contains no deflines. See mdshw5/pyfaidx#144.
