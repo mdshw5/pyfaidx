@@ -79,7 +79,7 @@ class TestIndexing(TestCase):
         index_file = Faidx('data/issue_141.fasta').indexname
         result_index = open(index_file).read()
         os.remove('data/issue_141.fasta.fai')
-        #print(result_index)
+        print(result_index)
         assert result_index == expect_index
 
     def test_build_issue_111(self):
