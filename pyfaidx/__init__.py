@@ -324,6 +324,7 @@ class Faidx(object):
                  strict_bounds=False,
                  read_ahead=None,
                  mutable=False,
+                 compression='infer',
                  split_char=None,
                  duplicate_action="stop",
                  filt_function=lambda x: True,
@@ -341,50 +342,18 @@ class Faidx(object):
           Default: False (i.e. return a Sequence() object).
         """
         self.filename = filename
+        self._fasta_opener = fsspec.open
+        self._compression = compression
 
-        if filename.lower().endswith('.bgz') or filename.lower().endswith(
-                '.gz'):
-            # Only try to import Bio if we actually need the bgzf reader.
-            try:
-                from Bio import bgzf
-                from Bio import __version__ as bgzf_version
-                from distutils.version import LooseVersion
-                if LooseVersion(bgzf_version) < LooseVersion('1.73'):
-                    raise ImportError
-            except ImportError:
-                raise ImportError(
-                    "BioPython >= 1.73 must be installed to read block gzip files.")
-            else:
-                self._fasta_opener = bgzf.open
-                self._bgzf = True
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith(
-                '.zip'):
-            raise UnsupportedCompressionFormat(
-                "Compressed FASTA is only supported in BGZF format. Use "
-                "bgzip to compresss your FASTA.")
-        else:
-            self._fasta_opener = fsspec.open
-            self._bgzf = False
+        self._bgzf = False
 
-        try:
-            if not self._bgzf:
-                self.file = self._fasta_opener(filename, 'r+' if mutable else 'r').open()
-            else:
-                self.file = self._fasta_opener(filename, 'r+' if mutable else 'r')
-
-        except (ValueError, IOError) as e:
-            if str(e).find('BGZF') > -1:
-                raise UnsupportedCompressionFormat(
-                    "Compressed FASTA is only supported in BGZF format. Use "
-                    "the samtools bgzip utility (instead of gzip) to "
-                    "compress your FASTA.")
-            else:
-                raise FastaNotFoundError(
-                    "Cannot read FASTA file %s" % filename)
+        # use the open method instead of the more standard context
+        self.file = self._fasta_opener(filename, 'r+' if mutable else 'r', compression=self._compression).open()
 
         self.indexname = filename + '.fai'
         self.read_long_names = read_long_names
         self.key_function = key_function
+
         try:
             key_fn_test = self.key_function(
                 "TestingReturnType of_key_function")
@@ -394,6 +363,7 @@ class Faidx(object):
                     format(type(key_fn_test)))
         except Exception as e:
             pass
+
         self.filt_function = filt_function
         assert duplicate_action in ("stop", "first", "last", "longest",
                                     "shortest", "drop")
@@ -518,8 +488,8 @@ class Faidx(object):
 
     def build_index(self):
         try:
-            with self._fasta_opener(self.filename, 'r') as fastafile:
-                with open(self.indexname, 'w') as indexfile:
+            with self._fasta_opener(self.filename, 'r', compression=self._compression) as fastafile:
+                with fsspec.open(self.indexname, 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -531,7 +501,6 @@ class Faidx(object):
                     lastline = None
                     for i, line in enumerate(fastafile):
                         line_blen = len(line)
-                        #line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
                         # write an index line
@@ -554,9 +523,10 @@ class Faidx(object):
                             rlen = 0
                             clen = 0
                             bad_lines = []
-                            try:  # must catch empty deflines (actually these might be okay: https://github.com/samtools/htslib/pull/258)
-                                rname = line.rstrip('\n\r')[1:].split()[
-                                    0]  # duplicates are detected with read_fai
+                            try:
+                                # must catch empty deflines
+                                # (actually these might be okay: https://github.com/samtools/htslib/pull/258)
+                                rname = line.rstrip('\n\r')[1:].split()[0]  # duplicates are detected with read_fai
                             except IndexError:
                                 raise FastaIndexingError(
                                     "Bad sequence name %s at line %s." %
@@ -870,6 +840,10 @@ class FastaRecord(object):
     def __len__(self):
         return self._fa.faidx.index[self.name].rlen
 
+    def __array__(self):
+        import numpy as np
+        return np.array([val for record in self for val in record.seq])
+
     @property
     def unpadded_len(self):
         """ Returns the length of the contig without 5' and 3' N padding.
@@ -1025,6 +999,17 @@ class Fasta(object):
         if isinstance(rname, integer_types):
             rname = next(islice(self.records.keys(), rname, None))
         try:
+            #
+            # x = self.records[rname]
+            # print(rname)
+            # # print(x)
+            # # print(type(x))
+            # print(len(x))
+            # #print(x[0])
+            # print(list(x))
+            # import numpy as np
+            # y = np.array(x)
+            # print(y.shape)
             return self.records[rname]
         except KeyError:
             raise KeyError("{0} not in {1}.".format(rname, self.filename))
