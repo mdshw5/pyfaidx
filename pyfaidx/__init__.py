@@ -4,10 +4,11 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
 
 from __future__ import division
-
+import bisect
 import os
 import re
 import string
+import struct
 import sys
 import warnings
 from collections import namedtuple
@@ -15,7 +16,6 @@ from itertools import islice
 from math import ceil
 from os.path import getmtime
 from threading import Lock
-
 from six import PY2, PY3, integer_types, string_types
 from six.moves import zip_longest
 
@@ -312,6 +312,34 @@ class IndexRecord(
         return self.rlen
 
 
+class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
+	    __slots__ = ()
+	
+	    def __getitem__(self, key):
+	        if type(key) == str:
+	            return getattr(self, key)
+	        return tuple.__getitem__(self, key)
+	
+	    def as_bytes(self):
+	        return struct.pack('<QQ', self.cstart, self.ustart)
+	        
+	    def __lt__(self, other):
+	        if self.ustart < other:
+	            return True
+	        
+	    def __len__(self):
+	        return self.ulen
+	        
+	    @property
+	    def empty(self):
+	    """Check for the EOF marker, which is an empty BGZF block.
+	       https://github.com/biopython/biopython/blob/master/Bio/bgzf.py#L171"""
+	        if self.ulen == '0':
+	            return True
+	        else:
+	            return False
+	            
+
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
 
@@ -341,29 +369,22 @@ class Faidx(object):
         """
         self.filename = filename
 
-        if filename.lower().endswith('.bgz') or filename.lower().endswith(
-                '.gz'):
-            # Only try to import Bio if we actually need the bgzf reader.
-            try:
-                from Bio import bgzf
-                from Bio import __version__ as bgzf_version
-                from distutils.version import LooseVersion
-                if LooseVersion(bgzf_version) < LooseVersion('1.73'):
-                    raise ImportError
-            except ImportError:
-                raise ImportError(
-                    "BioPython >= 1.73 must be installed to read block gzip files.")
+        with open(self.filename, 'rb') as sniffer:
+            snuff = sniffer.read(4)
+            if snuff == '\x1f\x8b\x08\x04':
+                try:
+                    from Bio import bgzf
+                except ImportError:
+                    raise ImportError(
+                        "BioPython must be installed to read BGZF files.")
+                else:
+                    self._fasta_opener = bgzf.open
+                    self._bgzf = True
+                    self.gzi_index = OrderedDict()
+                    self.gzi_indexname = filename + '.gzi'
             else:
-                self._fasta_opener = bgzf.open
-                self._bgzf = True
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith(
-                '.zip'):
-            raise UnsupportedCompressionFormat(
-                "Compressed FASTA is only supported in BGZF format. Use "
-                "bgzip to compresss your FASTA.")
-        else:
-            self._fasta_opener = open
-            self._bgzf = False
+                self._fasta_opener = open
+                self._bgzf = False
 
         try:
             self.file = self._fasta_opener(filename, 'r+b'
@@ -396,10 +417,6 @@ class Faidx(object):
         self.duplicate_action = duplicate_action
         self.as_raw = as_raw
         self.default_seq = default_seq
-        if self._bgzf and self.default_seq is not None:
-            raise FetchError(
-                "The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again."
-            )
         if self._bgzf:
             self.strict_bounds = True
         else:
@@ -435,7 +452,15 @@ class Faidx(object):
                     self.read_fai()
                 else:
                     self.read_fai()
-
+                if self._bgzf:
+                    if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
+                        self.read_gzi()
+                    elif os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) < getmtime(self.gzi_indexname) and not rebuild:
+                        self.read_gzi()
+                        warnings.warn("BGZF Index file {0} is older than FASTA file {1}.".format(self.gzi_indexname, self.filename), RuntimeWarning)
+                    else:
+                        self.build_gzi()
+                        self.write_gzi()
             except FastaIndexingError:
                 os.remove(self.indexname)
                 self.file.close()
@@ -558,8 +583,7 @@ class Faidx(object):
                                     "Bad sequence name %s at line %s." %
                                     (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
-                            thisoffset = fastafile.tell(
-                            ) if self._bgzf else offset
+                            thisoffset = offset
                         else:  # check line and advance offset
                             if not blen:
                                 blen = line_blen
@@ -603,12 +627,74 @@ class Faidx(object):
                     % self.indexname)
             elif isinstance(e, FastaIndexingError):
                 raise e
-
+                
+    def build_gzi(self):
+	        """ Build the htslib .gzi index format """
+	        from Bio import bgzf
+	        with open(self.filename, 'rb') as bgzf_file:
+	            self.gzi_index = []
+	            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
+	                self.gzi_index.append(BgzfBlock(*values))
+	        eof = self.gzi_index.pop()
+	        if not eof.empty:
+	            raise IOError("BGZF EOF marker not found. File %s is not a valid BGZF file." % self.filename)
+	        
+	                
+    def write_gzi(self):
+	        """ Write the on disk format for the htslib .gzi index
+	        https://github.com/samtools/htslib/issues/473"""
+	        with open(self.gzi_indexname, 'wb') as bzi_file:
+	            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
+	            for block in self.gzi_index:
+	                bzi_file.write(block.as_bytes())
+	                
+    def read_gzi(self):
+	        """ Read the on disk format for the htslib .gzi index
+	        https://github.com/samtools/htslib/issues/473"""
+	        from ctypes import c_uint64, sizeof
+	        with open(self.gzi_indexname, 'rb') as bzi_file:
+	            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
+	            self.gzi_index = []
+	            for i in range(number_of_blocks):
+	                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
+	                if cstart == '' or ustart == '':
+	                    raise IndexError("Unexpected end of .gzi file. ")
+	                else:
+	                    self.gzi_index.append(BgzfBlock(cstart, None, ustart, None))
+	                
     def write_fai(self):
         with self.lock:
             with open(self.indexname, 'w') as outfile:
                 for line in self._index_as_string():
                     outfile.write(line)
+
+    def build_gzi(self):
+        """ Build the htslib .gzi index format """
+        from Bio import bgzf
+        with open(self.filename, 'rb') as bgzf_file:
+            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
+                self.gzi_index[i] = BGZFblock(*values)
+
+    def write_gzi(self):
+        """ Write the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        with open(self.gzi_indexname, 'wb') as bzi_file:
+            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
+            for block in self.gzi_index.values():
+                bzi_file.write(block.as_bytes())
+
+    def read_gzi(self):
+        """ Read the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        from ctypes import c_uint64, sizeof
+        with open(self.gzi_indexname, 'rb') as bzi_file:
+            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
+            for i in range(number_of_blocks):
+                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
+                if cstart == '' or ustart == '':
+                    raise IndexError("Unexpected end of .gzi file. ")
+                else:
+                    self.gzi_index[i] = BGZFblock(cstart, None, ustart, None)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -663,20 +749,31 @@ class Faidx(object):
         newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc)) if i.lenc else 0
         newlines_inside = newlines_to_end - newlines_before
         seq_blen = newlines_inside + seq_len
-        bstart = i.offset + newlines_before + start0
+        
         if seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
         elif end > i.rlen and self.strict_bounds:
+            if self._bgzf:
+                raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                                 "strict_bounds=False is incompatible with BGZF compressed files."
+                                 "\n".format(end, rname))
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
 
         with self.lock:
-            if self._bgzf:  # We can't add to virtual offsets, so we need to read from the beginning of the record and trim the beginning if needed
-                self.file.seek(i.offset)
-                chunk = start0 + newlines_before + newlines_inside + seq_len
-                chunk_seq = self.file.read(chunk).decode()
-                seq = chunk_seq[start0 + newlines_before:]
+            bstart = i.offset + newlines_before + start0  # uncompressed offset for the start of requested string
+            if self._bgzf: 
+                from Bio import bgzf
+                insertion_i = bisect.bisect_left(self.gzi_index, bstart)
+                if insertion_i == 0:  # bisect_left already returns index to the left if values are the same
+                    start_block = self.gzi_index[insertion_i]
+                else:
+                    start_block = self.gzi_index[insertion_i - 1]
+                within_block_offset = start_block.ustart + bstart
+                print(self.gzi_index)
+                print(locals())
+                self.file.seek(bgzf.make_virtual_offset(start_block.cstart, within_block_offset))
             else:
                 self.file.seek(bstart)
 
@@ -1294,7 +1391,38 @@ def get_valid_filename(s):
     'chromosome_6.fa'
     """
     s = str(s).strip().replace(' ', '_')
-    return re.sub(r'(?u)[^-\w.]', '', s)
+    return re.sub(r'(?u)[^-\w.]', '', s)              
+
+def unpack_gzi_to_blocks(gzi_bytes):
+    """ Unpacks the bgzip .gzi format to a tuple of 
+    (compressed offset, uncompressed offset) describing 
+    the BGZF compressed FASTA file. 
+    >>> unpack_gzi_to_blocks(b'\x02\x00\x00\x00\x00\x00\x00\x00\x1e(\x00\x00\x00\x00\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x8a1\x00\x00\x00\x00\x00\x00\xff\x1c\x01\x00\x00\x00\x00\x00')
+    ((10270, 65280), (12682, 72959))
+    """
+    import struct
+    
+    n_bytes = len(gzi_bytes)
+    gzi_ints = struct.Struct('<%sQ' % str(n_bytes // 8)).unpack(gzi_bytes)  # little-endian 64-bit unsigned integers
+    n_blocks = gzi_ints[0]
+    
+    block_offsets = tuple(zip(*[iter(gzi_ints[1:])] * 2))
+    return block_offsets
+    
+def pack_blocks_to_gzi(block_offsets):
+    """ Packs the bgzip .gzi format from a tuple of 
+    (compressed offset, uncompressed offset) describing 
+    the BGZF compressed FASTA file. 
+    >>> pack_blocks_to_gzi(((10270, 65280), (12682, 72959)))
+    b'\x02\x00\x00\x00\x00\x00\x00\x00\x1e(\x00\x00\x00\x00\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x8a1\x00\x00\x00\x00\x00\x00\xff\x1c\x01\x00\x00\x00\x00\x00'
+    """
+    import struct
+    from itertools import chain
+    
+    n_blocks = len(block_offsets)
+    gzi_bytes = struct.Struct('<%sQ' % str(n_blocks * 2 + 1)).pack(n_blocks, *chain(*block_offsets))  # little-endian 64-bit unsigned integers
+    
+    return gzi_bytes
 
 
 if __name__ == "__main__":
