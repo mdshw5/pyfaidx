@@ -659,11 +659,12 @@ class Faidx(object):
 
         # Calculate offset (https://github.com/samtools/htslib/blob/20238f354894775ed22156cdd077bc0d544fa933/faidx.c#L398)
         newlines_before = int(
-            (start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 and i.lenc else 0
-        newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc)) if i.lenc else 0
+            (start0 - 1) / i.lenc) if start0 > 0 and i.lenc else 0
+        newlines_to_end = int(end / i.lenc) if i.lenc else 0
         newlines_inside = newlines_to_end - newlines_before
-        seq_blen = newlines_inside + seq_len
-        bstart = i.offset + newlines_before + start0
+        newline_blen = i.lenb - i.lenc
+        seq_blen = newlines_inside * newline_blen + seq_len
+        bstart = i.offset + newlines_before * newline_blen + start0
         if seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
@@ -674,7 +675,7 @@ class Faidx(object):
         with self.lock:
             if self._bgzf:  # We can't add to virtual offsets, so we need to read from the beginning of the record and trim the beginning if needed
                 self.file.seek(i.offset)
-                chunk = start0 + newlines_before + newlines_inside + seq_len
+                chunk = start0 + (newlines_before * newline_blen) + (newlines_inside * newline_blen) + seq_len
                 chunk_seq = self.file.read(chunk).decode()
                 seq = chunk_seq[start0 + newlines_before:]
             else:
