@@ -126,7 +126,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     elif args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
-        nucs.update([(c, str(ss).count(c)) for c in set(str(ss))])
+        nucs.update([(c, ss.count(c)) for c in set(ss)])
         A = nucs.pop('A', 0)
         T = nucs.pop('T', 0)
         C = nucs.pop('C', 0)
