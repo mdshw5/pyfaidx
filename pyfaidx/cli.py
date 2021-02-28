@@ -126,13 +126,13 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     elif args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
-        nucs.update([(c, str(ss).count(c)) for c in set(str(ss))])
+        nucs.update([(c, ss.count(c)) for c in set(ss)])
         A = nucs.pop('A', 0)
         T = nucs.pop('T', 0)
         C = nucs.pop('C', 0)
         G = nucs.pop('G', 0)
         N = nucs.pop('N', 0)
-        others = '|'.join([':'.join((k, v)) for k, v in nucs.items()])
+        others = '|'.join([':'.join((k, str(v))) for k, v in nucs.items()])
         return '{sname}\t{sstart}\t{send}\t{A}\t{T}\t{C}\t{G}\t{N}\t{others}\n'.format(sname=s.name, sstart=s.start, send=s.end, **locals())
     elif args.transform == 'transposed':
         return '{name}\t{start}\t{end}\t{seq}\n'.format(name=s.name, start=s.start, end=s.end, seq=str(s))
