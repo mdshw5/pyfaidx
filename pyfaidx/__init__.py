@@ -438,8 +438,8 @@ class Faidx(object):
                     self.read_fai()
 
             except FastaIndexingError:
-                os.remove(self.indexname)
                 self.file.close()
+                os.remove(self.indexname + '.tmp')
                 raise
             except Exception:
                 # Handle potential exceptions other than 'FastaIndexingError'
@@ -599,7 +599,6 @@ class Faidx(object):
                                                      bad_lines[0][0] + 1))
             shutil.move(self.indexname + '.tmp', self.indexname)
         except (IOError, FastaIndexingError) as e:
-            os.remove(self.indexname + '.tmp')
             if isinstance(e, IOError):
                 raise IOError(
                     "%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild."
