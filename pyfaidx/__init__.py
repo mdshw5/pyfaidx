@@ -9,6 +9,7 @@ import os
 import re
 import string
 import sys
+import shutil
 import warnings
 from collections import namedtuple
 from itertools import islice
@@ -29,7 +30,7 @@ if sys.version_info > (3, ):
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.5.9.5'
+__version__ = '0.6.0'
 
 
 class KeyFunctionError(ValueError):
@@ -515,7 +516,7 @@ class Faidx(object):
     def build_index(self):
         try:
             with self._fasta_opener(self.filename, 'rb') as fastafile:
-                with open(self.indexname, 'w') as indexfile:
+                with open(self.indexname + '.tmp', 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -596,7 +597,9 @@ class Faidx(object):
                                 "Inconsistent line found in >{0} at "
                                 "line {1:n}.".format(rname,
                                                      bad_lines[0][0] + 1))
+            shutil.move(self.indexname + '.tmp', self.indexname)
         except (IOError, FastaIndexingError) as e:
+            os.remove(self.indexname + '.tmp')
             if isinstance(e, IOError):
                 raise IOError(
                     "%s may not be writable. Please use Fasta(rebuild=False), Faidx(rebuild=False) or faidx --no-rebuild."
