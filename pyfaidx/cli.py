@@ -148,7 +148,7 @@ def main(ext_args=None):
     _input = parser.add_argument_group('input options')
     output = parser.add_argument_group('output options')
     header = parser.add_argument_group('header options')
-    _input.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions (zero-based start coordinate")
+    _input.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions (zero-based start coordinate)")
     output.add_argument('-o', '--out', type=argparse.FileType('w'), help="output file name (default: stdout)")
     output.add_argument('-i', '--transform', type=str, choices=('bed', 'chromsizes', 'nucleotide', 'transposed'), help="transform the requested regions into another format. default: %(default)s")
     output.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")
