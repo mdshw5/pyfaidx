@@ -356,7 +356,7 @@ cli script: faidx
 
     optional arguments:
       -h, --help            show this help message and exit
-      -b BED, --bed BED     bed file of regions
+      -b BED, --bed BED     bed file of regions (zero-based start coordinate)
       -o OUT, --out OUT     output file name (default: stdout)
       -i {bed,chromsizes,nucleotide,transposed}, --transform {bed,chromsizes,nucleotide,transposed} transform the requested regions into another format. default: None
       -c, --complement      complement the sequence. default: False
