@@ -117,6 +117,10 @@ def split_regions(args):
 def transform_sequence(args, fasta, name, start=None, end=None):
     line_len = fasta.faidx.index[name].lenc
     s = fasta[name][start:end]
+    if args.complement:
+        s = s.complement
+    if args.reverse:
+        s = s.reverse
     if args.no_output:
         return
     if args.transform == 'bed':
