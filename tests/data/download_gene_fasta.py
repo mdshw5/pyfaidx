@@ -52,6 +52,14 @@ def fetch_chr22(filename):
                 elif chr22:
                     fasta.write(line)
 
+def add_fake_chr(existing_fasta, filename):
+    with open(filename, 'w') as fasta:
+        with open(existing_fasta, 'r') as old_fa:
+            for line in old_fa:
+                fasta.write(line)
+        fasta.write('>fake chromosome not in vcf\n')
+        fasta.write('ATCG')
+
 def fake_chr22(filename):
     """ Fake up some data """
     chr22_len = 49691432
