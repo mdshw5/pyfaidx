@@ -93,12 +93,16 @@ if __name__ == "__main__":
     path = os.path.dirname(__file__)
     os.chdir(path)
     if not os.path.isfile("genes.fasta") or not os.path.isfile("genes.fasta.lower"):
+        print("GETTING genes")
         fetch_genes("genes.fasta")
     if not os.path.isfile("chr22.vcf.gz"):
+        print("GETTING vcf")
         fetch_chr22_vcf("chr22.vcf.gz")
     if not os.path.isfile("chr22.fasta"):
+        print("GETTING chr22.fasta")
         fetch_chr22("chr22.fasta")
     if not os.path.isfile("chr22andfake.fasta"):
+        print("adding fake chr")
         add_fake_chr("chr22.fasta", "chr22andfake.fasta")
     bgzip_compress_fasta("genes.fasta")
     bgzip_compress_fasta("chr22.fasta")
