@@ -59,7 +59,7 @@ def add_fake_chr(existing_fasta, filename):
             for line in old_fa:
                 fasta.write(line)
         fasta.write('>fake chromosome not in vcf\n')
-        fasta.write('ATCG')
+        fasta.write('ATCG\n')
 
 def fake_chr22(filename):
     """ Fake up some data """
