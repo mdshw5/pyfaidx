@@ -29,8 +29,7 @@ before_install:
     - env python3.6 -m pip install biopython requests
     - ls tests/data/chr22*
     - env --debug python3.6 tests/data/download_gene_fasta.py
-    - head tests/data/chr22.fasta
-    - tail tests/data/chr22andfake.fasta
+    - ls tests/data/chr22*
 script:
     - nosetests --with-coverage --cover-package=pyfaidx
 deploy:
