@@ -36,21 +36,22 @@ def fetch_genes(filename, suffix=None):
 def fetch_chr22(filename):
     import requests
     import gzip
+    import io
 
     with requests.get('https://ftp-trace.ncbi.nih.gov/1000genomes/ftp/pilot_data/technical/reference/human_b36_male.fa.gz') as compressed:
-        with open(filename, 'w') as fasta, gzip.GzipFile(fileobj=compressed.raw) as gz:
+        with open(filename, 'w') as fasta, gzip.GzipFile(fileobj=io.BytesIO(compressed.content)) as gz:
             chr22 = False
             for line in gz:
-                if line[0:3] == '>22':
-                    fasta.write(line)
+                line_content = line.decode()
+                if line_content[0:3] == '>22':
+                    fasta.write(line_content)
                     chr22 = True
                 elif not chr22:
                     continue
-                elif chr22 and line[0] == '>':
-                    curl.kill()
+                elif chr22 and line_content[0] == '>':
                     break
                 elif chr22:
-                    fasta.write(line)
+                    fasta.write(line_content)
 
 def add_fake_chr(existing_fasta, filename):
     with open(filename, 'w') as fasta:
@@ -97,5 +98,7 @@ if __name__ == "__main__":
         fetch_chr22_vcf("chr22.vcf.gz")
     if not os.path.isfile("chr22.fasta"):
         fetch_chr22("chr22.fasta")
+    if not os.path.isfile("chr22andfake.fasta"):
+        add_fake_chr("chr22.fasta", "chr22andfake.fasta")
     bgzip_compress_fasta("genes.fasta")
     bgzip_compress_fasta("chr22.fasta")
