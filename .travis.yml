@@ -28,7 +28,7 @@ before_install:
     - sudo apt-get install -y python3.6 python3-pip
     - env python3.6 -m pip install biopython requests
     - ls tests/data/chr22*
-    - env python3.6 tests/data/download_gene_fasta.py
+    - env --debug python3.6 tests/data/download_gene_fasta.py
     - head tests/data/chr22.fasta
     - tail tests/data/chr22andfake.fasta
 script:
