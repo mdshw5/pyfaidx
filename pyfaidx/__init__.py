@@ -24,6 +24,8 @@ try:
     from collections import OrderedDict
 except ImportError:  #python 2.6
     from ordereddict import OrderedDict
+    
+__version__ = get_distribution("pyfaidx").version
 
 if sys.version_info > (3, ):
     buffer = memoryview
