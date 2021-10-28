@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Coverage| |Depsy|
+|CI| |PyPI| |Coverage| |Depsy|
 
 Description
 -----------
@@ -595,6 +595,9 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Travis| image:: https://travis-ci.com/mdshw5/pyfaidx.svg?branch=master
     :target: https://travis-ci.com/mdshw5/pyfaidx
+    
+.. |CI| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/main.yml/badge.svg?branch=master
+    :target: https://github.com/mdshw5/pyfaidx/actions/workflows/main.yml
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/pyfaidx.svg?branch=master
     :target: https://pypi.python.org/pypi/pyfaidx
