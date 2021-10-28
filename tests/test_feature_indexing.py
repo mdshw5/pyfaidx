@@ -320,9 +320,16 @@ class TestIndexing(TestCase):
     def test_read_back_index(self):
         """Ensure that index files written with write_fai() can be read back"""
         import locale
+        import platform
+        
+        if platform.system() == "Linux":
+            new_locale = 'en_US.utf8'
+        elif platform.system() == "Darwin":
+            new_locale = 'en_US.UTF-8'
+        
         old_locale = locale.getlocale(locale.LC_NUMERIC)
         try:
-            locale.setlocale(locale.LC_NUMERIC, 'en_US.utf8')
+            locale.setlocale(locale.LC_NUMERIC, new_locale)
             faidx = Faidx('data/genes.fasta')
             faidx.write_fai()
             faidx = Faidx('data/genes.fasta', build_index=False)
