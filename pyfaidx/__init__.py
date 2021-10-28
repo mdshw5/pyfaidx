@@ -16,6 +16,7 @@ from itertools import islice
 from math import ceil
 from os.path import getmtime
 from threading import Lock
+from pkg_resources import get_distribution
 
 from six import PY2, PY3, integer_types, string_types
 from six.moves import zip_longest
