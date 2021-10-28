@@ -614,3 +614,6 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/80ihlw30a003596w?svg=true
    :target: https://ci.appveyor.com/project/mdshw5/pyfaidx
+   
+.. |Package| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml/badge.svg
+   :target: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml
