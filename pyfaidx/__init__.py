@@ -30,9 +30,6 @@ if sys.version_info > (3, ):
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
 
-__version__ = '0.6.2'
-
-
 class KeyFunctionError(ValueError):
     """Raised if the key_function argument is invalid."""
 
