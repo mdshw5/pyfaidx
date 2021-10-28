@@ -45,6 +45,10 @@ class IndexNotFoundError(IOError):
     """Raised if read_fai cannot open the index file."""
 
 
+class VcfIndexNotFoundError(IOError):
+    """Raised if vcf cannot find a tbi file."""
+
+
 class FastaNotFoundError(IOError):
     """Raised if the fasta file cannot be opened."""
 
@@ -1130,6 +1134,8 @@ class FastaVariant(Fasta):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
             raise IOError("File {0} does not exist.".format(vcf_file))
+        if not os.path.exists(vcf_file + '.tbi'):
+            raise VcfIndexNotFoundError("File {0} has not tabix index.".format(vcf_file))
         if sample is not None:
             self.sample = sample
         else:
@@ -1163,14 +1169,24 @@ class FastaVariant(Fasta):
         else:
             seq_mut = list(seq.seq)
             del seq.seq
-        var = self.vcf.fetch(name, start - 1, end)
-        for record in var:
-            if record.is_snp:  # skip indels
-                sample = record.genotype(self.sample)
-                if sample.gt_type in self.gt_type and eval(self.filter):
-                    alt = record.ALT[0]
-                    i = (record.POS - 1) - (start - 1)
-                    seq_mut[i:i + len(alt)] = str(alt)
+        try:
+            var = self.vcf.fetch(name, start - 1, end)
+            for record in var:
+                if record.is_snp:  # skip indels
+                    sample = record.genotype(self.sample)
+                    if sample.gt_type in self.gt_type and eval(self.filter):
+                        alt = record.ALT[0]
+                        i = (record.POS - 1) - (start - 1)
+                        seq_mut[i:i + len(alt)] = str(alt)
+        except ValueError as e: # Can be raised if name is not part of tabix for vcf
+            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
+                # The chromosome name is not part of the vcf
+                # The sequence returned is the same as the reference
+                pass
+            else:
+                # This is something else
+                raise e
+
         # slice the list in case we added an MNP in last position
         if self.faidx.as_raw:
             return ''.join(seq_mut[:end - start + 1])

@@ -10,7 +10,8 @@ os.chdir(path)
 class TestFastaVariant(TestCase):
     
     def setUp(self):
-        raise SkipTest
+        pass
+        # raise SkipTest
 
     def tearDown(self):
         try:
@@ -45,6 +46,14 @@ class TestFastaVariant(TestCase):
         except (ImportError, IOError):
             raise SkipTest
 
+    def test_fetch_chr_not_in_vcf(self):
+        try:
+            import pysam
+            fasta = FastaVariant('data/chr22andfake.fasta', 'data/chr22.vcf.gz', hom=True, het=True, as_raw=True)
+            assert fasta['fake'][:10] == 'ATCG' # fake is not in vcf 
+        except (ImportError, IOError):
+            raise SkipTest
+        
     def test_all_pos(self):
         try:
             import pysam
