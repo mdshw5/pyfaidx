@@ -39,6 +39,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: tests/data
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tests/data/*') }}
 
       - name: Download test data
         run: python tests/data/download_gene_fasta.py
