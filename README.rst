@@ -1,4 +1,4 @@
-|CI| |PyPI| |Coverage| |Depsy|
+|CI| |Package| |PyPI| |Coverage| |Depsy|
 
 Description
 -----------
