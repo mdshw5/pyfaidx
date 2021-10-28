@@ -6,19 +6,9 @@ install_requires = ['six', 'setuptools >= 0.7']
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
     install_requires.extend(['ordereddict', 'argparse'])
 
-
-def get_version(string):
-    """ Parse the version number variable __version__ from a script. """
-    import re
-    version_re = r"^__version__ = ['\"]([^'\"]*)['\"]"
-    version_str = re.search(version_re, string, re.M).group(1)
-    return version_str
-
-
 setup(
     name='pyfaidx',
     provides='pyfaidx',
-    version=get_version(open('pyfaidx/__init__.py', encoding='utf-8').read()),
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
@@ -28,6 +18,8 @@ setup(
     license='BSD',
     packages=['pyfaidx'],
     install_requires=install_requires,
+    use_scm_version={"local_scheme": "no-local-version"},
+    setup_requires=['setuptools_scm'],
     entry_points={'console_scripts': ['faidx = pyfaidx.cli:main']},
     classifiers=[
             "Development Status :: 5 - Production/Stable",
