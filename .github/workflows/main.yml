@@ -35,6 +35,11 @@ jobs:
       - name: Install package
         run: python setup.py install
         
+      - name: Cache test data
+        uses: actions/cache@v2
+        with:
+          path: tests/data
+
       - name: Download test data
         run: python tests/data/download_gene_fasta.py
         
