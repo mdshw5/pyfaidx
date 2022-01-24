@@ -1,5 +1,7 @@
 six
 pytest
+pytest-cov
 biopython
 setuptools >= 0.7
-mock; python_version < '3.3'
+mock
+python_version < '3.3'
