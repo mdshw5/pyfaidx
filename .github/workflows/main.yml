@@ -44,8 +44,8 @@ jobs:
       - name: Download test data
         run: python tests/data/download_gene_fasta.py
         
-      - name: Nosetests
-        run: nosetests --with-coverage --cover-package=pyfaidx
+      - name: Run tests
+        run: pytest --cov=./ --cov-report=xml
         
       - name: Codecov
         uses: codecov/codecov-action@v2.1.0
