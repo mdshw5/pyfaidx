@@ -1,7 +1,13 @@
 six
 pytest
 pytest-cov
-biopython
-setuptools >= 0.7
+setuptools
 mock
-python_version < '3.3'
+cython 
+pysam 
+requests 
+coverage 
+pyfasta 
+pyvcf 
+numpy 
+biopython
