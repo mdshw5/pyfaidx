@@ -26,7 +26,7 @@ If you use pyfaidx in your publication, please cite:
 Installation
 ------------
 
-This package is tested under Linux, MacOS, and Windows using Python 3.2-3.4, 2.7, 2.6, and pypy and is available from the PyPI:
+This package is tested under Linux and macOS using Python 3.6+, and and is available from the PyPI:
 
 ::
 
