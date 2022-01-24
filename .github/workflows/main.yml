@@ -30,7 +30,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install python packages
-        run: pip install cython pysam requests coverage pyfasta pyvcf numpy nose nose-ignore-docstring biopython
+        run: pip install -r dev-requirements.txt
           
       - name: Install package
         run: python setup.py install
