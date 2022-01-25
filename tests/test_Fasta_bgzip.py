@@ -1,13 +1,8 @@
 import os
+import pytest
 from pyfaidx import Fasta, Faidx, UnsupportedCompressionFormat, FetchError
 from itertools import chain
-try:
-    from unittest import TestCase, expectedFailure
-except ImportError:
-    from unittest import TestCase
-    from nose.plugins.skip import SkipTest as expectedFailure # python2.6
-from nose.tools import raises
-from nose.plugins.skip import SkipTest
+from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
@@ -17,7 +12,7 @@ class TestIndexing(TestCase):
         try:
             from Bio import SeqIO
         except ImportError:
-            raise SkipTest
+            pytest.skip("biopython not installed.")
 
     def tearDown(self):
         try:
@@ -25,7 +20,7 @@ class TestIndexing(TestCase):
         except EnvironmentError:
             pass  # some tests may delete this file
 
-    @expectedFailure
+    @pytest.mark.xfail
     def test_build_issue_126(self):
         """ Samtools BGZF index should be identical to pyfaidx BGZF index """
         expect_index = ("gi|563317589|dbj|AB821309.1|	3510	114	70	71\n"
@@ -57,7 +52,7 @@ class TestFastaBGZF(TestCase):
         try:
             from Bio import SeqIO
         except ImportError:
-            raise SkipTest
+            pytest.skip("biopython not installed.")
 
     def tearDown(self):
         try:
@@ -87,11 +82,11 @@ class TestFastaBGZF(TestCase):
         for record in fasta:
             assert len(next(iter(record))) == fasta.faidx.index[record.name].lenc
 
-    @raises(UnsupportedCompressionFormat)
+    @pytest.mark.xfail(raises=UnsupportedCompressionFormat)
     def test_mutable_bgzf(self):
         fasta = Fasta('data/genes.fasta.gz', mutable=True)
 
-    @raises(NotImplementedError)
+    @pytest.mark.xfail(raises=NotImplementedError)
     def test_long_names(self):
         """ Test that deflines extracted using FastaRecord.long_name are
         identical to deflines in the actual file.
@@ -137,7 +132,7 @@ class TestFastaBGZF(TestCase):
                              480, 481)
         assert str(result) == expect
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_border(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta.gz')
@@ -154,28 +149,28 @@ class TestFastaBGZF(TestCase):
                              480, 481)
         assert str(-result) == expect, result
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_past_bounds(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          480, 5000)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_negative(self):
         """ Fetch starting with a negative coordinate """
         faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          -10, 10)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_reversed_coordinates(self):
         """ Fetch starting with a negative coordinate """
         faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          50, 10)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_keyerror(self):
         """ Fetch a key that does not exist """
         faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
@@ -247,7 +242,7 @@ class TestFastaBGZF(TestCase):
         print(s.__dict__)
         assert (105, 100) == (s.start, s.end)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_border_padded(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta.gz', default_seq='N')

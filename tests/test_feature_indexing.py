@@ -1,8 +1,7 @@
 import os
+import pytest
 from os.path import getmtime
 from pyfaidx import Faidx, FastaIndexingError, IndexNotFoundError, FastaNotFoundError
-from nose.tools import raises
-from nose.plugins.skip import Skip, SkipTest
 from unittest import TestCase
 from tempfile import NamedTemporaryFile, mkdtemp
 import time
@@ -336,13 +335,13 @@ class TestIndexing(TestCase):
         finally:
             locale.setlocale(locale.LC_NUMERIC, old_locale)
 
-    @raises(IndexNotFoundError)
+    @pytest.mark.xfail(raises=IndexNotFoundError)
     def test_issue_134_no_build_index(self):
         """ Ensure that index file is not built when build_index=False. See mdshw5/pyfaidx#134.
         """
         faidx = Faidx('data/genes.fasta', build_index=False)
 
-    @raises(FastaIndexingError)
+    @pytest.mark.xfail(raises=FastaIndexingError)
     def test_issue_144_no_defline(self):
         """ Ensure that an exception is raised when a file contains no deflines. See mdshw5/pyfaidx#144.
         """

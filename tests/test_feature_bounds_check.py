@@ -1,6 +1,6 @@
 import os
+import pytest
 from pyfaidx import Faidx, Fasta, FetchError
-from nose.tools import raises
 from unittest import TestCase
 
 path = os.path.dirname(__file__)
@@ -108,28 +108,28 @@ class TestFeatureBoundsCheck:
                              480, 481)
         assert str(-result) == expect, result
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_past_bounds(self):
         """ Fetch past the end of a gene entry """
         faidx = Faidx('data/genes.fasta', strict_bounds=True)
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          480, 5000)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_negative(self):
         """ Fetch starting with a negative coordinate """
         faidx = Faidx('data/genes.fasta', strict_bounds=True)
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          -10, 10)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_reversed_coordinates(self):
         """ Fetch starting with a negative coordinate """
         faidx = Faidx('data/genes.fasta', strict_bounds=True)
         result = faidx.fetch('gi|557361099|gb|KF435150.1|',
                                          50, 10)
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_keyerror(self):
         """ Fetch a key that does not exist """
         faidx = Faidx('data/genes.fasta', strict_bounds=True)

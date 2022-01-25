@@ -1,9 +1,9 @@
 import os
 import sys
+import pytest
 from pyfaidx import Fasta
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
-from nose.tools import raises
 from difflib import Differ
 
 path = os.path.dirname(__file__)
@@ -151,13 +151,13 @@ class TestMutableFastaRecord(TestCase):
         mutable['gi|557361099|gb|KF435150.1|'][0] = chunk
         assert mutable['gi|557361099|gb|KF435150.1|'][0].seq == chunk
 
-    @raises(TypeError)
+    @pytest.mark.xfail(raises=TypeError)
     def test_mutate_immutable_fasta(self):
         mutable = Fasta('data/genes_mutable.fasta', mutable=False)
         chunk = 100 * 'N'
         mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
 
-    @raises(IOError)
+    @pytest.mark.xfail(raises=IOError)
     def test_mutate_too_long(self):
         mutable = Fasta('data/genes_mutable.fasta', mutable=True)
         chunk = 101 * 'N'

@@ -1,6 +1,6 @@
 import os
+import pytest
 from pyfaidx import Faidx, Fasta, FetchError
-from nose.tools import raises
 from unittest import TestCase
 
 path = os.path.dirname(__file__)
@@ -34,11 +34,11 @@ class TestFeatureBuffer(TestCase):
         result = fasta['gi|557361099|gb|KF435150.1|'][0:400].seq.lower()
         assert result == expect
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_bounds_error(self):
         fasta = Fasta('data/genes.fasta', read_ahead=300, strict_bounds=True)
         result = fasta['gi|557361099|gb|KF435150.1|'][100-1:15000].seq.lower()
 
-    @raises(ValueError)
+    @pytest.mark.xfail(raises=ValueError)
     def test_buffer_value(self):
         Fasta('data/genes.fasta', read_ahead=0.5)

@@ -1,6 +1,6 @@
 import os
+import pytest
 from pyfaidx import Faidx, Fasta
-from nose.tools import raises
 from unittest import TestCase
 
 path = os.path.dirname(__file__)
@@ -63,7 +63,7 @@ class TestFeatureKeyFunction(TestCase):
                              100, 150)
         assert str(result) == expect
 
-    @raises(ValueError)
+    @pytest.mark.xfail(raises=ValueError)
     def test_duplicated_keys(self):
         genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name)
 

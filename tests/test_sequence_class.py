@@ -1,5 +1,5 @@
+import pytest
 from pyfaidx import Sequence, complement
-from nose.tools import assert_raises, raises
 
 seq = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
                     start=100, end=150)
@@ -19,8 +19,9 @@ def test_negate_metadata():
     seq_neg = -seq
     assert seq_neg.__repr__() == seq.complement[::-1].__repr__()
 
+@pytest.mark.xfail(raises=ValueError)
 def test_seq_invalid():
-    assert_raises(ValueError, lambda: seq_invalid.complement)
+    seq_invalid.complement()
 
 def test_integer_index():
     assert seq[1].seq == 'T'
@@ -28,11 +29,11 @@ def test_integer_index():
 def test_slice_index():
     assert seq[0:10].seq == 'TTGAAGATTT'
 
-@raises(ValueError)
+@pytest.mark.xfail(raises=ValueError)
 def test_comp_invalid():
     complement(comp_invalid)
 
-@raises(ValueError)
+@pytest.mark.xfail(raises=ValueError)
 def test_check_coordinates():
     x = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
                  start=100, end=110)

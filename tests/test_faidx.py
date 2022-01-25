@@ -1,8 +1,8 @@
 import os
 import filecmp
+import pytest
 from pyfaidx import FastaIndexingError, BedError, FetchError
 from pyfaidx.cli import main
-from nose.tools import raises
 from unittest import TestCase
 from tempfile import NamedTemporaryFile
 
@@ -20,7 +20,7 @@ class TestCLI(TestCase):
         except EnvironmentError:
             pass  # some tests may delete this file
 
-    @raises(BedError)
+    @pytest.mark.xfail(raises=BedError)
     def test_short_line_lengths(self):
         main(['data/genes.fasta', '--bed', 'data/malformed.bed'])
 
@@ -32,7 +32,7 @@ class TestCLI(TestCase):
         assert os.path.exists('gi557361099gbKF435150.1.fasta')
         os.remove('gi557361099gbKF435150.1.fasta')
 
-    @raises(FetchError)
+    @pytest.mark.xfail(raises=FetchError)
     def test_fetch_error(self):
         main(['data/genes.fasta', 'gi|557361099|gb|KF435150.1|:1-1000'])
         
