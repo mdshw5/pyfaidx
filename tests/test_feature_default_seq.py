@@ -1,21 +1,21 @@
 import os
 from pyfaidx import Faidx
-from unittest import TestCase
 
 path = os.path.dirname(__file__)
 os.chdir(path)
 
-class TestFeatureDefaultSeq(TestCase):
-    def teardown_method(self):
-        try:
-            os.remove('data/genes.fasta.fai')
-        except EnvironmentError:
-            pass  # some tests may delete this file
+@pytest.fixture
+def remove_index():
+    yield
+    try:
+        os.remove('data/genes.fasta.fai')
+    except EnvironmentError:
+        pass  # some tests may delete this file
 
-    def test_fetch_border_padded(self):
-        """ Fetch past the end of a gene entry """
-        faidx = Faidx('data/genes.fasta', default_seq='N')
-        expect = 'TCNNNNNNNNNNNNNNNNNNN'
-        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                             480, 500)
-        assert str(result) == expect
+def test_fetch_border_padded(remove_index):
+    """ Fetch past the end of a gene entry """
+    faidx = Faidx('data/genes.fasta', default_seq='N')
+    expect = 'TCNNNNNNNNNNNNNNNNNNN'
+    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
+                         480, 500)
+    assert str(result) == expect
