@@ -19,7 +19,7 @@ def remove_index():
     except EnvironmentError:
         pass  # some tests may delete this file
 
-@pytest.mark.skipif(not bio)
+@pytest.mark.skipif(not bio, reason="Biopython is not installed.")
 def test_fetch_whole_entry(remove_index):
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
@@ -27,14 +27,14 @@ def test_fetch_whole_entry(remove_index):
     assert str(fasta['gi|557361099|gb|KF435150.1|']) == str(seqio['gi|557361099|gb|KF435150.1|'].seq)
     assert fasta['gi|557361099|gb|KF435150.1|'].name == str(seqio['gi|557361099|gb|KF435150.1|'].name)
 
-@pytest.mark.skipif(not bio)
+@pytest.mark.skipif(not bio, reason="Biopython is not installed.")
 def test_slice_whole_entry(remove_index):
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
         seqio = SeqIO.to_dict(SeqIO.parse(fh, "fasta"))
     assert str(fasta['gi|557361099|gb|KF435150.1|'][::3]) == str(seqio['gi|557361099|gb|KF435150.1|'].seq[::3])
 
-@pytest.mark.skipif(not bio)
+@pytest.mark.skipif(not bio, reason="Biopython is not installed.")
 def test_revcomp_whole_entry(remove_index):
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
