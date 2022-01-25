@@ -1,4 +1,5 @@
 import os
+import pytest
 try:
     from collections import OrderedDict
 except ImportError: #python 2.6

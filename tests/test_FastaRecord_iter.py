@@ -1,4 +1,5 @@
 import os
+import pytest
 from pyfaidx import Fasta
 from itertools import chain
 

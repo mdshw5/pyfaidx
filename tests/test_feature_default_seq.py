@@ -1,4 +1,5 @@
 import os
+import pytest
 from pyfaidx import Faidx
 
 path = os.path.dirname(__file__)
