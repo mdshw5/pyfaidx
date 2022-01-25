@@ -1,6 +1,6 @@
 import os
+import pytest
 from pyfaidx import Faidx, Fasta
-from nose.tools import raises
 from unittest import TestCase
 
 path = os.path.dirname(__file__)
@@ -28,12 +28,12 @@ class TestFeatureSequenceAsRaw(TestCase):
         result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].lower()
         assert result == expect
 
-    @raises(AttributeError)
+    @pytest.mark.xfail(raises=AttributeError)
     def test_as_raw_false_error(self):
         fasta = Fasta('data/genes.fasta')
         result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].lower()
 
-    @raises(AttributeError)
+    @pytest.mark.xfail(raises=AttributeError)
     def test_as_raw_true_error(self):
         fasta = Fasta('data/genes.fasta', as_raw=True)
         result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].seq.lower()
