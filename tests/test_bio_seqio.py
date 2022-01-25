@@ -6,14 +6,20 @@ from unittest import TestCase
 path = os.path.dirname(__file__)
 os.chdir(path)
 
+try:
+    from Bio import SeqIO
+    bio = True
+except ImportError:
+    bio = False
+
 class TestBioSeqIO(TestCase):
-    def setUp(self):
+    def setup_method(self):
         try:
             from Bio import SeqIO
         except ImportError:
             pytest.skip("biopython not installed.")
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:

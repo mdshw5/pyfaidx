@@ -74,14 +74,14 @@ class _ThreadWriteSequence(threading.Thread):
 
 
 class TestFastaIntIndex(TestCase):
-    def setUp(self):
+    def setup_method(self):
         self.longMessage = True
         self.maxDiff = None
         self.tmp_dir = tempfile.mkdtemp()
         # Use a seeded random orders are randomish within a test, but the same across test runs
         self.rand = random.Random(8903423147)
 
-    def tearDown(self):
+    def teardown_method(self):
         tmp_dir = getattr(self, 'tmp_dir', None)
         if tmp_dir:
             shutil.rmtree(tmp_dir)

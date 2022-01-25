@@ -7,10 +7,10 @@ path = os.path.dirname(__file__)
 os.chdir(path)
 
 class TestFastaVariant(TestCase):
-    def setUp(self):
+    def setup_method(self):
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/chr22.fasta.fai')
         except EnvironmentError:

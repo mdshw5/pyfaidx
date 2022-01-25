@@ -8,7 +8,7 @@ os.chdir(path)
 
 class TestFeatureZeroLength:
     """Tests for handling zero-length entries, added in #155"""
-    def setUp(self):
+    def setup_method(self):
         with open('data/zero_length.fasta', 'w') as fasta:
             fasta.write(""">A
 ATCG
@@ -19,7 +19,7 @@ ATCG
 GTA
 GC""")
 
-    def tearDown(self):
+    def teardown_method(self):
         os.remove('data/zero_length.fasta')
         os.remove('data/zero_length.fasta.fai')
               
@@ -32,10 +32,10 @@ GC""")
         assert str(b) == ''
         
 class TestZeroLengthSequenceSubRange(TestCase):
-    def setUp(self):
+    def setup_method(self):
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:
@@ -54,10 +54,10 @@ class TestZeroLengthSequenceSubRange(TestCase):
         assert result.seq == expect
 
 class TestFeatureBoundsCheck:
-    def setUp(self):
+    def setup_method(self):
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:

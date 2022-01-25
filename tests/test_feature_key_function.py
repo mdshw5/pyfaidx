@@ -33,12 +33,12 @@ def get_duplicated_gene_name(accession):
 
 
 class TestFeatureKeyFunction(TestCase):
-    def setUp(self):
+    def setup_method(self):
         genes = Fasta('data/genes.fasta')
         del genes  # Support feature introduced in #111
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:

@@ -8,13 +8,13 @@ path = os.path.dirname(__file__)
 os.chdir(path)
 
 class TestIndexing(TestCase):
-    def setUp(self):
+    def setup_method(self):
         try:
             from Bio import SeqIO
         except ImportError:
             pytest.skip("biopython not installed.")
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.gz.fai')
         except EnvironmentError:
@@ -48,13 +48,13 @@ class TestIndexing(TestCase):
         assert result_index == expect_index
 
 class TestFastaBGZF(TestCase):
-    def setUp(self):
+    def setup_method(self):
         try:
             from Bio import SeqIO
         except ImportError:
             pytest.skip("biopython not installed.")
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.gz.fai')
         except EnvironmentError:

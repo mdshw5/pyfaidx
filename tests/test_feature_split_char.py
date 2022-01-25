@@ -8,10 +8,10 @@ os.chdir(path)
 
 
 class TestFeatureSplitChar(TestCase):
-    def setUp(self):
+    def setup_method(self):
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:

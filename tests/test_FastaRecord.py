@@ -11,10 +11,10 @@ os.chdir(path)
 
 
 class TestFastaRecord(TestCase):
-    def setUp(self):
+    def setup_method(self):
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:
@@ -112,12 +112,12 @@ class TestFastaRecord(TestCase):
 
 
 class TestMutableFastaRecord(TestCase):
-    def setUp(self):
+    def setup_method(self):
         with open('data/genes_mutable.fasta', 'wb') as mutable:
             mutable.write(open('data/genes.fasta', 'rb').read())
         self.mutable_fasta = Fasta('data/genes_mutable.fasta', mutable=True)
 
-    def tearDown(self):
+    def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
         except EnvironmentError:

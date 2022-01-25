@@ -6,10 +6,10 @@ path = os.path.dirname(__file__)
 os.chdir(path)
 
 class TestFeatureSplicedSeq(TestCase):
-    def setUp(self):
+    def setup_method(self):
         pass
 
-    def tearDown(self):
+    def teardown_method(self):
         fais = [
                 "data/gene.bed12.fasta.fai",
                 "data/chr17.hg19.part.fa.fai"
