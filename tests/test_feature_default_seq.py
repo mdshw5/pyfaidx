@@ -6,9 +6,6 @@ path = os.path.dirname(__file__)
 os.chdir(path)
 
 class TestFeatureDefaultSeq(TestCase):
-    def setup_method(self):
-        pass
-
     def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')

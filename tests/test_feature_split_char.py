@@ -8,9 +8,6 @@ os.chdir(path)
 
 
 class TestFeatureSplitChar(TestCase):
-    def setup_method(self):
-        pass
-
     def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')

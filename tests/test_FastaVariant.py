@@ -7,9 +7,6 @@ path = os.path.dirname(__file__)
 os.chdir(path)
 
 class TestFastaVariant(TestCase):
-    def setup_method(self):
-        pass
-
     def teardown_method(self):
         try:
             os.remove('data/chr22.fasta.fai')

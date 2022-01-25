@@ -32,9 +32,6 @@ GC""")
         assert str(b) == ''
         
 class TestZeroLengthSequenceSubRange(TestCase):
-    def setup_method(self):
-        pass
-
     def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')
@@ -54,9 +51,6 @@ class TestZeroLengthSequenceSubRange(TestCase):
         assert result.seq == expect
 
 class TestFeatureBoundsCheck:
-    def setup_method(self):
-        pass
-
     def teardown_method(self):
         try:
             os.remove('data/genes.fasta.fai')

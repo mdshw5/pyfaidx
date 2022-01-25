@@ -36,7 +36,6 @@ class TestFeatureKeyFunction(TestCase):
     def setup_method(self):
         genes = Fasta('data/genes.fasta')
         del genes  # Support feature introduced in #111
-        pass
 
     def teardown_method(self):
         try:
