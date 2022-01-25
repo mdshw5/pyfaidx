@@ -1,6 +1,6 @@
 import os
+import pytest
 from pyfaidx import Faidx, Fasta
-from nose.tools import raises
 from unittest import TestCase
 
 path = os.path.dirname(__file__)
@@ -36,6 +36,6 @@ class TestFeatureSplitChar(TestCase):
                              100, 150)
         assert str(result) == expect
 
-    @raises(ValueError)
+    @pytest.mark.xfail(raises=ValueError)
     def test_stop(self):
         fasta = Fasta('data/genes.fasta', split_char='|')
