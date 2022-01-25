@@ -44,7 +44,7 @@ def test_auto_strand(remove_index):
             print(auto_strand.read())
             print()
             print(noto_strand.read())
-            self.assertTrue(filecmp.cmp(auto_strand.name, noto_strand.name))
+            assert filecmp.cmp(auto_strand.name, noto_strand.name)
     
 def test_regexp(remove_index):
     main(['data/genes.fasta', '-g', 'XR'])

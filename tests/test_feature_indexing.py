@@ -272,7 +272,7 @@ def test_build_issue_96_fail_build_faidx(remove_index):
                 )
             except FastaIndexingError:
                 pass
-        remove_index.assertTrue(all(f.closed for f in opened_files))
+        assert all(f.closed for f in opened_files)
     finally:
         shutil.rmtree(tmp_dir)
 
@@ -308,7 +308,7 @@ def test_build_issue_96_fail_read_malformed_index_duplicate_key(remove_index):
                     "Faidx construction should fail with 'ValueError'.")
             except ValueError:
                 pass
-        remove_index.assertTrue(all(f.closed for f in opened_files))
+        assert all(f.closed for f in opened_files)
     finally:
         shutil.rmtree(tmp_dir)
 
