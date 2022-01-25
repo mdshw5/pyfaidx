@@ -575,13 +575,16 @@ create also the relevant test.
 
 To get test running on your machine:
  - Create a new virtualenv and install the `dev-requirements.txt`.
+ 
+      pip install -r dev-requirements.txt
+      
  - Download the test data running:
 
       python tests/data/download_gene_fasta.py
 
  - Run the tests with
 
-      nosetests --with-coverage --cover-package=pyfaidx
+      pytests
 
 Acknowledgements
 ----------------
