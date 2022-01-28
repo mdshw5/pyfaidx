@@ -6,7 +6,7 @@ on:
   push:
     branches: [ master, develop ]
   pull_request:
-    branches: [ master, develop ]
+    types: [opened, reopened]
 
 jobs:
   build:
