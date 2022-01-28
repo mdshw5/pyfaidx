@@ -10,3 +10,6 @@ __pycache__
 .coverage
 .coverage.*
 tests/data/chr22*
+.eggs/
+tests/data/genes.fasta.gz
+*~

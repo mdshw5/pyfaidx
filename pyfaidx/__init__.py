@@ -16,6 +16,7 @@ from itertools import islice
 from math import ceil
 from os.path import getmtime
 from threading import Lock
+from pkg_resources import get_distribution
 
 from six import PY2, PY3, integer_types, string_types
 from six.moves import zip_longest
@@ -24,14 +25,13 @@ try:
     from collections import OrderedDict
 except ImportError:  #python 2.6
     from ordereddict import OrderedDict
+    
+__version__ = get_distribution("pyfaidx").version
 
 if sys.version_info > (3, ):
     buffer = memoryview
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
-
-__version__ = '0.6.0'
-
 
 class KeyFunctionError(ValueError):
     """Raised if the key_function argument is invalid."""
@@ -43,6 +43,10 @@ class FastaIndexingError(Exception):
 
 class IndexNotFoundError(IOError):
     """Raised if read_fai cannot open the index file."""
+
+
+class VcfIndexNotFoundError(IOError):
+    """Raised if vcf cannot find a tbi file."""
 
 
 class FastaNotFoundError(IOError):
@@ -340,6 +344,7 @@ class Faidx(object):
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
+        filename = str(filename)
         self.filename = filename
 
         if filename.lower().endswith('.bgz') or filename.lower().endswith(
@@ -993,6 +998,7 @@ class Fasta(object):
         An object that provides a pygr compatible interface.
         filename: name of fasta file
         """
+        filename = str(filename)
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
@@ -1130,6 +1136,8 @@ class FastaVariant(Fasta):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
             raise IOError("File {0} does not exist.".format(vcf_file))
+        if not os.path.exists(vcf_file + '.tbi'):
+            raise VcfIndexNotFoundError("File {0} has not tabix index.".format(vcf_file))
         if sample is not None:
             self.sample = sample
         else:
@@ -1163,14 +1171,24 @@ class FastaVariant(Fasta):
         else:
             seq_mut = list(seq.seq)
             del seq.seq
-        var = self.vcf.fetch(name, start - 1, end)
-        for record in var:
-            if record.is_snp:  # skip indels
-                sample = record.genotype(self.sample)
-                if sample.gt_type in self.gt_type and eval(self.filter):
-                    alt = record.ALT[0]
-                    i = (record.POS - 1) - (start - 1)
-                    seq_mut[i:i + len(alt)] = str(alt)
+        try:
+            var = self.vcf.fetch(name, start - 1, end)
+            for record in var:
+                if record.is_snp:  # skip indels
+                    sample = record.genotype(self.sample)
+                    if sample.gt_type in self.gt_type and eval(self.filter):
+                        alt = record.ALT[0]
+                        i = (record.POS - 1) - (start - 1)
+                        seq_mut[i:i + len(alt)] = str(alt)
+        except ValueError as e: # Can be raised if name is not part of tabix for vcf
+            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
+                # The chromosome name is not part of the vcf
+                # The sequence returned is the same as the reference
+                pass
+            else:
+                # This is something else
+                raise e
+
         # slice the list in case we added an MNP in last position
         if self.faidx.as_raw:
             return ''.join(seq_mut[:end - start + 1])

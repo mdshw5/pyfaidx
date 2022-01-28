@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Coverage| |Depsy|
+|CI| |Package| |PyPI| |Coverage| |Depsy|
 
 Description
 -----------
@@ -38,7 +38,7 @@ or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
 
     python setup.py install
 
-If using ``pip install --user`` make sure to add ``/home/$(whoami)/.local/bin`` to your ``$PATH`` if you want to run the ``faidx`` script.
+If using ``pip install --user`` make sure to add ``/home/$USER/.local/bin`` to your ``$PATH`` (on linux) or ``/Users/$USER/Library/Python/{python version}/bin`` (on macOS) if you want to run the ``faidx`` script.
 
 Usage
 -----
@@ -356,7 +356,7 @@ cli script: faidx
 
     optional arguments:
       -h, --help            show this help message and exit
-      -b BED, --bed BED     bed file of regions
+      -b BED, --bed BED     bed file of regions (zero-based start coordinate)
       -o OUT, --out OUT     output file name (default: stdout)
       -i {bed,chromsizes,nucleotide,transposed}, --transform {bed,chromsizes,nucleotide,transposed} transform the requested regions into another format. default: None
       -c, --complement      complement the sequence. default: False
@@ -595,6 +595,9 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Travis| image:: https://travis-ci.com/mdshw5/pyfaidx.svg?branch=master
     :target: https://travis-ci.com/mdshw5/pyfaidx
+    
+.. |CI| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/main.yml/badge.svg?branch=master
+    :target: https://github.com/mdshw5/pyfaidx/actions/workflows/main.yml
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/pyfaidx.svg?branch=master
     :target: https://pypi.python.org/pypi/pyfaidx
@@ -611,3 +614,6 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/80ihlw30a003596w?svg=true
    :target: https://ci.appveyor.com/project/mdshw5/pyfaidx
+   
+.. |Package| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml/badge.svg
+   :target: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml

@@ -27,8 +27,11 @@ install:
 before_install: 
     - sudo apt-get install -y python3.6 python3-pip
     - env python3.6 -m pip install biopython requests
-    - env python3.6 tests/data/download_gene_fasta.py
-script: nosetests --with-coverage --cover-package=pyfaidx
+    - ls tests/data/chr22*
+    - env --debug python3.6 tests/data/download_gene_fasta.py
+    - ls tests/data/chr22*
+script:
+    - nosetests --with-coverage --cover-package=pyfaidx
 deploy:
   provider: pypi
   user: mdshw5
