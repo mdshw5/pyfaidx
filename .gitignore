@@ -12,3 +12,4 @@ __pycache__
 tests/data/chr22*
 .eggs/
 tests/data/genes.fasta.gz
+*~
