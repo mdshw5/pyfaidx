@@ -344,6 +344,7 @@ class Faidx(object):
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
+        filename = str(filename)
         self.filename = filename
 
         if filename.lower().endswith('.bgz') or filename.lower().endswith(
@@ -997,6 +998,7 @@ class Fasta(object):
         An object that provides a pygr compatible interface.
         filename: name of fasta file
         """
+        filename = str(filename)
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
