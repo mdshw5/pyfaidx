@@ -352,8 +352,8 @@ class Faidx(object):
             try:
                 from Bio import bgzf
                 from Bio import __version__ as bgzf_version
-                from distutils.version import LooseVersion
-                if LooseVersion(bgzf_version) < LooseVersion('1.73'):
+                from packaging.version import Version
+                if Version(bgzf_version) < Version('1.73'):
                     raise ImportError
             except ImportError:
                 raise ImportError(
