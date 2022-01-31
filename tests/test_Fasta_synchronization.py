@@ -22,7 +22,7 @@ class _ThreadReadSequence(threading.Thread):
 
         seq_len = len(seq)
         sub_seq_slices = list(slice(i, min(i + 20, seq_len)) for i in range(0, seq_len, 20))
-        random.shuffle(sub_seq_slices, rand.random)
+        random.shuffle(sub_seq_slices)
 
         self.result_map = result_map
         self.result_lock = result_lock
@@ -52,7 +52,7 @@ class _ThreadWriteSequence(threading.Thread):
 
         seq_len = len(seq)
         sub_seq_slices = list(slice(i, min(i + 20, seq_len)) for i in range(0, seq_len, 20))
-        random.shuffle(sub_seq_slices, rand.random)
+        random.shuffle(sub_seq_slices)
 
         self.name = name
         self.seq = seq
