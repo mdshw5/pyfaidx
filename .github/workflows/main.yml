@@ -46,5 +46,13 @@ jobs:
       - name: Run tests
         run: pytest --cov=./ --cov-report=xml
         
+      - name: Run acidbio BED tests
+        run: |
+          git clone https://github.com/mdshw5/acidbio.git
+          cd acidbio/bed
+          python3 -m pip install -r requirements.txt
+          cp config_template.yaml config.yaml
+          python3 bedrunall.py --tool pyfaidx BED03 ./
+                
       - name: Codecov
         uses: codecov/codecov-action@v2.1.0
