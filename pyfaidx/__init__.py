@@ -1117,7 +1117,7 @@ class FastaVariant(Fasta):
         try:
             import vcf
         except ImportError:
-            raise ImportError("PyVCF must be installed for FastaVariant.")
+            raise ImportError("PyVCF3 must be installed for FastaVariant.")
         if call_filter is not None:
             try:
                 key, expr, value = call_filter.split()  # 'GQ > 30'
