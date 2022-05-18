@@ -1117,7 +1117,7 @@ class FastaVariant(Fasta):
         try:
             import vcf
         except ImportError:
-            raise ImportError("PyVCF must be installed for FastaVariant.")
+            raise ImportError("PyVCF3 must be installed for FastaVariant.")
         if call_filter is not None:
             try:
                 key, expr, value = call_filter.split()  # 'GQ > 30'
@@ -1245,6 +1245,8 @@ def translate_chr_name(from_name, to_name):
 
 
 def bed_split(bed_entry):
+    if bed_entry[0] == "#":
+        return (None, None, None)
     try:
         rname, start, end = bed_entry.rstrip().split()[:3]
     except (IndexError, ValueError):
