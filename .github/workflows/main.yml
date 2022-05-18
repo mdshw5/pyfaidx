@@ -44,7 +44,7 @@ jobs:
         run: python tests/data/download_gene_fasta.py
         
       - name: Run tests
-        run: pytest --cov=./ --cov-report=xml
+        run: pytest --cov=pyfaidx --cov-report=xml
         
       - name: Codecov
         uses: codecov/codecov-action@v2.1.0
