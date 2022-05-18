@@ -44,7 +44,7 @@ jobs:
         run: python tests/data/download_gene_fasta.py
         
       - name: Run tests
-        run: pytest --cov=pyfaidx --cov-report=xml
+        run: pytest --cov=pyfaidx --cov-report=xml tests
         
       - name: Run acidbio BED tests
         run: |
