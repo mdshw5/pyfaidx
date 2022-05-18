@@ -1245,6 +1245,8 @@ def translate_chr_name(from_name, to_name):
 
 
 def bed_split(bed_entry):
+    if bed_entry[0] == "#":
+        return (None, None, None)
     try:
         rname, start, end = bed_entry.rstrip().split()[:3]
     except (IndexError, ValueError):
