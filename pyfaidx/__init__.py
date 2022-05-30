@@ -444,9 +444,20 @@ class Faidx(object):
 
             if self._fs:
                 index_exists = self._fs.exists(self.indexname)
-                index_is_stale = index_exists and (
-                    self._fs.stat(self.filename)["mtime"] > self._fs.stat(self.indexname)["mtime"]
-                )
+                if index_exists:
+                    finfo = self._fs.stat(self.filename)
+                    iinfo = self._fs.stat(self.indexname)
+                    if 'mtime' in finfo:
+                        index_is_stale = finfo["mtime"] > iinfo["mtime"]
+                    elif "LastModified" in finfo:
+                        index_is_stale = finfo["LastModified"] > iinfo["LastModified"]
+                    elif "created" in finfo:
+                        index_is_stale = finfo["created"] > iinfo["created"]
+                    else:
+                        warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
+                        index_is_stale = False
+                else:
+                    index_is_stale = False
             else:
                 index_exists = os.path.exists(self.indexname)
                 index_is_stale = index_exists and (
