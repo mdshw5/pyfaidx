@@ -93,33 +93,29 @@ def test_rev(remove_index):
                          480, 481)
     assert str(-result) == expect, result
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_past_bounds(remove_index):
     """ Fetch past the end of a gene entry """
     faidx = Faidx('data/genes.fasta', strict_bounds=True)
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                                     480, 5000)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', 480, 5000)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_negative(remove_index):
     """ Fetch starting with a negative coordinate """
     faidx = Faidx('data/genes.fasta', strict_bounds=True)
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                                     -10, 10)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', -10, 10)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_reversed_coordinates(remove_index):
     """ Fetch starting with a negative coordinate """
     faidx = Faidx('data/genes.fasta', strict_bounds=True)
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                                     50, 10)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', 50, 10)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_keyerror(remove_index):
     """ Fetch a key that does not exist """
     faidx = Faidx('data/genes.fasta', strict_bounds=True)
-    result = faidx.fetch('gi|joe|gb|KF435150.1|',
-                                     1, 10)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|joe|gb|KF435150.1|', 1, 10)
 
 def test_blank_string(remove_index):
     """ seq[0:0] should return a blank string mdshw5/pyfaidx#53 """

@@ -31,11 +31,11 @@ def test_buffer_exceed(remove_index):
     result = fasta['gi|557361099|gb|KF435150.1|'][0:400].seq.lower()
     assert result == expect
 
-@pytest.mark.xfail(raises=FetchError)
 def test_bounds_error(remove_index):
     fasta = Fasta('data/genes.fasta', read_ahead=300, strict_bounds=True)
-    result = fasta['gi|557361099|gb|KF435150.1|'][100-1:15000].seq.lower()
+    with pytest.raises(FetchError):
+        result = fasta['gi|557361099|gb|KF435150.1|'][100-1:15000].seq.lower()
 
-@pytest.mark.xfail(raises=ValueError)
 def test_buffer_value(remove_index):
-    Fasta('data/genes.fasta', read_ahead=0.5)
+    with pytest.raises(ValueError):
+        Fasta('data/genes.fasta', read_ahead=0.5)

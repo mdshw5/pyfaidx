@@ -25,15 +25,15 @@ def test_as_raw_true(remove_index):
     result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].lower()
     assert result == expect
 
-@pytest.mark.xfail(raises=AttributeError)
 def test_as_raw_false_error(remove_index):
     fasta = Fasta('data/genes.fasta')
-    result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].lower()
+    with pytest.raises(AttributeError):
+        result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].lower()
 
-@pytest.mark.xfail(raises=AttributeError)
 def test_as_raw_true_error(remove_index):
     fasta = Fasta('data/genes.fasta', as_raw=True)
-    result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].seq.lower()
+    with pytest.raises(AttributeError):
+        result = fasta['gi|557361099|gb|KF435150.1|'][100-1:150].seq.lower()
 
 def test_as_raw_type_when_blen_lt_0(remove_index):
     fasta = Fasta('data/genes.fasta', as_raw=True)

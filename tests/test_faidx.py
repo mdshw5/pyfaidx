@@ -16,9 +16,9 @@ def remove_index():
     except EnvironmentError:
         pass  # some tests may delete this file
 
-@pytest.mark.xfail(raises=BedError)
 def test_short_line_lengths(remove_index):
-    main(['data/genes.fasta', '--bed', 'data/malformed.bed'])
+    with pytest.raises(BedError):
+        main(['data/genes.fasta', '--bed', 'data/malformed.bed'])
 
 def test_fetch_whole_file(remove_index):
     main(['data/genes.fasta'])
@@ -28,9 +28,9 @@ def test_split_entry(remove_index):
     assert os.path.exists('gi557361099gbKF435150.1.fasta')
     os.remove('gi557361099gbKF435150.1.fasta')
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_error(remove_index):
-    main(['data/genes.fasta', 'gi|557361099|gb|KF435150.1|:1-1000'])
+    with pytest.raises(FetchError):
+        main(['data/genes.fasta', 'gi|557361099|gb|KF435150.1|:1-1000'])
     
 def test_key_warning(remove_index):
     main(['data/genes.fasta', 'foo'])
