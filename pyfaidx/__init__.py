@@ -15,6 +15,7 @@ from collections import namedtuple
 from itertools import islice
 from math import ceil
 from os.path import getmtime
+from tempfile import TemporaryFile
 from threading import Lock
 from pkg_resources import get_distribution
 
@@ -351,12 +352,13 @@ class Faidx(object):
         """
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
             self.filename = filename.path
-            assert filename.mode == 'rb'
-            assert filename.compression is None  # restriction could potentially be lifted
+            assert getattr(filename, 'mode', 'rb') == 'rb'
+            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted
             try:
                 self.file = filename.open()
             except IOError:
                 raise FastaNotFoundError("Cannot read FASTA from OpenFile %s" % filename)
+            self._fs = filename.fs
 
         elif isinstance(filename, str) or hasattr(filename, '__fspath__'):
             self.filename = str(filename)
@@ -364,6 +366,7 @@ class Faidx(object):
                 self.file = open(filename, 'r+b' if mutable else 'rb')
             except IOError:
                 raise FastaNotFoundError("Cannot read FASTA from file %s" % filename)
+            self._fs = None
 
         else:
             raise TypeError("filename expected str, os.PathLike or fsspec.OpenFile, got: %r" % filename)
@@ -397,7 +400,7 @@ class Faidx(object):
         else:
             self._bgzf = False
 
-        self.indexname = filename + '.fai'
+        self.indexname = self.filename + '.fai'
         self.read_long_names = read_long_names
         self.key_function = key_function
         try:
@@ -438,31 +441,40 @@ class Faidx(object):
 
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
-            try:
-                if os.path.exists(self.indexname) and getmtime(
-                        self.indexname) >= getmtime(self.filename):
-                    self.read_fai()
-                elif os.path.exists(self.indexname) and getmtime(
-                        self.indexname) < getmtime(
-                            self.filename) and not rebuild:
-                    self.read_fai()
-                    warnings.warn(
-                        "Index file {0} is older than FASTA file {1}.".format(
-                            self.indexname, self.filename), RuntimeWarning)
-                elif build_index:
-                    self.build_index()
-                    self.read_fai()
-                else:
-                    self.read_fai()
 
-            except FastaIndexingError:
-                self.file.close()
-                os.remove(self.indexname + '.tmp')
-                raise
+            if self._fs:
+                index_exists = self._fs.exists(self.indexname)
+                index_is_stale = index_exists and (
+                    self._fs.stat(self.filename)["mtime"] > self._fs.stat(self.indexname)["mtime"]
+                )
+            else:
+                index_exists = os.path.exists(self.indexname)
+                index_is_stale = index_exists and (
+                    getmtime(self.filename) > getmtime(self.indexname)
+                )
+
+            if (
+                build_index
+                and (not index_exists or (index_is_stale and rebuild))
+            ):
+                try:
+                    self.build_index()
+                except FastaIndexingError:
+                    self.file.close()
+                    raise
+
+            try:
+                self.read_fai()
             except Exception:
-                # Handle potential exceptions other than 'FastaIndexingError'
                 self.file.close()
                 raise
+
+            if index_is_stale and not rebuild:
+                warnings.warn(
+                    "Index file {0} is older than FASTA file {1}.".format(
+                        self.indexname, self.filename
+                    ), RuntimeWarning
+                )
 
     def __contains__(self, region):
         if not self.buffer['name']:
@@ -483,7 +495,7 @@ class Faidx(object):
 
     def read_fai(self):
         try:
-            with open(self.indexname) as index:
+            with self._open_fai(mode='r') as index:
                 prev_bend = 0
                 drop_keys = []
                 for line in index:
@@ -535,7 +547,7 @@ class Faidx(object):
         assert self.file.tell() == 0
         try:
             with rewind(self.file) as fastafile:
-                with open(self.indexname + '.tmp', 'w') as indexfile:
+                with TemporaryFile(mode='w+') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -616,7 +628,10 @@ class Faidx(object):
                                 "Inconsistent line found in >{0} at "
                                 "line {1:n}.".format(rname,
                                                      bad_lines[0][0] + 1))
-            shutil.move(self.indexname + '.tmp', self.indexname)
+
+                    indexfile.seek(0)
+                    with self._open_fai(mode='w') as target:
+                        shutil.copyfileobj(indexfile, target)
         except (IOError, FastaIndexingError) as e:
             if isinstance(e, IOError):
                 raise IOError(
@@ -627,9 +642,15 @@ class Faidx(object):
 
     def write_fai(self):
         with self.lock:
-            with open(self.indexname, 'w') as outfile:
+            with self._open_fai(mode='w') as outfile:
                 for line in self._index_as_string():
                     outfile.write(line)
+
+    def _open_fai(self, mode):
+        if self._fs:
+            return self._fs.open(self.indexname, mode=mode)
+        else:
+            return open(self.indexname, mode=mode)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
