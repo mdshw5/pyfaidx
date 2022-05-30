@@ -25,7 +25,12 @@ try:
     from collections import OrderedDict
 except ImportError:  #python 2.6
     from ordereddict import OrderedDict
-    
+
+try:
+    import fsspec
+except ImportError:
+    fsspec = None
+
 __version__ = get_distribution("pyfaidx").version
 
 if sys.version_info > (3, ):
@@ -337,17 +342,33 @@ class Faidx(object):
                  rebuild=True,
                  build_index=True):
         """
-        filename: name of fasta file
+        filename: name of fasta file or fsspec.core.OpenFile instance
         key_function: optional callback function which should return a unique
           key for the self.index dictionary when given rname.
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
-        self.filename = filename
+        if fsspec and isinstance(filename, fsspec.core.OpenFile):
+            self.filename = filename.path
+            assert filename.mode == 'rb'
+            assert filename.compression is None  # restriction could potentially be lifted
+            try:
+                self.file = filename.open()
+            except IOError:
+                raise FastaNotFoundError("Cannot read FASTA from OpenFile %s" % filename)
 
-        if filename.lower().endswith('.bgz') or filename.lower().endswith(
-                '.gz'):
+        elif isinstance(filename, str) or hasattr(filename, '__fspath__'):
+            self.filename = str(filename)
+            try:
+                self.file = open(filename, 'r+b' if mutable else 'rb')
+            except IOError:
+                raise FastaNotFoundError("Cannot read FASTA from file %s" % filename)
+
+        else:
+            raise TypeError("filename expected str, os.PathLike or fsspec.OpenFile, got: %r" % filename)
+
+        if self.filename.lower().endswith(('.bgz', '.gz')):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -359,29 +380,22 @@ class Faidx(object):
                 raise ImportError(
                     "BioPython >= 1.73 must be installed to read block gzip files.")
             else:
-                self._fasta_opener = bgzf.open
                 self._bgzf = True
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith(
-                '.zip'):
+                try:
+                    # mutable mode is not supported for bzgf anyways
+                    self.file = bgzf.BgzfReader(fileobj=self.file, mode="b")
+                except (ValueError, IOError):
+                    raise UnsupportedCompressionFormat(
+                        "Compressed FASTA is only supported in BGZF format. Use "
+                        "the samtools bgzip utility (instead of gzip) to "
+                        "compress your FASTA."
+                    )
+        elif self.filename.lower().endswith(('.bz2', '.zip')):
             raise UnsupportedCompressionFormat(
                 "Compressed FASTA is only supported in BGZF format. Use "
                 "bgzip to compresss your FASTA.")
         else:
-            self._fasta_opener = open
             self._bgzf = False
-
-        try:
-            self.file = self._fasta_opener(filename, 'r+b'
-                                           if mutable else 'rb')
-        except (ValueError, IOError) as e:
-            if str(e).find('BGZF') > -1:
-                raise UnsupportedCompressionFormat(
-                    "Compressed FASTA is only supported in BGZF format. Use "
-                    "the samtools bgzip utility (instead of gzip) to "
-                    "compress your FASTA.")
-            else:
-                raise FastaNotFoundError(
-                    "Cannot read FASTA file %s" % filename)
 
         self.indexname = filename + '.fai'
         self.read_long_names = read_long_names
@@ -518,8 +532,9 @@ class Faidx(object):
                 "Could not read index file %s" % self.indexname)
 
     def build_index(self):
+        assert self.file.tell() == 0
         try:
-            with self._fasta_opener(self.filename, 'rb') as fastafile:
+            with rewind(self.file) as fastafile:
                 with open(self.indexname + '.tmp', 'w') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
@@ -944,7 +959,7 @@ class FastaRecord(object):
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self._fa.faidx._fasta_opener != open:
+        if self._fa.faidx._bgzf:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
                 "Please decompress your FASTA file.")
@@ -1199,6 +1214,23 @@ def wrap_sequence(n, sequence, fillvalue=''):
     args = [iter(sequence)] * n
     for line in zip_longest(fillvalue=fillvalue, *args):
         yield ''.join(line + ("\n", ))
+
+
+class rewind:
+    """
+    use a fileobject in a context manager and rewind it back to its original position
+    """
+    def __init__(self, fileobj):
+        self.fileobj = fileobj
+        self.origin = None
+
+    def __enter__(self):
+        self.origin = self.fileobj.tell()
+        return self.fileobj
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fileobj.seek(self.origin)
+        self.origin = None
 
 
 # To take a complement, we map each character in the first string in this pair
