@@ -70,9 +70,9 @@ def test_line_len(remove_index):
     for record in fasta:
         assert len(next(iter(record))) == fasta.faidx.index[record.name].lenc
 
-@pytest.mark.xfail(raises=UnsupportedCompressionFormat)
 def test_mutable_bgzf(remove_index):
-    fasta = Fasta('data/genes.fasta.gz', mutable=True)
+    with pytest.raises(UnsupportedCompressionFormat):
+        fasta = Fasta('data/genes.fasta.gz', mutable=True)
 
 @pytest.mark.xfail(raises=NotImplementedError)
 def test_long_names(remove_index):
@@ -120,15 +120,14 @@ def test_fetch_end(remove_index):
                          480, 481)
     assert str(result) == expect
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_border(remove_index):
     """ Fetch past the end of a gene entry """
     faidx = Faidx('data/genes.fasta.gz')
     expect = 'TC'
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                         480, 500)
-    print(result)
-    assert str(result) == expect
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', 480, 500)
+        print(result)
+        assert str(result) == expect
 
 def test_rev(remove_index):
     faidx = Faidx('data/genes.fasta.gz')
@@ -137,33 +136,29 @@ def test_rev(remove_index):
                          480, 481)
     assert str(-result) == expect, result
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_past_bounds(remove_index):
     """ Fetch past the end of a gene entry """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                                     480, 5000)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', 480, 5000)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_negative(remove_index):
     """ Fetch starting with a negative coordinate """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                                     -10, 10)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', -10, 10)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_reversed_coordinates(remove_index):
     """ Fetch starting with a negative coordinate """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                                     50, 10)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|', 50, 10)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_keyerror(remove_index):
     """ Fetch a key that does not exist """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    result = faidx.fetch('gi|joe|gb|KF435150.1|',
-                                     1, 10)
+    with pytest.raises(FetchError):
+        result = faidx.fetch('gi|joe|gb|KF435150.1|', 1, 10)
 
 def test_blank_string(remove_index):
     """ seq[0:0] should return a blank string mdshw5/pyfaidx#53 """
@@ -230,12 +225,12 @@ def test_issue_79_fix_one_based_false_negate(remove_index):
     print(s.__dict__)
     assert (105, 100) == (s.start, s.end)
 
-@pytest.mark.xfail(raises=FetchError)
 def test_fetch_border_padded(remove_index):
     """ Fetch past the end of a gene entry """
-    faidx = Faidx('data/genes.fasta.gz', default_seq='N')
-    expect = 'TCNNNNNNNNNNNNNNNNNNN'
-    result = faidx.fetch('gi|557361099|gb|KF435150.1|',
-                         480, 500)
-    print(result)
-    assert str(result) == expect
+    with pytest.raises(FetchError):
+        faidx = Faidx('data/genes.fasta.gz', default_seq='N')
+        expect = 'TCNNNNNNNNNNNNNNNNNNN'
+        result = faidx.fetch('gi|557361099|gb|KF435150.1|',
+                             480, 500)
+        print(result)
+        assert str(result) == expect

@@ -19,9 +19,9 @@ def test_negate_metadata():
     seq_neg = -seq
     assert seq_neg.__repr__() == seq.complement[::-1].__repr__()
 
-@pytest.mark.xfail(raises=ValueError)
 def test_seq_invalid():
-    seq_invalid.complement()
+    with pytest.raises(ValueError):
+        seq_invalid.complement()
 
 def test_integer_index():
     assert seq[1].seq == 'T'
@@ -29,15 +29,15 @@ def test_integer_index():
 def test_slice_index():
     assert seq[0:10].seq == 'TTGAAGATTT'
 
-@pytest.mark.xfail(raises=ValueError)
 def test_comp_invalid():
-    complement(comp_invalid)
+    with pytest.raises(ValueError):
+        complement(comp_invalid)
 
-@pytest.mark.xfail(raises=ValueError)
 def test_check_coordinates():
     x = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
                  start=100, end=110)
-    x[:]
+    with pytest.raises(ValueError):
+        _ = x[:]
 
 def test_comp_valid():
     assert complement(comp_valid).startswith("AACTTCTAAAnCG")
