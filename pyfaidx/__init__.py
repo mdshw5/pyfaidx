@@ -328,6 +328,7 @@ class Faidx(object):
 
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -344,16 +345,18 @@ class Faidx(object):
                  build_index=True):
         """
         filename: name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         key_function: optional callback function which should return a unique
           key for the self.index dictionary when given rname.
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
+        
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
             self.filename = filename.path
             assert getattr(filename, 'mode', 'rb') == 'rb'
-            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted
+            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted for BGZF
             try:
                 self.file = filename.open()
             except IOError:
@@ -371,6 +374,23 @@ class Faidx(object):
         else:
             raise TypeError("filename expected str, os.PathLike or fsspec.OpenFile, got: %r" % filename)
 
+        if fsspec and isinstance(indexname, fsspec.core.OpenFile):
+            self.indexname = indexname.path
+            assert getattr(indexname, 'mode', 'rb') == 'rb'
+            assert getattr(indexname, 'compression', None) is None
+            self._fai_fs = indexname.fs    
+            
+        elif isinstance(indexname, str) or hasattr(indexname, '__fspath__'):
+            self.indexname = str(indexname)
+            self._fai_fs = None 
+            
+        elif indexname is None:
+            self.indexname = self.filename + '.fai'
+            self._fai_fs = None 
+            
+        else:
+            raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
+        
         if self.filename.lower().endswith(('.bgz', '.gz')):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
@@ -399,8 +419,6 @@ class Faidx(object):
                 "bgzip to compresss your FASTA.")
         else:
             self._bgzf = False
-
-        self.indexname = self.filename + '.fai'
         self.read_long_names = read_long_names
         self.key_function = key_function
         try:
@@ -658,7 +676,9 @@ class Faidx(object):
                     outfile.write(line)
 
     def _open_fai(self, mode):
-        if self._fs:
+        if self._fai_fs:
+            return self._fai_fs.open(self.indexname, mode=mode)
+        elif self._fs:
             return self._fs.open(self.indexname, mode=mode)
         else:
             return open(self.indexname, mode=mode)
@@ -778,6 +798,10 @@ class Faidx(object):
         if not self.mutable:
             raise IOError(
                 "Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA."
+            )
+        elif self.mutable and self._fs:
+            raise NotImplementedError(
+                "Writing to mutable instances is not implemented for fsspec objects."
             )
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
@@ -1026,6 +1050,7 @@ class MutableFastaRecord(FastaRecord):
 class Fasta(object):
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -1042,12 +1067,14 @@ class Fasta(object):
                  build_index=True):
         """
         An object that provides a pygr compatible interface.
-        filename: name of fasta file
+        filename:  name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         """
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
             filename,
+            indexname=indexname,
             key_function=key_function,
             as_raw=as_raw,
             default_seq=default_seq,
