@@ -5,6 +5,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 
+import datetime
 import os
 import re
 import string
@@ -376,9 +377,7 @@ class Faidx(object):
 
         if fsspec and isinstance(indexname, fsspec.core.OpenFile):
             self.indexname = indexname.path
-            assert getattr(indexname, 'mode', 'rb') == 'rb'
-            assert getattr(indexname, 'compression', None) is None
-            self._fai_fs = indexname.fs    
+            self._fai_fs = indexname.fs
             
         elif isinstance(indexname, str) or hasattr(indexname, '__fspath__'):
             self.indexname = str(indexname)
@@ -386,7 +385,7 @@ class Faidx(object):
             
         elif indexname is None:
             self.indexname = self.filename + '.fai'
-            self._fai_fs = None 
+            self._fai_fs = self._fs
             
         else:
             raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
@@ -460,27 +459,21 @@ class Faidx(object):
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
 
-            if self._fs:
-                index_exists = self._fs.exists(self.indexname)
-                if index_exists:
-                    finfo = self._fs.stat(self.filename)
-                    iinfo = self._fs.stat(self.indexname)
-                    if 'mtime' in finfo:
-                        index_is_stale = finfo["mtime"] > iinfo["mtime"]
-                    elif "LastModified" in finfo:
-                        index_is_stale = finfo["LastModified"] > iinfo["LastModified"]
-                    elif "created" in finfo:
-                        index_is_stale = finfo["created"] > iinfo["created"]
-                    else:
-                        warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
-                        index_is_stale = False
-                else:
-                    index_is_stale = False
-            else:
+            if self._fai_fs is None:
                 index_exists = os.path.exists(self.indexname)
-                index_is_stale = index_exists and (
-                    getmtime(self.filename) > getmtime(self.indexname)
-                )
+            else:
+                index_exists = self._fai_fs.exists(self.indexname)
+
+            if index_exists:
+                f_mtime = getmtime_fsspec(self.filename, self._fs)
+                i_mtime = getmtime_fsspec(self.indexname, self._fai_fs)
+                if f_mtime is None or i_mtime is None:
+                    warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
+                    index_is_stale = False
+                else:
+                    index_is_stale = f_mtime > i_mtime
+            else:
+                index_is_stale = False
 
             if (
                 build_index
@@ -678,8 +671,6 @@ class Faidx(object):
     def _open_fai(self, mode):
         if self._fai_fs:
             return self._fai_fs.open(self.indexname, mode=mode)
-        elif self._fs:
-            return self._fs.open(self.indexname, mode=mode)
         else:
             return open(self.indexname, mode=mode)
 
@@ -1290,6 +1281,36 @@ class Rewind:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.fileobj.seek(self.origin)
         self.origin = None
+
+
+def getmtime_fsspec(path, fs):
+    """get the modification time of a file in a fsspec compatible way"""
+    if fs is None:
+        mtime = getmtime(path)
+    else:
+        # getting mtime for different fsspec filesystems is currently
+        # not well abstracted and leaks implementation details of
+        # different filesystems.
+        # See: https://github.com/fsspec/filesystem_spec/issues/526
+        f_info = fs.stat(path)
+        if 'mtime' in f_info:
+            mtime = f_info['mtime']
+        elif 'LastModified' in f_info:
+            mtime = f_info['LastModified']
+        elif 'updated' in f_info:
+            mtime = f_info['updated']
+        elif 'created' in f_info:
+            mtime = f_info['created']
+        else:
+            return None
+    if isinstance(mtime, float):
+        return mtime
+    elif isinstance(mtime, str):
+        return datetime.datetime.fromisoformat(mtime.replace("Z", "+00:00")).timestamp()
+    elif isinstance(mtime, datetime.datetime):
+        return mtime.timestamp()
+    else:
+        return None
 
 
 # To take a complement, we map each character in the first string in this pair
