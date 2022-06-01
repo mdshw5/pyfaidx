@@ -1,5 +1,4 @@
 import os
-from zipfile import ZipFile
 
 import pytest
 

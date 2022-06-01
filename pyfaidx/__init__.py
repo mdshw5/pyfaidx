@@ -557,7 +557,7 @@ class Faidx(object):
     def build_index(self):
         assert self.file.tell() == 0
         try:
-            with rewind(self.file) as fastafile:
+            with Rewind(self.file) as fastafile:
                 with TemporaryFile(mode='w+') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
@@ -1248,7 +1248,7 @@ def wrap_sequence(n, sequence, fillvalue=''):
         yield ''.join(line + ("\n", ))
 
 
-class rewind:
+class Rewind:
     """
     use a fileobject in a context manager and rewind it back to its original position
     """
