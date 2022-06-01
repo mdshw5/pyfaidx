@@ -11,3 +11,4 @@ pyfasta
 pyvcf3
 numpy 
 biopython
+fsspec
