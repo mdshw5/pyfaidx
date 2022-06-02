@@ -336,6 +336,17 @@ The FastaVariant class provides a way to integrate single nucleotide variant cal
     >>> consensus['22'].variant_sites
     (16042793, 29187373, 29187448, 29194610, 29821332)
 
+Accessing fasta files from `filesystem_spec <https://filesystem-spec.readthedocs.io>`_ filesystems:
+
+.. code:: python
+
+    # pip install fsspec s3fs
+    >>> import fsspec
+    >>> from pyfaidx import Fasta
+    >>> of = fsspec.open("s3://broad-references/hg19/v0/Homo_sapiens_assembly19.fasta", anon=True)
+    >>> genes = Fasta(of)
+
+
 .. _faidx:
 
 It also provides a command-line script:

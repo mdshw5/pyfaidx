@@ -5,6 +5,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 
+import datetime
 import os
 import re
 import string
@@ -328,6 +329,7 @@ class Faidx(object):
 
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -344,16 +346,18 @@ class Faidx(object):
                  build_index=True):
         """
         filename: name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         key_function: optional callback function which should return a unique
           key for the self.index dictionary when given rname.
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
+        
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
             self.filename = filename.path
             assert getattr(filename, 'mode', 'rb') == 'rb'
-            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted
+            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted for BGZF
             try:
                 self.file = filename.open()
             except IOError:
@@ -371,6 +375,21 @@ class Faidx(object):
         else:
             raise TypeError("filename expected str, os.PathLike or fsspec.OpenFile, got: %r" % filename)
 
+        if fsspec and isinstance(indexname, fsspec.core.OpenFile):
+            self.indexname = indexname.path
+            self._fai_fs = indexname.fs
+            
+        elif isinstance(indexname, str) or hasattr(indexname, '__fspath__'):
+            self.indexname = str(indexname)
+            self._fai_fs = None 
+            
+        elif indexname is None:
+            self.indexname = self.filename + '.fai'
+            self._fai_fs = self._fs
+            
+        else:
+            raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
+        
         if self.filename.lower().endswith(('.bgz', '.gz')):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
@@ -399,8 +418,6 @@ class Faidx(object):
                 "bgzip to compresss your FASTA.")
         else:
             self._bgzf = False
-
-        self.indexname = self.filename + '.fai'
         self.read_long_names = read_long_names
         self.key_function = key_function
         try:
@@ -442,27 +459,21 @@ class Faidx(object):
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
 
-            if self._fs:
-                index_exists = self._fs.exists(self.indexname)
-                if index_exists:
-                    finfo = self._fs.stat(self.filename)
-                    iinfo = self._fs.stat(self.indexname)
-                    if 'mtime' in finfo:
-                        index_is_stale = finfo["mtime"] > iinfo["mtime"]
-                    elif "LastModified" in finfo:
-                        index_is_stale = finfo["LastModified"] > iinfo["LastModified"]
-                    elif "created" in finfo:
-                        index_is_stale = finfo["created"] > iinfo["created"]
-                    else:
-                        warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
-                        index_is_stale = False
-                else:
-                    index_is_stale = False
-            else:
+            if self._fai_fs is None:
                 index_exists = os.path.exists(self.indexname)
-                index_is_stale = index_exists and (
-                    getmtime(self.filename) > getmtime(self.indexname)
-                )
+            else:
+                index_exists = self._fai_fs.exists(self.indexname)
+
+            if index_exists:
+                f_mtime = getmtime_fsspec(self.filename, self._fs)
+                i_mtime = getmtime_fsspec(self.indexname, self._fai_fs)
+                if f_mtime is None or i_mtime is None:
+                    warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
+                    index_is_stale = False
+                else:
+                    index_is_stale = f_mtime > i_mtime
+            else:
+                index_is_stale = False
 
             if (
                 build_index
@@ -658,8 +669,8 @@ class Faidx(object):
                     outfile.write(line)
 
     def _open_fai(self, mode):
-        if self._fs:
-            return self._fs.open(self.indexname, mode=mode)
+        if self._fai_fs:
+            return self._fai_fs.open(self.indexname, mode=mode)
         else:
             return open(self.indexname, mode=mode)
 
@@ -778,6 +789,10 @@ class Faidx(object):
         if not self.mutable:
             raise IOError(
                 "Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA."
+            )
+        elif self.mutable and self._fs:
+            raise NotImplementedError(
+                "Writing to mutable instances is not implemented for fsspec objects."
             )
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
@@ -1026,6 +1041,7 @@ class MutableFastaRecord(FastaRecord):
 class Fasta(object):
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -1042,12 +1058,14 @@ class Fasta(object):
                  build_index=True):
         """
         An object that provides a pygr compatible interface.
-        filename: name of fasta file
+        filename:  name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         """
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
             filename,
+            indexname=indexname,
             key_function=key_function,
             as_raw=as_raw,
             default_seq=default_seq,
@@ -1263,6 +1281,36 @@ class Rewind:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.fileobj.seek(self.origin)
         self.origin = None
+
+
+def getmtime_fsspec(path, fs):
+    """get the modification time of a file in a fsspec compatible way"""
+    if fs is None:
+        mtime = getmtime(path)
+    else:
+        # getting mtime for different fsspec filesystems is currently
+        # not well abstracted and leaks implementation details of
+        # different filesystems.
+        # See: https://github.com/fsspec/filesystem_spec/issues/526
+        f_info = fs.stat(path)
+        if 'mtime' in f_info:
+            mtime = f_info['mtime']
+        elif 'LastModified' in f_info:
+            mtime = f_info['LastModified']
+        elif 'updated' in f_info:
+            mtime = f_info['updated']
+        elif 'created' in f_info:
+            mtime = f_info['created']
+        else:
+            return None
+    if isinstance(mtime, float):
+        return mtime
+    elif isinstance(mtime, str):
+        return datetime.datetime.fromisoformat(mtime.replace("Z", "+00:00")).timestamp()
+    elif isinstance(mtime, datetime.datetime):
+        return mtime.timestamp()
+    else:
+        return None
 
 
 # To take a complement, we map each character in the first string in this pair
