@@ -340,6 +340,7 @@ Accessing fasta files from `filesystem_spec <https://filesystem-spec.readthedocs
 
 .. code:: python
 
+    # new in v0.7.0
     # pip install fsspec s3fs
     >>> import fsspec
     >>> from pyfaidx import Fasta
