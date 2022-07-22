@@ -353,7 +353,7 @@ class Faidx(object):
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
-        
+
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
             self.filename = filename.path
             assert getattr(filename, 'mode', 'rb') == 'rb'
@@ -1061,7 +1061,6 @@ class Fasta(object):
         filename:  name of fasta file or fsspec.core.OpenFile instance
         indexname: name of index file or fsspec.core.OpenFile instance
         """
-        self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
             filename,
@@ -1080,6 +1079,8 @@ class Fasta(object):
             sequence_always_upper=sequence_always_upper,
             rebuild=rebuild,
             build_index=build_index)
+        
+        self.filename = self.faidx.filename
         
         _record_constructor = MutableFastaRecord if self.mutable else FastaRecord
         self.records = OrderedDict([(rname, _record_constructor(rname, self)) for rname in self.faidx.index.keys()])

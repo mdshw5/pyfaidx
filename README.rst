@@ -335,6 +335,17 @@ The FastaVariant class provides a way to integrate single nucleotide variant cal
     >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', sample='NA06984', het=True, hom=True, call_filter='GT == "0/1"')
     >>> consensus['22'].variant_sites
     (16042793, 29187373, 29187448, 29194610, 29821332)
+    
+You can also specify paths using ``pathlib.Path`` objects.
+
+.. code:: python
+    
+    #new in v0.7.1
+    >>> from pyfaidx import Fasta
+    >>> from pathlib import Path
+    >>> genes = Fasta(Path('tests/data/genes.fasta'))
+    >>> genes
+    Fasta("tests/data/genes.fasta")
 
 Accessing fasta files from `filesystem_spec <https://filesystem-spec.readthedocs.io>`_ filesystems:
 
