@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        python: [3.6.15, 3.7.12, 3.8.12, 3.9.10, 3.10.2]
+        python: [3.7.12, 3.8.12, 3.9.10, 3.10.2]
         os: [ubuntu-latest, macos-latest]
 
     steps:
@@ -44,7 +44,15 @@ jobs:
         run: python tests/data/download_gene_fasta.py
         
       - name: Run tests
-        run: pytest --cov=./ --cov-report=xml
+        run: pytest --cov=pyfaidx --cov-report=xml tests
         
+      - name: Run acidbio BED tests
+        run: |
+          git clone https://github.com/mdshw5/acidbio.git
+          cd acidbio/bed
+          python3 -m pip install -r requirements.txt
+          cp config_template.yaml config.yaml
+          python3 bedrunall.py --tool pyfaidx BED03 ./
+                
       - name: Codecov
         uses: codecov/codecov-action@v2.1.0

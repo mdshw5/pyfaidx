@@ -25,6 +25,9 @@ def write_sequence(args):
     header = False
     for region in regions_to_fetch:
         name, start, end = split_function(region)
+        # allow the split_funtion to return None to signify input we should skip
+        if name == None:
+            continue
         if args.size_range:
             if start is not None and end is not None:
                 sequence_len = end - start

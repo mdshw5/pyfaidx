@@ -8,6 +8,7 @@ pysam
 requests 
 coverage 
 pyfasta 
-pyvcf 
+pyvcf3
 numpy 
 biopython
+fsspec

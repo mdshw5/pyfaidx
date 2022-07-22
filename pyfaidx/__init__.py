@@ -5,6 +5,7 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 
 from __future__ import division
 
+import datetime
 import os
 import re
 import string
@@ -15,6 +16,7 @@ from collections import namedtuple
 from itertools import islice
 from math import ceil
 from os.path import getmtime
+from tempfile import TemporaryFile
 from threading import Lock
 from pkg_resources import get_distribution
 
@@ -25,7 +27,12 @@ try:
     from collections import OrderedDict
 except ImportError:  #python 2.6
     from ordereddict import OrderedDict
-    
+
+try:
+    import fsspec
+except ImportError:
+    fsspec = None
+
 __version__ = get_distribution("pyfaidx").version
 
 if sys.version_info > (3, ):
@@ -322,6 +329,7 @@ class Faidx(object):
 
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -337,18 +345,52 @@ class Faidx(object):
                  rebuild=True,
                  build_index=True):
         """
-        filename: name of fasta file
+        filename: name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         key_function: optional callback function which should return a unique
           key for the self.index dictionary when given rname.
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
-        filename = str(filename)
-        self.filename = filename
 
-        if filename.lower().endswith('.bgz') or filename.lower().endswith(
-                '.gz'):
+        if fsspec and isinstance(filename, fsspec.core.OpenFile):
+            self.filename = filename.path
+            assert getattr(filename, 'mode', 'rb') == 'rb'
+            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted for BGZF
+            try:
+                self.file = filename.open()
+            except IOError:
+                raise FastaNotFoundError("Cannot read FASTA from OpenFile %s" % filename)
+            self._fs = filename.fs
+
+        elif isinstance(filename, str) or hasattr(filename, '__fspath__'):
+            self.filename = str(filename)
+            try:
+                self.file = open(filename, 'r+b' if mutable else 'rb')
+            except IOError:
+                raise FastaNotFoundError("Cannot read FASTA from file %s" % filename)
+            self._fs = None
+
+        else:
+            raise TypeError("filename expected str, os.PathLike or fsspec.OpenFile, got: %r" % filename)
+
+        if fsspec and isinstance(indexname, fsspec.core.OpenFile):
+            self.indexname = indexname.path
+            self._fai_fs = indexname.fs
+            
+        elif isinstance(indexname, str) or hasattr(indexname, '__fspath__'):
+            self.indexname = str(indexname)
+            self._fai_fs = None 
+            
+        elif indexname is None:
+            self.indexname = self.filename + '.fai'
+            self._fai_fs = self._fs
+            
+        else:
+            raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
+        
+        if self.filename.lower().endswith(('.bgz', '.gz')):
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -360,31 +402,22 @@ class Faidx(object):
                 raise ImportError(
                     "BioPython >= 1.73 must be installed to read block gzip files.")
             else:
-                self._fasta_opener = bgzf.open
                 self._bgzf = True
-        elif filename.lower().endswith('.bz2') or filename.lower().endswith(
-                '.zip'):
+                try:
+                    # mutable mode is not supported for bzgf anyways
+                    self.file = bgzf.BgzfReader(fileobj=self.file, mode="b")
+                except (ValueError, IOError):
+                    raise UnsupportedCompressionFormat(
+                        "Compressed FASTA is only supported in BGZF format. Use "
+                        "the samtools bgzip utility (instead of gzip) to "
+                        "compress your FASTA."
+                    )
+        elif self.filename.lower().endswith(('.bz2', '.zip')):
             raise UnsupportedCompressionFormat(
                 "Compressed FASTA is only supported in BGZF format. Use "
                 "bgzip to compresss your FASTA.")
         else:
-            self._fasta_opener = open
             self._bgzf = False
-
-        try:
-            self.file = self._fasta_opener(filename, 'r+b'
-                                           if mutable else 'rb')
-        except (ValueError, IOError) as e:
-            if str(e).find('BGZF') > -1:
-                raise UnsupportedCompressionFormat(
-                    "Compressed FASTA is only supported in BGZF format. Use "
-                    "the samtools bgzip utility (instead of gzip) to "
-                    "compress your FASTA.")
-            else:
-                raise FastaNotFoundError(
-                    "Cannot read FASTA file %s" % filename)
-
-        self.indexname = filename + '.fai'
         self.read_long_names = read_long_names
         self.key_function = key_function
         try:
@@ -425,31 +458,45 @@ class Faidx(object):
 
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
-            try:
-                if os.path.exists(self.indexname) and getmtime(
-                        self.indexname) >= getmtime(self.filename):
-                    self.read_fai()
-                elif os.path.exists(self.indexname) and getmtime(
-                        self.indexname) < getmtime(
-                            self.filename) and not rebuild:
-                    self.read_fai()
-                    warnings.warn(
-                        "Index file {0} is older than FASTA file {1}.".format(
-                            self.indexname, self.filename), RuntimeWarning)
-                elif build_index:
-                    self.build_index()
-                    self.read_fai()
-                else:
-                    self.read_fai()
 
-            except FastaIndexingError:
-                self.file.close()
-                os.remove(self.indexname + '.tmp')
-                raise
+            if self._fai_fs is None:
+                index_exists = os.path.exists(self.indexname)
+            else:
+                index_exists = self._fai_fs.exists(self.indexname)
+
+            if index_exists:
+                f_mtime = getmtime_fsspec(self.filename, self._fs)
+                i_mtime = getmtime_fsspec(self.indexname, self._fai_fs)
+                if f_mtime is None or i_mtime is None:
+                    warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
+                    index_is_stale = False
+                else:
+                    index_is_stale = f_mtime > i_mtime
+            else:
+                index_is_stale = False
+
+            if (
+                build_index
+                and (not index_exists or (index_is_stale and rebuild))
+            ):
+                try:
+                    self.build_index()
+                except FastaIndexingError:
+                    self.file.close()
+                    raise
+
+            try:
+                self.read_fai()
             except Exception:
-                # Handle potential exceptions other than 'FastaIndexingError'
                 self.file.close()
                 raise
+
+            if index_is_stale and not rebuild:
+                warnings.warn(
+                    "Index file {0} is older than FASTA file {1}.".format(
+                        self.indexname, self.filename
+                    ), RuntimeWarning
+                )
 
     def __contains__(self, region):
         if not self.buffer['name']:
@@ -470,7 +517,7 @@ class Faidx(object):
 
     def read_fai(self):
         try:
-            with open(self.indexname) as index:
+            with self._open_fai(mode='r') as index:
                 prev_bend = 0
                 drop_keys = []
                 for line in index:
@@ -519,9 +566,10 @@ class Faidx(object):
                 "Could not read index file %s" % self.indexname)
 
     def build_index(self):
+        assert self.file.tell() == 0
         try:
-            with self._fasta_opener(self.filename, 'rb') as fastafile:
-                with open(self.indexname + '.tmp', 'w') as indexfile:
+            with Rewind(self.file) as fastafile:
+                with TemporaryFile(mode='w+') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -602,7 +650,10 @@ class Faidx(object):
                                 "Inconsistent line found in >{0} at "
                                 "line {1:n}.".format(rname,
                                                      bad_lines[0][0] + 1))
-            shutil.move(self.indexname + '.tmp', self.indexname)
+
+                    indexfile.seek(0)
+                    with self._open_fai(mode='w') as target:
+                        shutil.copyfileobj(indexfile, target)
         except (IOError, FastaIndexingError) as e:
             if isinstance(e, IOError):
                 raise IOError(
@@ -613,9 +664,15 @@ class Faidx(object):
 
     def write_fai(self):
         with self.lock:
-            with open(self.indexname, 'w') as outfile:
+            with self._open_fai(mode='w') as outfile:
                 for line in self._index_as_string():
                     outfile.write(line)
+
+    def _open_fai(self, mode):
+        if self._fai_fs:
+            return self._fai_fs.open(self.indexname, mode=mode)
+        else:
+            return open(self.indexname, mode=mode)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -732,6 +789,10 @@ class Faidx(object):
         if not self.mutable:
             raise IOError(
                 "Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA."
+            )
+        elif self.mutable and self._fs:
+            raise NotImplementedError(
+                "Writing to mutable instances is not implemented for fsspec objects."
             )
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
@@ -945,7 +1006,7 @@ class FastaRecord(object):
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self._fa.faidx._fasta_opener != open:
+        if self._fa.faidx._bgzf:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
                 "Please decompress your FASTA file.")
@@ -980,6 +1041,7 @@ class MutableFastaRecord(FastaRecord):
 class Fasta(object):
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -996,13 +1058,15 @@ class Fasta(object):
                  build_index=True):
         """
         An object that provides a pygr compatible interface.
-        filename: name of fasta file
+        filename:  name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         """
         filename = str(filename)
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
             filename,
+            indexname=indexname,
             key_function=key_function,
             as_raw=as_raw,
             default_seq=default_seq,
@@ -1113,13 +1177,9 @@ class FastaVariant(Fasta):
                  **kwargs):
         super(FastaVariant, self).__init__(filename, **kwargs)
         try:
-            import pysam
-        except ImportError:
-            raise ImportError("pysam must be installed for FastaVariant.")
-        try:
             import vcf
         except ImportError:
-            raise ImportError("PyVCF must be installed for FastaVariant.")
+            raise ImportError("PyVCF3 must be installed for FastaVariant.")
         if call_filter is not None:
             try:
                 key, expr, value = call_filter.split()  # 'GQ > 30'
@@ -1203,6 +1263,53 @@ def wrap_sequence(n, sequence, fillvalue=''):
         yield ''.join(line + ("\n", ))
 
 
+class Rewind:
+    """
+    use a fileobject in a context manager and rewind it back to its original position
+    """
+    def __init__(self, fileobj):
+        self.fileobj = fileobj
+        self.origin = None
+
+    def __enter__(self):
+        self.origin = self.fileobj.tell()
+        return self.fileobj
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fileobj.seek(self.origin)
+        self.origin = None
+
+
+def getmtime_fsspec(path, fs):
+    """get the modification time of a file in a fsspec compatible way"""
+    if fs is None:
+        mtime = getmtime(path)
+    else:
+        # getting mtime for different fsspec filesystems is currently
+        # not well abstracted and leaks implementation details of
+        # different filesystems.
+        # See: https://github.com/fsspec/filesystem_spec/issues/526
+        f_info = fs.stat(path)
+        if 'mtime' in f_info:
+            mtime = f_info['mtime']
+        elif 'LastModified' in f_info:
+            mtime = f_info['LastModified']
+        elif 'updated' in f_info:
+            mtime = f_info['updated']
+        elif 'created' in f_info:
+            mtime = f_info['created']
+        else:
+            return None
+    if isinstance(mtime, float):
+        return mtime
+    elif isinstance(mtime, str):
+        return datetime.datetime.fromisoformat(mtime.replace("Z", "+00:00")).timestamp()
+    elif isinstance(mtime, datetime.datetime):
+        return mtime.timestamp()
+    else:
+        return None
+
+
 # To take a complement, we map each character in the first string in this pair
 # to the corresponding character in the second string.
 complement_map = ('ACTGNactgnYRWSKMDVHBXyrwskmdvhbx',
@@ -1247,6 +1354,8 @@ def translate_chr_name(from_name, to_name):
 
 
 def bed_split(bed_entry):
+    if bed_entry[0] == "#":
+        return (None, None, None)
     try:
         rname, start, end = bed_entry.rstrip().split()[:3]
     except (IndexError, ValueError):

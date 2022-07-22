@@ -26,7 +26,7 @@ If you use pyfaidx in your publication, please cite:
 Installation
 ------------
 
-This package is tested under Linux and macOS using Python 3.6+, and and is available from the PyPI:
+This package is tested under Linux and macOS using Python 3.7+, and and is available from the PyPI:
 
 ::
 
@@ -346,6 +346,18 @@ You can also specify paths using ``pathlib.Path`` objects.
     >>> genes = Fasta(Path('tests/data/genes.fasta'))
     >>> genes
     Fasta("tests/data/genes.fasta")
+
+Accessing fasta files from `filesystem_spec <https://filesystem-spec.readthedocs.io>`_ filesystems:
+
+.. code:: python
+
+    # new in v0.7.0
+    # pip install fsspec s3fs
+    >>> import fsspec
+    >>> from pyfaidx import Fasta
+    >>> of = fsspec.open("s3://broad-references/hg19/v0/Homo_sapiens_assembly19.fasta", anon=True)
+    >>> genes = Fasta(of)
+
 
 .. _faidx:
 
