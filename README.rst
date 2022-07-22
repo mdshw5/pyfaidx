@@ -339,7 +339,8 @@ The FastaVariant class provides a way to integrate single nucleotide variant cal
 You can also specify paths using ``pathlib.Path`` objects.
 
 .. code:: python
-
+    
+    #new in v0.7.1
     >>> from pyfaidx import Fasta
     >>> from pathlib import Path
     >>> genes = Fasta(Path('tests/data/genes.fasta'))
