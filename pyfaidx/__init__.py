@@ -1176,10 +1176,6 @@ class FastaVariant(Fasta):
                  **kwargs):
         super(FastaVariant, self).__init__(filename, **kwargs)
         try:
-            import pysam
-        except ImportError:
-            raise ImportError("pysam must be installed for FastaVariant.")
-        try:
             import vcf
         except ImportError:
             raise ImportError("PyVCF3 must be installed for FastaVariant.")
