@@ -1061,7 +1061,6 @@ class Fasta(object):
         filename:  name of fasta file or fsspec.core.OpenFile instance
         indexname: name of index file or fsspec.core.OpenFile instance
         """
-        filename = str(filename)
         self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
