@@ -38,9 +38,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+        
+      - name: Install Python tools
+        run: python -m pip install --upgrade pip
 
       - name: Install python packages
-        run: pip install -r dev-requirements.txt
+        run: python -m pip install -r dev-requirements.txt
           
       - name: Install package
         run: python setup.py install
