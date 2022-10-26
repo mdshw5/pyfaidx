@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        python: [3.7.15, 3.8.14, 3.9.15, 3.10.8, 3.11.0]
+        python: [3.7.15, 3.8.14, 3.9.14, 3.10.8, 3.11.0]
         os: [ubuntu-latest, macos-latest]
 
     steps:
