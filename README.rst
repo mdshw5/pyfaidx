@@ -535,6 +535,9 @@ Examples:
     KF435149	1	642
     NR_104216	1	4573
     NR_104215	1	5317
+    
+    $ faidx -v tests/data/genes.fasta
+    ### Creates an .fai index, but supresses sequence output using --invert-match ###
     .......
 
 
