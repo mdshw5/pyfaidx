@@ -12,9 +12,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     strategy:
+      fail-fast: false
+      max-parallel: 10
       matrix:
-        python: [3.7.12, 3.8.12, 3.9.10, 3.10.2]
+        python-version: ['3.11', '3.10', '3.9', '3.8', '3.7']
         os: [ubuntu-latest, macos-latest]
+        exclude:
+          # mac os: exclude all but the last two (available) python releases
+          - os: macos-latest
+            python-version: 3.8
+          - os: macos-latest
+            python-version: 3.7
+          # mac os: exclude python 3.11 since it's not yet available for runners
+          - os: macos-latest
+            python-version: 3.11
 
     steps:
       - name: Checkout
@@ -27,12 +38,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+        
+      - name: Install Python tools
+        run: python3 -m pip install --upgrade pip
 
       - name: Install python packages
-        run: pip install -r dev-requirements.txt
+        run: python3 -m pip install -r dev-requirements.txt
           
       - name: Install package
-        run: python setup.py install
+        run: python3 -m pip install -e .
         
       - name: Cache test data
         uses: actions/cache@v2
@@ -41,7 +55,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tests/data/*') }}
 
       - name: Download test data
-        run: python tests/data/download_gene_fasta.py
+        run: python3 tests/data/download_gene_fasta.py
         
       - name: Run tests
         run: pytest --cov=pyfaidx --cov-report=xml tests

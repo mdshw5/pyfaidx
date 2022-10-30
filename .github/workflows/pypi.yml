@@ -1,5 +1,8 @@
 name: Package Builds
-on: push
+on:
+  push:
+      branches:
+        - master
 
 jobs:
   build-n-publish:
