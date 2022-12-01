@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=63", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyfaidx"
+authors = [
+    { name="Matthew Shirley", email="mdshw5@gmail.com"}
+]
+description = "pyfaidx: efficient pythonic random access to fasta subsequences"
+readme = "README.rst"
+requires-python = ">=3.7"
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: BSD License",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+dependencies = [
+    "six"
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "http://mattshirley.com"
+
+[project.scripts]
+faidx = "pyfaidx.cli:main"
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
