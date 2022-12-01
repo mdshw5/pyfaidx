@@ -32,7 +32,8 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "http://mattshirley.com"
+"Homepage" = "https://github.com/mdshw5/pyfaidx/"
+"Author homepage" = "http://mattshirley.com"
 
 [project.scripts]
 faidx = "pyfaidx.cli:main"
