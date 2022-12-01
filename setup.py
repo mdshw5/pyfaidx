@@ -5,7 +5,6 @@ install_requires = ['six', 'setuptools >= 0.7']
 
 setup(
     name='pyfaidx',
-    provides='pyfaidx',
     author='Matthew Shirley',
     author_email='mdshw5@gmail.com',
     url='http://mattshirley.com',
