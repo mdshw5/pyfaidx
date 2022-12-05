@@ -405,7 +405,7 @@ class Faidx(object):
                 self._bgzf = True
                 try:
                     # mutable mode is not supported for bzgf anyways
-                    self.file = bgzf.BgzfReader(fileobj=self.file, mode="b")
+                    self.file = bgzf.BgzfReader(fileobj=self.file, mode="rb")
                 except (ValueError, IOError):
                     raise UnsupportedCompressionFormat(
                         "Compressed FASTA is only supported in BGZF format. Use "
