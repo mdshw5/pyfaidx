@@ -35,7 +35,7 @@ jobs:
           fetch-depth: 0
           
       - if: ${{ matrix.os == 'macos-latest' }}
-        run: brew install xz
+        run: brew reinstall xz
           
       - name: Setup Python
         uses: actions/setup-python@v2
