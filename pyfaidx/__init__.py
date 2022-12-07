@@ -857,6 +857,9 @@ class Faidx(object):
     def close(self):
         self.__exit__()
 
+    def __del__(self):
+        self.__exit__()
+
     def __enter__(self):
         return self
 
