@@ -16,54 +16,55 @@ jobs:
       max-parallel: 10
       matrix:
         python-version: ['3.11', '3.10', '3.9', '3.8', '3.7']
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu, macos]
         exclude:
           # mac os: exclude all but the last two (available) python releases
-          - os: macos-latest
+          - os: macos
             python-version: 3.8
-          - os: macos-latest
+          - os: macos
             python-version: 3.7
           # mac os: exclude python 3.11 since it's not yet available for runners
-          - os: macos-latest
+          - os: macos
             python-version: 3.11
 
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v2
         with:
           persist-credentials: false
           fetch-depth: 0
           
-      - if: ${{ matrix.os == 'macos-latest' }}
+      - name: install macOS dependencies
+        if: ${{ matrix.os == 'macos' }}
         run: brew reinstall xz
           
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: setup python
+        uses: actions/setup-python
         with:
           python-version: ${{ matrix.python }}
         
-      - name: Install Python tools
+      - name: upgrade pip
         run: python3 -m pip install --upgrade pip
 
-      - name: Install python packages
+      - name: pip install development dependencies
         run: python3 -m pip install -r dev-requirements.txt
           
-      - name: Install package
-        run: python3 -m pip install -e .
+      - name: install pyfaidx from current branch
+        run: python3 -m pip install .
         
       - name: Cache test data
-        uses: actions/cache@v2
+        uses: actions/cache
         with:
           path: tests/data
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tests/data/*') }}
 
-      - name: Download test data
+      - name: download test data
         run: python3 tests/data/download_gene_fasta.py
         
-      - name: Run tests
+      - name: run pyfaidx tests
         run: pytest --cov=pyfaidx --cov-report=xml tests
         
-      - name: Run acidbio BED tests
+      - name: run acidbio tests
         run: |
           git clone https://github.com/mdshw5/acidbio.git
           cd acidbio/bed
@@ -71,5 +72,5 @@ jobs:
           cp config_template.yaml config.yaml
           python3 bedrunall.py --tool pyfaidx BED03 ./
                 
-      - name: Codecov
-        uses: codecov/codecov-action@v2.1.0
+      - name: upload coverage report to codecov
+        uses: codecov/codecov-action
