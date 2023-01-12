@@ -413,6 +413,9 @@ Examples:
 
 .. code:: bash
 
+    $ faidx -v tests/data/genes.fasta
+    ### Creates an .fai index, but supresses sequence output using --invert-match ###
+
     $ faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
     >NM_001282543.1:201-210
     CTCGTTCCGC
@@ -535,9 +538,6 @@ Examples:
     KF435149	1	642
     NR_104216	1	4573
     NR_104215	1	5317
-    
-    $ faidx -v tests/data/genes.fasta
-    ### Creates an .fai index, but supresses sequence output using --invert-match ###
     .......
 
 
