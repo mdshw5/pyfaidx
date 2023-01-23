@@ -321,14 +321,14 @@ class Sequence(object):
         return (g + c) / len(trimSeq)
 
     @property
-    def gc_iupac(seq):
-        from collections import Counter
+    def gc_iupac(self):
         """ Return the GC content of seq as a float, accounting for IUPAC ambiguity 
         >>> x = Sequence(name='chr1', seq='NMRATCGTA')
         >>> y = round(x.gc, 2)
         >>> y == 0.36
         True
         """
+        from collections import Counter
         trimSeq = re.sub(r'[^ACGTMRWSYKVHDBNacgtmrwsykvhdbn]', '', self.seq)
         seqCount = Counter(trimSeq)
         gc = seqCount['S'] + seqCount['C'] + seqCount['G']
