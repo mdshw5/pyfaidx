@@ -304,6 +304,40 @@ class Sequence(object):
         c = self.seq.count('C')
         c += self.seq.count('c')
         return (g + c) / len(self.seq)
+    
+    @property
+    def gc_strict(self):
+        """ Return the GC content of seq as a float, ignoring non ACGT characters
+        >>> x = Sequence(name='chr1', seq='NMRATCGTA')
+        >>> y = round(x.gc, 2)
+        >>> y == 0.33
+        True
+        """
+        trimSeq = re.sub(r'[^ACGTacgt]', '', self.seq)
+        g = trimSeq.count('G')
+        g += trimSeq.count('g')
+        c = trimSeq.count('C')
+        c += trimSeq.count('c')
+        return (g + c) / len(trimSeq)
+
+    @property
+    def gc_iupac(seq):
+        from collections import Counter
+        """ Return the GC content of seq as a float, accounting for IUPAC ambiguity 
+        >>> x = Sequence(name='chr1', seq='NMRATCGTA')
+        >>> y = round(x.gc, 2)
+        >>> y == 0.36
+        True
+        """
+        trimSeq = re.sub(r'[^ACGTMRWSYKVHDBNacgtmrwsykvhdbn]', '', self.seq)
+        seqCount = Counter(trimSeq)
+        gc = seqCount['S'] + seqCount['C'] + seqCount['G']
+        gc += 0.67 * (seqCount['B'] + seqCount['V'])
+        gc += 0.5 * (seqCount['M'] + seqCount['R'] + seqCount['Y'] + seqCount['K'])
+        gc += 0.33 * (seqCount['H'] + seqCount['D'])
+        gc += 0.25 * (seqCount['N'])
+        return gc / len(trimSeq)
+
 
 
 class IndexRecord(
