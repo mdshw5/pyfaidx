@@ -313,12 +313,9 @@ class Sequence(object):
         >>> y == 0.33
         True
         """
-        trimSeq = re.sub(r'[^ACGTacgt]', '', self.seq)
-        g = trimSeq.count('G')
-        g += trimSeq.count('g')
-        c = trimSeq.count('C')
-        c += trimSeq.count('c')
-        return (g + c) / len(trimSeq)
+        trimSeq = re.sub(r'[^ACGT]', '', self.seq.upper())
+        gc = sum(trimSeq.count(i) for i in ['G','C'])
+        return gc / len(trimSeq)
 
     @property
     def gc_iupac(self):
@@ -328,14 +325,14 @@ class Sequence(object):
         >>> y == 0.36
         True
         """
-        from collections import Counter
-        trimSeq = re.sub(r'[^ACGTMRWSYKVHDBNacgtmrwsykvhdbn]', '', self.seq)
-        seqCount = Counter(trimSeq)
-        gc = seqCount['S'] + seqCount['C'] + seqCount['G']
-        gc += 0.67 * (seqCount['B'] + seqCount['V'])
-        gc += 0.5 * (seqCount['M'] + seqCount['R'] + seqCount['Y'] + seqCount['K'])
-        gc += 0.33 * (seqCount['H'] + seqCount['D'])
-        gc += 0.25 * (seqCount['N'])
+        trimSeq = re.sub(r'[^ACGTMRWSYKVHDBN]', '', self.seq.upper())
+        # count all bases, including fractions of GC content
+        gc =  sum(trimSeq.count(i) for i in ['S','C','G']) 
+        gc += sum(trimSeq.count(i) for i in ['B','V']) * 0.67
+        gc += sum(trimSeq.count(i) for i in ['M','R','Y','K']) * 0.5
+        gc += sum(trimSeq.count(i) for i in ['H','D']) * 0.33
+        gc += trimSeq.count('N') * 0.25
+        # return gc content
         return gc / len(trimSeq)
 
 
