@@ -326,15 +326,12 @@ class Sequence(object):
         True
         """
         trimSeq = re.sub(r'[^ACGTMRWSYKVHDBN]', '', self.seq.upper())
-        # count all bases, including fractions of GC content
         gc =  sum(trimSeq.count(i) for i in ['S','C','G']) 
         gc += sum(trimSeq.count(i) for i in ['B','V']) * 0.67
         gc += sum(trimSeq.count(i) for i in ['M','R','Y','K']) * 0.5
         gc += sum(trimSeq.count(i) for i in ['H','D']) * 0.33
         gc += trimSeq.count('N') * 0.25
-        # return gc content
         return gc / len(trimSeq)
-
 
 
 class IndexRecord(
