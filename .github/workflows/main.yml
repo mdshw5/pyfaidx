@@ -19,12 +19,12 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         exclude:
           # mac os: exclude all but the last two (available) python releases
-          - os: macos
+          - os: macos-latest
             python-version: 3.8
-          - os: macos
+          - os: macos-latest
             python-version: 3.7
           # mac os: exclude python 3.11 since it's not yet available for runners
-          - os: macos
+          - os: macos-latest
             python-version: 3.11
 
     steps:
@@ -35,7 +35,7 @@ jobs:
           fetch-depth: 0
           
       - name: install macOS dependencies
-        if: ${{ matrix.os == 'macos' }}
+        if: ${{ matrix.os == 'macos-latest' }}
         run: brew reinstall xz
           
       - name: setup python
