@@ -7,7 +7,7 @@ on:
 jobs:
   build-n-publish:
     name: build and publish packages to PyPI and TestPyPI
-    runs-on: ubuntu
+    runs-on: ubuntu-latest
     
     steps:
       - name: checkout
