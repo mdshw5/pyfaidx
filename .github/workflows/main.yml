@@ -36,7 +36,7 @@ jobs:
           
       - name: install macOS dependencies
         if: ${{ matrix.os == 'macos-latest' }}
-        run: brew install -q samtools bcftools
+        run: brew install -q samtools bcftools xz
           
       - name: setup python
         uses: actions/setup-python@v4.3.0
