@@ -58,6 +58,7 @@ def test_all_pos(remove_index):
 
 def test_all_diff(remove_index):
     try:
+        import pysam
         fasta = FastaVariant('data/chr22.fasta', 'data/chr22.vcf.gz', hom=True, het=True, as_raw=True)
         ref = Fasta('data/chr22.fasta', as_raw=True)
         print([(ref['22'][pos-1], fasta['22'][pos-1]) for pos in fasta['22'].variant_sites])
