@@ -51,6 +51,10 @@ jobs:
           python3 -m pip install cython
           python3 -m pip install -r dev-requirements.txt
           
+      - name: install pysam under Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: python3 -m pip install pysam
+          
       - name: install pyfaidx from current branch
         run: python3 -m pip install .
         
