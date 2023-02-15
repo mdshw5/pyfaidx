@@ -1,5 +1,7 @@
 name: Package Builds
 on:
+  release:
+    types: [published]
   push:
       branches:
         - master
