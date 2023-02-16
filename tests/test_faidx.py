@@ -54,3 +54,6 @@ def test_not_regexp(remove_index):
 
 def test_not_regexp_multi(remove_index):
     main(['data/genes.fasta', '-g', 'XR', '-g', 'XM', '-v'])
+
+def test_cli_version_issue_206(remove_index):
+    main(['data/genes.fasta', '--version'])
