@@ -24,6 +24,10 @@ def remove_index():
         os.remove('data/genes.fasta.fai')
     except EnvironmentError:
         pass  # some tests may delete this file
+    
+def test_version_issue_206():
+    import pyfaidx
+    assert isinstance(pyfaidx.__version__, string)    
 
 def test_build(remove_index):
     expect_index = ("gi|563317589|dbj|AB821309.1|	3510	114	70	71\n"
