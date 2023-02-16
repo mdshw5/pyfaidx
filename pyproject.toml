@@ -27,7 +27,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 dependencies = [
-    "six"
+    "six",
+    "setuptools"
 ]
 dynamic = ["version"]
 
