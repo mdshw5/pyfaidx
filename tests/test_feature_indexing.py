@@ -27,7 +27,7 @@ def remove_index():
     
 def test_version_issue_206():
     import pyfaidx
-    assert isinstance(pyfaidx.__version__, string)    
+    assert isinstance(pyfaidx.__version__, str)    
 
 def test_build(remove_index):
     expect_index = ("gi|563317589|dbj|AB821309.1|	3510	114	70	71\n"
