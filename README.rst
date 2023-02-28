@@ -647,5 +647,5 @@ Comprehensive Cancer Center in the Department of Oncology.
 .. |Package| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml/badge.svg
    :target: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml
    
- .. |Downloads| image:: https://img.shields.io/pypi/dm/pyfaidx.svg?style=plastic)
+ .. |Downloads| image:: https://img.shields.io/pypi/dm/pyfaidx.svg?style=plastic
    :target: https://pypi.python.org/pypi/pyfaidx/
