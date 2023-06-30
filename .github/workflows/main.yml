@@ -77,6 +77,11 @@ jobs:
           python3 -m pip install -r requirements.txt
           cp config_template.yaml config.yaml
           python3 bedrunall.py --tool pyfaidx BED03 ./
-                
-      - name: upload coverage report to codecov
-        uses: codecov/codecov-action@v3.1.1
+          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          verbose: true
