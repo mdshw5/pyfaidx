@@ -18,7 +18,11 @@ from math import ceil
 from os.path import getmtime
 from tempfile import TemporaryFile
 from threading import Lock
-from pkg_resources import get_distribution
+
+try:
+    from importlib.metadata import version
+except ImportError: #python < 3.8
+    from importlib_metadata import version
 
 from six import PY2, PY3, integer_types, string_types
 from six.moves import zip_longest
@@ -33,7 +37,7 @@ try:
 except ImportError:
     fsspec = None
 
-__version__ = get_distribution("pyfaidx").version
+__version__ = version("pyfaidx")
 
 if sys.version_info > (3, ):
     buffer = memoryview
