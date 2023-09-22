@@ -28,7 +28,8 @@ classifiers = [
 ]
 dependencies = [
     "six",
-    "setuptools"
+    "setuptools",
+    "importlib_metadata"
 ]
 dynamic = ["version"]
 
