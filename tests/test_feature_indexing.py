@@ -7,12 +7,7 @@ import time
 import platform
 import shutil
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
-import six.moves.builtins as builtins
+from unittest import mock
 
 path = os.path.dirname(__file__)
 os.chdir(path)
@@ -268,7 +263,7 @@ def test_build_issue_96_fail_build_faidx(remove_index):
             opened_files.append(f)
             return f
 
-        with mock.patch('six.moves.builtins.open', side_effect=test_open):
+        with mock.patch('builtins.open', side_effect=test_open):
             try:
                 Faidx(fasta_path)
                 remove_index.assertFail(
@@ -305,7 +300,7 @@ def test_build_issue_96_fail_read_malformed_index_duplicate_key(remove_index):
             opened_files.append(f)
             return f
 
-        with mock.patch('six.moves.builtins.open', side_effect=test_open):
+        with mock.patch('builtins.open', side_effect=test_open):
             try:
                 Faidx(fasta_path)
                 remove_index.assertFail(
