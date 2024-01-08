@@ -27,7 +27,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 dependencies = [
-    "six",
     "setuptools",
     "importlib_metadata"
 ]

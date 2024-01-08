@@ -5,8 +5,6 @@ omit =
     */lib_pypy/_*.py
     */site-packages/ordereddict.py
     */site-packages/nose/*
-    */site-packages/six/*
-    */unittest2/*
 
 [paths]
 source =
