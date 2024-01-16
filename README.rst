@@ -40,7 +40,7 @@ or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
 
 If using ``pip install --user`` make sure to add ``/home/$USER/.local/bin`` to your ``$PATH`` (on linux) or ``/Users/$USER/Library/Python/{python version}/bin`` (on macOS) if you want to run the ``faidx`` script.
 
-Python 2.6 and 2.7 users may choose to use a package version from `v0.7.7 <https://github.com/mdshw5/pyfaidx/releases/tag/v0.7.2.2>`_ or earier.
+Python 2.6 and 2.7 users may choose to use a package version from `v0.7.2 <https://github.com/mdshw5/pyfaidx/releases/tag/v0.7.2.2>`_ or earier.
 
 Usage
 -----
