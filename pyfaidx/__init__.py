@@ -431,7 +431,8 @@ class Faidx(object):
                     raise UnsupportedCompressionFormat(
                         "Compressed FASTA is only supported in BGZF format. Use "
                         "the samtools bgzip utility (instead of gzip) to "
-                        "compress your FASTA."
+                        "compress your FASTA. "
+                        "For example: zcat file.fa.gz | samtools bgzip -c > file.fa.bgz"
                     )
         elif self.filename.lower().endswith(('.bz2', '.zip')):
             raise UnsupportedCompressionFormat(
