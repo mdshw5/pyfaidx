@@ -44,6 +44,7 @@ jobs:
           python-version: ${{ matrix.python }}
         
       - name: upgrade pip
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: python3 -m pip install --upgrade pip
 
       - name: pip install development dependencies
