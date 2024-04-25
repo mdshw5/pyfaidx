@@ -41,7 +41,10 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: set up virtual env
-        run: python3 -m venv venv
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
         
       - name: upgrade pip
         run: python3 -m pip install --upgrade pip
