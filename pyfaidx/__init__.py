@@ -1134,9 +1134,9 @@ class Fasta(object):
         return sum(len(record) for record in self)
 
     def get_seq(self, name, start, end, rc=False):
-        """Return a sequence by record name and interval [start, end).
+        """Return a sequence by record name and interval [start, end].
 
-        Coordinates are 1-based, end-exclusive.
+        Coordinates are 1-based, closed interval.
         If rc is set, reverse complement will be returned.
         """
         # Get sequence from real genome object and save result.
@@ -1245,9 +1245,9 @@ class FastaVariant(Fasta):
                                                       str(self.gt_type))
 
     def get_seq(self, name, start, end):
-        """Return a sequence by record name and interval [start, end).
+        """Return a sequence by record name and interval [start, end].
         Replace positions with polymorphism with variant.
-        Coordinates are 0-based, end-exclusive.
+        Coordinates are 1-based, closed interval.
         """
         seq = self.faidx.fetch(name, start, end)
         if self.faidx.as_raw:
