@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 dependencies = [
-    "importlib_metadata",
+    "importlib_metadata; python_version < '3.8'",
     "packaging"
 ]
 dynamic = ["version"]
