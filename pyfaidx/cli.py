@@ -6,6 +6,19 @@ import re
 from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
 from collections import defaultdict
 
+def detect_fasta_newline(filepath):
+    """Detect the newline style used in a FASTA file by reading the first non-header line."""
+    with open(filepath, 'rb') as f:
+        for line in f:
+            if not line.startswith(b'>'):
+                if line.endswith(b'\r\n'):
+                    return '\r\n'
+                elif line.endswith(b'\n'):
+                    return '\n'
+                elif line.endswith(b'\r'):
+                    return '\r'
+    return '\n'  # fallback
+
 def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
     if ext:
@@ -84,7 +97,8 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
             yield ''.join(['>', sequence.fancy_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
-    for line in wrap_sequence(line_len, sequence.seq):
+    newline = detect_fasta_newline(args.fasta)
+    for line in wrap_sequence(line_len, sequence.seq, newline=newline):
         yield line
 
 

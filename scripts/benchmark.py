@@ -44,7 +44,7 @@ def make_long_fasta(filename, nrecs=250, seqlen=SEQLEN):
             h = "header%i" % i
             headers.append(h)
             f.write('>' + h + '\n')
-            for line in pyfaidx.wrap_sequence(80, s * (seqlen//10)):
+            for line in pyfaidx.wrap_sequence(80, s * (seqlen//10), newline='\n'):
                 f.write(line)
     return headers
 
