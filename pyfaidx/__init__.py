@@ -1282,10 +1282,10 @@ class FastaVariant(Fasta):
             return seq
 
 
-def wrap_sequence(n, sequence, fillvalue=''):
+def wrap_sequence(n, sequence, fillvalue='', newline='\n'):
     args = [iter(sequence)] * n
     for line in zip_longest(fillvalue=fillvalue, *args):
-        yield ''.join(line + ("\n", ))
+        yield ''.join(line) + newline
 
 
 class Rewind:
