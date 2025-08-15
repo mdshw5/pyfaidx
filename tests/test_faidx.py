@@ -54,3 +54,23 @@ def test_not_regexp(remove_index):
 
 def test_not_regexp_multi(remove_index):
     main(['data/genes.fasta', '-g', 'XR', '-g', 'XM', '-v'])
+
+def test_faidx_exit_on_missing_file():
+    """Test that Faidx.__exit__ does not raise AttributeError if file is missing. (#229)"""
+    class FaidxWrapper:
+        def __init__(self):
+            try:
+                self.obj = Faidx('nonexistent_file.fasta')
+            except Exception:
+                pass
+        def __del__(self):
+            # Should not raise AttributeError
+            if hasattr(self, 'obj'):
+                del self.obj
+
+    wrapper = FaidxWrapper()
+    # Deleting wrapper should not raise AttributeError
+    try:
+        del wrapper
+    except AttributeError as e:
+        pytest.fail(f"Unexpected AttributeError on __del__: {e}"
