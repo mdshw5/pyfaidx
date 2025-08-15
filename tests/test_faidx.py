@@ -73,4 +73,4 @@ def test_faidx_exit_on_missing_file():
     try:
         del wrapper
     except AttributeError as e:
-        pytest.fail(f"Unexpected AttributeError on __del__: {e}"
+        pytest.fail(f"Unexpected AttributeError on __del__: {e}")
