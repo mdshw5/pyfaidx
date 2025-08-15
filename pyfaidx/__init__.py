@@ -886,7 +886,8 @@ class Faidx(object):
         return self
 
     def __exit__(self, *args):
-        self.file.close()
+        if hasattr(self, "file"):
+            self.file.close()
 
 
 class FastaRecord(object):
