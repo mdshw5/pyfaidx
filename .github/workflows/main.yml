@@ -1,0 +1,92 @@
+name: CI
+
+# Controls when the action will run. 
+on:
+  push:
+      branches:
+        - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        python-version: ['3.12', '3.11', '3.10', '3.9']
+        os: [ubuntu-latest, macos-latest]
+        exclude:
+          # mac os: exclude all but the last two (available) python releases
+          - os: macos-latest
+            python-version: 3.10
+          - os: macos-latest
+            python-version: 3.9
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          
+      - name: install macOS dependencies
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: brew install -q samtools bcftools xz
+          
+      - name: setup python
+        uses: actions/setup-python@v4.3.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: set up virtual env
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+        
+      - name: upgrade pip
+        run: python3 -m pip install --upgrade pip
+
+      - name: pip install development dependencies
+        run: |
+          python3 -m pip install cython
+          python3 -m pip install -r dev-requirements.txt
+          
+      - name: install pysam under Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: python3 -m pip install pysam
+          
+      - name: install pyfaidx from current branch
+        run: python3 -m pip install .
+        
+      - name: Cache test data
+        uses: actions/cache@v3
+        with:
+          path: tests/data
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tests/data/*') }}
+
+      - name: download test data
+        run: python3 tests/data/download_gene_fasta.py
+        
+      - name: run pyfaidx tests
+        run: pytest --cov=pyfaidx --cov-report=xml tests
+        
+      - name: run acidbio tests
+        run: |
+          git clone https://github.com/mdshw5/acidbio.git
+          cd acidbio/bed
+          python3 -m pip install -r requirements.txt
+          cp config_template.yaml config.yaml
+          python3 bedrunall.py --tool pyfaidx BED03 ./
+          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          verbose: true

@@ -1,4 +1,4 @@
-|Travis| |PyPI| |Coverage| |Depsy|
+|CI| |Package| |PyPI| |Coverage| |Downloads|
 
 Description
 -----------
@@ -26,7 +26,7 @@ If you use pyfaidx in your publication, please cite:
 Installation
 ------------
 
-This package is tested under Linux, MacOS, and Windows using Python 3.2-3.4, 2.7, 2.6, and pypy and is available from the PyPI:
+This package is tested under Linux and macOS using Python 3.7+, and and is available from the PyPI:
 
 ::
 
@@ -36,9 +36,11 @@ or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
 
 ::
 
-    python setup.py install
+    pip install .
 
-If using ``pip install --user`` make sure to add ``/home/$(whoami)/.local/bin`` to your ``$PATH`` if you want to run the ``faidx`` script.
+If using ``pip install --user`` make sure to add ``/home/$USER/.local/bin`` to your ``$PATH`` (on linux) or ``/Users/$USER/Library/Python/{python version}/bin`` (on macOS) if you want to run the ``faidx`` script.
+
+Python 2.6 and 2.7 users may choose to use a package version from `v0.7.2 <https://github.com/mdshw5/pyfaidx/releases/tag/v0.7.2.2>`_ or earier.
 
 Usage
 -----
@@ -335,6 +337,29 @@ The FastaVariant class provides a way to integrate single nucleotide variant cal
     >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', sample='NA06984', het=True, hom=True, call_filter='GT == "0/1"')
     >>> consensus['22'].variant_sites
     (16042793, 29187373, 29187448, 29194610, 29821332)
+    
+You can also specify paths using ``pathlib.Path`` objects.
+
+.. code:: python
+    
+    #new in v0.7.1
+    >>> from pyfaidx import Fasta
+    >>> from pathlib import Path
+    >>> genes = Fasta(Path('tests/data/genes.fasta'))
+    >>> genes
+    Fasta("tests/data/genes.fasta")
+
+Accessing fasta files from `filesystem_spec <https://filesystem-spec.readthedocs.io>`_ filesystems:
+
+.. code:: python
+
+    # new in v0.7.0
+    # pip install fsspec s3fs
+    >>> import fsspec
+    >>> from pyfaidx import Fasta
+    >>> of = fsspec.open("s3://broad-references/hg19/v0/Homo_sapiens_assembly19.fasta", anon=True)
+    >>> genes = Fasta(of)
+
 
 .. _faidx:
 
@@ -356,7 +381,7 @@ cli script: faidx
 
     optional arguments:
       -h, --help            show this help message and exit
-      -b BED, --bed BED     bed file of regions
+      -b BED, --bed BED     bed file of regions (zero-based start coordinate)
       -o OUT, --out OUT     output file name (default: stdout)
       -i {bed,chromsizes,nucleotide,transposed}, --transform {bed,chromsizes,nucleotide,transposed} transform the requested regions into another format. default: None
       -c, --complement      complement the sequence. default: False
@@ -389,6 +414,9 @@ cli script: faidx
 Examples:
 
 .. code:: bash
+
+    $ faidx -v tests/data/genes.fasta
+    ### Creates an .fai index, but supresses sequence output using --invert-match ###
 
     $ faidx tests/data/genes.fasta NM_001282543.1:201-210 NM_001282543.1:300-320
     >NM_001282543.1:201-210
@@ -575,13 +603,16 @@ create also the relevant test.
 
 To get test running on your machine:
  - Create a new virtualenv and install the `dev-requirements.txt`.
+ 
+      pip install -r dev-requirements.txt
+      
  - Download the test data running:
 
       python tests/data/download_gene_fasta.py
 
  - Run the tests with
 
-      nosetests --with-coverage --cover-package=pyfaidx
+      pytests
 
 Acknowledgements
 ----------------
@@ -593,8 +624,11 @@ Wheelan <http://sjwheelan.som.jhmi.edu>`_ and `Vasan
 Yegnasubramanian <http://yegnalab.onc.jhmi.edu>`_ at the Sidney Kimmel
 Comprehensive Cancer Center in the Department of Oncology.
 
-.. |Travis| image:: https://travis-ci.org/mdshw5/pyfaidx.svg?branch=master
-    :target: https://travis-ci.org/mdshw5/pyfaidx
+.. |Travis| image:: https://travis-ci.com/mdshw5/pyfaidx.svg?branch=master
+    :target: https://travis-ci.com/mdshw5/pyfaidx
+    
+.. |CI| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/main.yml/badge.svg?branch=master
+    :target: https://github.com/mdshw5/pyfaidx/actions/workflows/main.yml
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/pyfaidx.svg?branch=master
     :target: https://pypi.python.org/pypi/pyfaidx
@@ -611,3 +645,9 @@ Comprehensive Cancer Center in the Department of Oncology.
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/80ihlw30a003596w?svg=true
    :target: https://ci.appveyor.com/project/mdshw5/pyfaidx
+   
+.. |Package| image:: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml/badge.svg
+   :target: https://github.com/mdshw5/pyfaidx/actions/workflows/pypi.yml
+   
+.. |Downloads| image:: https://img.shields.io/pypi/dm/pyfaidx.svg
+   :target: https://pypi.python.org/pypi/pyfaidx/

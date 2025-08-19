@@ -1,0 +1,40 @@
+name: Package Builds
+on:
+  release:
+    types: [published]
+  push:
+      branches:
+        - master
+
+jobs:
+  build-n-publish:
+    name: build and publish packages to PyPI and TestPyPI
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: build package
+        run: pipx run build
+
+      - name: publish to test PyPI
+        if: startsWith(github.ref, 'refs/tags') != true
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+            password: ${{ secrets.test_pypi_password }}
+            repository_url: https://test.pypi.org/legacy/
+            
+      - name: publish tagged release to PyPI
+        if: startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+            password: ${{ secrets.pypi_password }}

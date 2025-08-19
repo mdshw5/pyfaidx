@@ -1,5 +1,12 @@
-six
-nose
+pytest
+pytest-cov
+setuptools
+cython 
+# pysam
+requests 
+coverage 
+pyfasta 
+pyvcf3
+numpy 
 biopython
-setuptools >= 0.7
-mock; python_version < '3.3'
+fsspec

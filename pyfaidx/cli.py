@@ -6,6 +6,19 @@ import re
 from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
 from collections import defaultdict
 
+def detect_fasta_newline(filepath):
+    """Detect the newline style used in a FASTA file by reading the first non-header line."""
+    with open(filepath, 'rb') as f:
+        for line in f:
+            if not line.startswith(b'>'):
+                if line.endswith(b'\r\n'):
+                    return '\r\n'
+                elif line.endswith(b'\n'):
+                    return '\n'
+                elif line.endswith(b'\r'):
+                    return '\r'
+    return '\n'  # fallback
+
 def write_sequence(args):
     _, ext = os.path.splitext(args.fasta)
     if ext:
@@ -25,6 +38,9 @@ def write_sequence(args):
     header = False
     for region in regions_to_fetch:
         name, start, end = split_function(region)
+        # allow the split_funtion to return None to signify input we should skip
+        if name == None:
+            continue
         if args.size_range:
             if start is not None and end is not None:
                 sequence_len = end - start
@@ -81,7 +97,8 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
             yield ''.join(['>', sequence.fancy_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
-    for line in wrap_sequence(line_len, sequence.seq):
+    newline = detect_fasta_newline(args.fasta)
+    for line in wrap_sequence(line_len, sequence.seq, newline=newline):
         yield line
 
 
@@ -117,6 +134,10 @@ def split_regions(args):
 def transform_sequence(args, fasta, name, start=None, end=None):
     line_len = fasta.faidx.index[name].lenc
     s = fasta[name][start:end]
+    if args.complement:
+        s = s.complement
+    if args.reverse:
+        s = s.reverse
     if args.no_output:
         return
     if args.transform == 'bed':
@@ -126,13 +147,13 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     elif args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
-        nucs.update([(c, str(ss).count(c)) for c in set(str(ss))])
+        nucs.update([(c, ss.count(c)) for c in set(ss)])
         A = nucs.pop('A', 0)
         T = nucs.pop('T', 0)
         C = nucs.pop('C', 0)
         G = nucs.pop('G', 0)
         N = nucs.pop('N', 0)
-        others = '|'.join([':'.join((k, v)) for k, v in nucs.items()])
+        others = '|'.join([':'.join((k, str(v))) for k, v in nucs.items()])
         return '{sname}\t{sstart}\t{send}\t{A}\t{T}\t{C}\t{G}\t{N}\t{others}\n'.format(sname=s.name, sstart=s.start, send=s.end, **locals())
     elif args.transform == 'transposed':
         return '{name}\t{start}\t{end}\t{seq}\n'.format(name=s.name, start=s.start, end=s.end, seq=str(s))
@@ -148,7 +169,7 @@ def main(ext_args=None):
     _input = parser.add_argument_group('input options')
     output = parser.add_argument_group('output options')
     header = parser.add_argument_group('header options')
-    _input.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions")
+    _input.add_argument('-b', '--bed', type=argparse.FileType('r'), help="bed file of regions (zero-based start coordinate)")
     output.add_argument('-o', '--out', type=argparse.FileType('w'), help="output file name (default: stdout)")
     output.add_argument('-i', '--transform', type=str, choices=('bed', 'chromsizes', 'nucleotide', 'transposed'), help="transform the requested regions into another format. default: %(default)s")
     output.add_argument('-c', '--complement', action="store_true", default=False, help="complement the sequence. default: %(default)s")

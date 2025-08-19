@@ -3,34 +3,37 @@
 Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
 
-from __future__ import division
+import datetime
 import bisect
 import os
 import re
 import string
 import struct
 import sys
+import shutil
 import warnings
 from collections import namedtuple
-from itertools import islice
+from itertools import islice, zip_longest
 from math import ceil
 from os.path import getmtime
+from tempfile import TemporaryFile
 from threading import Lock
-from six import PY2, PY3, integer_types, string_types
-from six.moves import zip_longest
 
 try:
-    from collections import OrderedDict
-except ImportError:  #python 2.6
-    from ordereddict import OrderedDict
+    from importlib.metadata import version
+except ImportError: #python < 3.8
+    from importlib_metadata import version
 
-if sys.version_info > (3, ):
-    buffer = memoryview
+from collections import OrderedDict
+
+try:
+    import fsspec
+except ImportError:
+    fsspec = None
+
+__version__ = version("pyfaidx")
 
 dna_bases = re.compile(r'([ACTGNactgnYRWSKMDVHBXyrwskmdvhbx]+)')
-
-__version__ = '0.5.9'
-
 
 class KeyFunctionError(ValueError):
     """Raised if the key_function argument is invalid."""
@@ -42,6 +45,10 @@ class FastaIndexingError(Exception):
 
 class IndexNotFoundError(IOError):
     """Raised if read_fai cannot open the index file."""
+
+
+class VcfIndexNotFoundError(IOError):
+    """Raised if vcf cannot find a tbi file."""
 
 
 class FastaNotFoundError(IOError):
@@ -83,8 +90,8 @@ class Sequence(object):
         self.start = start
         self.end = end
         self.comp = comp
-        assert isinstance(name, string_types)
-        assert isinstance(seq, string_types)
+        assert isinstance(name, str)
+        assert isinstance(seq, str)
 
     def __getitem__(self, n):
         """ Returns a sliced version of Sequence
@@ -164,7 +171,7 @@ class Sequence(object):
                 end = self_start + slice_stop + correction_factor
             return self.__class__(self.name, self.seq[n], start, end,
                                   self.comp)
-        elif isinstance(n, integer_types):
+        elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
             if self.start:
@@ -292,6 +299,34 @@ class Sequence(object):
         c = self.seq.count('C')
         c += self.seq.count('c')
         return (g + c) / len(self.seq)
+    
+    @property
+    def gc_strict(self):
+        """ Return the GC content of seq as a float, ignoring non ACGT characters
+        >>> x = Sequence(name='chr1', seq='NMRATCGTA')
+        >>> y = round(x.gc, 2)
+        >>> y == 0.33
+        True
+        """
+        trimSeq = re.sub(r'[^ACGT]', '', self.seq.upper())
+        gc = sum(trimSeq.count(i) for i in ['G','C'])
+        return gc / len(trimSeq)
+
+    @property
+    def gc_iupac(self):
+        """ Return the GC content of seq as a float, accounting for IUPAC ambiguity 
+        >>> x = Sequence(name='chr1', seq='NMRATCGTA')
+        >>> y = round(x.gc, 2)
+        >>> y == 0.36
+        True
+        """
+        trimSeq = re.sub(r'[^ACGTMRWSYKVHDBN]', '', self.seq.upper())
+        gc =  sum(trimSeq.count(i) for i in ['S','C','G']) 
+        gc += sum(trimSeq.count(i) for i in ['B','V']) * 0.67
+        gc += sum(trimSeq.count(i) for i in ['M','R','Y','K']) * 0.5
+        gc += sum(trimSeq.count(i) for i in ['H','D']) * 0.33
+        gc += trimSeq.count('N') * 0.25
+        return gc / len(trimSeq)
 
 
 class IndexRecord(
@@ -305,7 +340,7 @@ class IndexRecord(
         return tuple.__getitem__(self, key)
 
     def __str__(self):
-        return "{rlen:n}\t{offset:n}\t{lenc:n}\t{lenb:n}\n".format(
+        return "{rlen:d}\t{offset:d}\t{lenc:d}\t{lenb:d}".format(
             **self._asdict())
 
     def __len__(self):
@@ -345,6 +380,7 @@ class Faidx(object):
 
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -360,52 +396,86 @@ class Faidx(object):
                  rebuild=True,
                  build_index=True):
         """
-        filename: name of fasta file
+        filename: name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         key_function: optional callback function which should return a unique
           key for the self.index dictionary when given rname.
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
         """
-        self.filename = filename
 
-        with open(self.filename, 'rb') as sniffer:
-            snuff = sniffer.read(4)
-            if snuff == '\x1f\x8b\x08\x04':
+        if fsspec and isinstance(filename, fsspec.core.OpenFile):
+            self.filename = filename.path
+            assert getattr(filename, 'mode', 'rb') == 'rb'
+            assert getattr(filename, 'compression', None) is None  # restriction could potentially be lifted for BGZF
+            try:
+                self.file = filename.open()
+            except IOError:
+                raise FastaNotFoundError("Cannot read FASTA from OpenFile %s" % filename)
+            self._fs = filename.fs
+
+        elif isinstance(filename, str) or hasattr(filename, '__fspath__'):
+            self.filename = str(filename)
+            try:
+                self.file = open(filename, 'r+b' if mutable else 'rb')
+            except IOError:
+                raise FastaNotFoundError("Cannot read FASTA from file %s" % filename)
+            self._fs = None
+
+        else:
+            raise TypeError("filename expected str, os.PathLike or fsspec.OpenFile, got: %r" % filename)
+
+        if fsspec and isinstance(indexname, fsspec.core.OpenFile):
+            self.indexname = indexname.path
+            self._fai_fs = indexname.fs
+            
+        elif isinstance(indexname, str) or hasattr(indexname, '__fspath__'):
+            self.indexname = str(indexname)
+            self._fai_fs = None 
+            
+        elif indexname is None:
+            self.indexname = self.filename + '.fai'
+            self._fai_fs = self._fs
+            
+        else:
+            raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
+        
+        if self.filename.lower().endswith(('.bgz', '.gz')):
+            # Only try to import Bio if we actually need the bgzf reader.
+            try:
+                from Bio import bgzf
+                from Bio import __version__ as bgzf_version
+                from packaging.version import Version
+                if Version(bgzf_version) < Version('1.73'):
+                    raise ImportError
+            except ImportError:
+                raise ImportError(
+                    "BioPython >= 1.73 must be installed to read block gzip files.")
+            else:
+                self._bgzf = True
                 try:
-                    from Bio import bgzf
-                except ImportError:
-                    raise ImportError(
-                        "BioPython must be installed to read BGZF files.")
-                else:
-                    self._fasta_opener = bgzf.open
-                    self._bgzf = True
-                    self.gzi_index = OrderedDict()
-                    self.gzi_indexname = filename + '.gzi'
-            else:
-                self._fasta_opener = open
-                self._bgzf = False
-
-        try:
-            self.file = self._fasta_opener(filename, 'r+b'
-                                           if mutable else 'rb')
-        except (ValueError, IOError) as e:
-            if str(e).find('BGZF') > -1:
-                raise UnsupportedCompressionFormat(
-                    "Compressed FASTA is only supported in BGZF format. Use "
-                    "the samtools bgzip utility (instead of gzip) to "
-                    "compress your FASTA.")
-            else:
-                raise FastaNotFoundError(
-                    "Cannot read FASTA file %s" % filename)
-
-        self.indexname = filename + '.fai'
+                    # mutable mode is not supported for bzgf anyways
+                    self.file = bgzf.BgzfReader(fileobj=self.file, mode="rb")
+                except (ValueError, IOError):
+                    raise UnsupportedCompressionFormat(
+                        "Compressed FASTA is only supported in BGZF format. Use "
+                        "the samtools bgzip utility (instead of gzip) to "
+                        "compress your FASTA. "
+                        "For example: gunzip file.fa.gz; bgzip file.fa"
+                    )
+        elif self.filename.lower().endswith(('.bz2', '.zip')):
+            raise UnsupportedCompressionFormat(
+                "Compressed FASTA is only supported in BGZF format. Use "
+                "bgzip to compresss your FASTA.")
+        else:
+            self._bgzf = False
         self.read_long_names = read_long_names
         self.key_function = key_function
         try:
             key_fn_test = self.key_function(
                 "TestingReturnType of_key_function")
-            if not isinstance(key_fn_test, string_types):
+            if not isinstance(key_fn_test, str):
                 raise KeyFunctionError(
                     "key_function argument should return a string, not {0}".
                     format(type(key_fn_test)))
@@ -428,47 +498,62 @@ class Faidx(object):
         self.lock = Lock()
         self.buffer = dict((('seq', None), ('name', None), ('start', None),
                             ('end', None)))
-        if not read_ahead or isinstance(read_ahead, integer_types):
+        if not read_ahead or isinstance(read_ahead, int):
             self.read_ahead = read_ahead
-        elif not isinstance(read_ahead, integer_types):
+        elif not isinstance(read_ahead, int):
             raise ValueError("read_ahead value must be int, not {0}".format(
                 type(read_ahead)))
 
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
-            try:
-                if os.path.exists(self.indexname) and getmtime(
-                        self.indexname) >= getmtime(self.filename):
-                    self.read_fai()
-                elif os.path.exists(self.indexname) and getmtime(
-                        self.indexname) < getmtime(
-                            self.filename) and not rebuild:
-                    self.read_fai()
-                    warnings.warn(
-                        "Index file {0} is older than FASTA file {1}.".format(
-                            self.indexname, self.filename), RuntimeWarning)
-                elif build_index:
-                    self.build_index()
-                    self.read_fai()
+
+            if self._fai_fs is None:
+                index_exists = os.path.exists(self.indexname)
+            else:
+                index_exists = self._fai_fs.exists(self.indexname)
+
+            if index_exists:
+                f_mtime = getmtime_fsspec(self.filename, self._fs)
+                i_mtime = getmtime_fsspec(self.indexname, self._fai_fs)
+                if f_mtime is None or i_mtime is None:
+                    warnings.warn("for fsspec: %s assuming index is current" % type(self._fs).__name__)
+                    index_is_stale = False
                 else:
-                    self.read_fai()
-                if self._bgzf:
-                    if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
-                        self.read_gzi()
-                    elif os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) < getmtime(self.gzi_indexname) and not rebuild:
-                        self.read_gzi()
-                        warnings.warn("BGZF Index file {0} is older than FASTA file {1}.".format(self.gzi_indexname, self.filename), RuntimeWarning)
-                    else:
-                        self.build_gzi()
-                        self.write_gzi()
-            except FastaIndexingError:
-                os.remove(self.indexname)
-                self.file.close()
-                raise
+                    index_is_stale = f_mtime > i_mtime
+            else:
+                index_is_stale = False
+
+            if (
+                build_index
+                and (not index_exists or (index_is_stale and rebuild))
+            ):
+                try:
+                    self.build_index()                
+                except FastaIndexingError:
+                    self.file.close()
+                    raise
+            if self._bgzf:
+                if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
+                    self.read_gzi()
+                elif os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) < getmtime(self.gzi_indexname) and not rebuild:
+                    self.read_gzi()
+                    warnings.warn("BGZF Index file {0} is older than FASTA file {1}.".format(self.gzi_indexname, self.filename), RuntimeWarning)
+                else:
+                    self.build_gzi()
+                    self.write_gzi()
+
+            try:
+                self.read_fai()
             except Exception:
-                # Handle potential exceptions other than 'FastaIndexingError'
                 self.file.close()
                 raise
+
+            if index_is_stale and not rebuild:
+                warnings.warn(
+                    "Index file {0} is older than FASTA file {1}.".format(
+                        self.indexname, self.filename
+                    ), RuntimeWarning
+                )
 
     def __contains__(self, region):
         if not self.buffer['name']:
@@ -485,11 +570,11 @@ class Faidx(object):
     def _index_as_string(self):
         """ Returns the string representation of the index as iterable """
         for k, v in self.index.items():
-            yield '\t'.join([k, str(v)])
+          yield '{k}\t{v}\n'.format(k=k, v=str(v))
 
     def read_fai(self):
         try:
-            with open(self.indexname) as index:
+            with self._open_fai(mode='r') as index:
                 prev_bend = 0
                 drop_keys = []
                 for line in index:
@@ -538,9 +623,10 @@ class Faidx(object):
                 "Could not read index file %s" % self.indexname)
 
     def build_index(self):
+        assert self.file.tell() == 0
         try:
-            with self._fasta_opener(self.filename, 'rb') as fastafile:
-                with open(self.indexname, 'w') as indexfile:
+            with Rewind(self.file) as fastafile:
+                with TemporaryFile(mode='w+') as indexfile:
                     rname = None  # reference sequence name
                     offset = 0  # binary offset of end of current line
                     rlen = 0  # reference character length
@@ -620,6 +706,10 @@ class Faidx(object):
                                 "Inconsistent line found in >{0} at "
                                 "line {1:n}.".format(rname,
                                                      bad_lines[0][0] + 1))
+
+                    indexfile.seek(0)
+                    with self._open_fai(mode='w') as target:
+                        shutil.copyfileobj(indexfile, target)
         except (IOError, FastaIndexingError) as e:
             if isinstance(e, IOError):
                 raise IOError(
@@ -664,9 +754,15 @@ class Faidx(object):
 	                
     def write_fai(self):
         with self.lock:
-            with open(self.indexname, 'w') as outfile:
-                for line in self._index_as_string:
+            with self._open_fai(mode='w') as outfile:
+                for line in self._index_as_string():
                     outfile.write(line)
+
+    def _open_fai(self, mode):
+        if self._fai_fs:
+            return self._fai_fs.open(self.indexname, mode=mode)
+        else:
+            return open(self.indexname, mode=mode)
 
     def build_gzi(self):
         """ Build the htslib .gzi index format """
@@ -745,11 +841,12 @@ class Faidx(object):
 
         # Calculate offset (https://github.com/samtools/htslib/blob/20238f354894775ed22156cdd077bc0d544fa933/faidx.c#L398)
         newlines_before = int(
-            (start0 - 1) / i.lenc * (i.lenb - i.lenc)) if start0 > 0 and i.lenc else 0
-        newlines_to_end = int(end / i.lenc * (i.lenb - i.lenc)) if i.lenc else 0
+            (start0 - 1) / i.lenc) if start0 > 0 and i.lenc else 0
+        newlines_to_end = int(end / i.lenc) if i.lenc else 0
         newlines_inside = newlines_to_end - newlines_before
-        seq_blen = newlines_inside + seq_len
-        
+        newline_blen = i.lenb - i.lenc
+        seq_blen = (newlines_inside * newline_blen) + seq_len
+        bstart = i.offset + (newlines_before * newline_blen) + start0
         if seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
@@ -762,7 +859,6 @@ class Faidx(object):
                              "\n".format(end, rname))
 
         with self.lock:
-            bstart = i.offset + newlines_before + start0  # uncompressed offset for the start of requested string
             if self._bgzf: 
                 from Bio import bgzf
                 insertion_i = bisect.bisect_left(self.gzi_index, bstart)
@@ -821,6 +917,10 @@ class Faidx(object):
         if not self.mutable:
             raise IOError(
                 "Write attempted for immutable Faidx instance. Set mutable=True to modify original FASTA."
+            )
+        elif self.mutable and self._fs:
+            raise NotImplementedError(
+                "Writing to mutable instances is not implemented for fsspec objects."
             )
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
@@ -885,11 +985,15 @@ class Faidx(object):
     def close(self):
         self.__exit__()
 
+    def __del__(self):
+        self.__exit__()
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        self.file.close()
+        if hasattr(self, "file"):
+            self.file.close()
 
 
 class FastaRecord(object):
@@ -916,7 +1020,7 @@ class FastaRecord(object):
                     start = len(self) + start
                 return self._fa.get_seq(self.name, start + 1, stop)[::step]
 
-            elif isinstance(n, integer_types):
+            elif isinstance(n, int):
                 if n < 0:
                     n = len(self) + n
                 return self._fa.get_seq(self.name, n + 1, n + 1)
@@ -1027,14 +1131,14 @@ class FastaRecord(object):
             'shape': (len(self), ),
             'typestr': '|S1',
             'version': 3,
-            'data': buffer(str(self).encode('ascii'))
+            'data': memoryview(str(self).encode('ascii'))
         }
 
 
 class MutableFastaRecord(FastaRecord):
     def __init__(self, name, fa):
         super(MutableFastaRecord, self).__init__(name, fa)
-        if self._fa.faidx._fasta_opener != open:
+        if self._fa.faidx._bgzf:
             raise UnsupportedCompressionFormat(
                 "BGZF compressed FASTA is not supported for MutableFastaRecord. "
                 "Please decompress your FASTA file.")
@@ -1058,7 +1162,7 @@ class MutableFastaRecord(FastaRecord):
                     start = len(self) + start
                 self._fa.faidx.to_file(self.name, start + 1, stop, value)
 
-            elif isinstance(n, integer_types):
+            elif isinstance(n, int):
                 if n < 0:
                     n = len(self) + n
                 return self._fa.faidx.to_file(self.name, n + 1, n + 1, value)
@@ -1069,6 +1173,7 @@ class MutableFastaRecord(FastaRecord):
 class Fasta(object):
     def __init__(self,
                  filename,
+                 indexname=None,
                  default_seq=None,
                  key_function=lambda x: x,
                  as_raw=False,
@@ -1085,12 +1190,13 @@ class Fasta(object):
                  build_index=True):
         """
         An object that provides a pygr compatible interface.
-        filename: name of fasta file
+        filename:  name of fasta file or fsspec.core.OpenFile instance
+        indexname: name of index file or fsspec.core.OpenFile instance
         """
-        self.filename = filename
         self.mutable = mutable
         self.faidx = Faidx(
             filename,
+            indexname=indexname,
             key_function=key_function,
             as_raw=as_raw,
             default_seq=default_seq,
@@ -1106,6 +1212,8 @@ class Fasta(object):
             rebuild=rebuild,
             build_index=build_index)
         
+        self.filename = self.faidx.filename
+        
         _record_constructor = MutableFastaRecord if self.mutable else FastaRecord
         self.records = OrderedDict([(rname, _record_constructor(rname, self)) for rname in self.faidx.index.keys()])
 
@@ -1115,7 +1223,7 @@ class Fasta(object):
 
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
-        if isinstance(rname, integer_types):
+        if isinstance(rname, int):
             rname = next(islice(self.records.keys(), rname, None))
         try:
             return self.records[rname]
@@ -1133,9 +1241,9 @@ class Fasta(object):
         return sum(len(record) for record in self)
 
     def get_seq(self, name, start, end, rc=False):
-        """Return a sequence by record name and interval [start, end).
+        """Return a sequence by record name and interval [start, end].
 
-        Coordinates are 1-based, end-exclusive.
+        Coordinates are 1-based, closed interval.
         If rc is set, reverse complement will be returned.
         """
         # Get sequence from real genome object and save result.
@@ -1201,13 +1309,9 @@ class FastaVariant(Fasta):
                  **kwargs):
         super(FastaVariant, self).__init__(filename, **kwargs)
         try:
-            import pysam
-        except ImportError:
-            raise ImportError("pysam must be installed for FastaVariant.")
-        try:
             import vcf
         except ImportError:
-            raise ImportError("PyVCF must be installed for FastaVariant.")
+            raise ImportError("PyVCF3 must be installed for FastaVariant.")
         if call_filter is not None:
             try:
                 key, expr, value = call_filter.split()  # 'GQ > 30'
@@ -1224,6 +1328,8 @@ class FastaVariant(Fasta):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
             raise IOError("File {0} does not exist.".format(vcf_file))
+        if not os.path.exists(vcf_file + '.tbi'):
+            raise VcfIndexNotFoundError("File {0} has not tabix index.".format(vcf_file))
         if sample is not None:
             self.sample = sample
         else:
@@ -1246,9 +1352,9 @@ class FastaVariant(Fasta):
                                                       str(self.gt_type))
 
     def get_seq(self, name, start, end):
-        """Return a sequence by record name and interval [start, end).
+        """Return a sequence by record name and interval [start, end].
         Replace positions with polymorphism with variant.
-        Coordinates are 0-based, end-exclusive.
+        Coordinates are 1-based, closed interval.
         """
         seq = self.faidx.fetch(name, start, end)
         if self.faidx.as_raw:
@@ -1257,14 +1363,24 @@ class FastaVariant(Fasta):
         else:
             seq_mut = list(seq.seq)
             del seq.seq
-        var = self.vcf.fetch(name, start - 1, end)
-        for record in var:
-            if record.is_snp:  # skip indels
-                sample = record.genotype(self.sample)
-                if sample.gt_type in self.gt_type and eval(self.filter):
-                    alt = record.ALT[0]
-                    i = (record.POS - 1) - (start - 1)
-                    seq_mut[i:i + len(alt)] = str(alt)
+        try:
+            var = self.vcf.fetch(name, start - 1, end)
+            for record in var:
+                if record.is_snp:  # skip indels
+                    sample = record.genotype(self.sample)
+                    if sample.gt_type in self.gt_type and eval(self.filter):
+                        alt = record.ALT[0]
+                        i = (record.POS - 1) - (start - 1)
+                        seq_mut[i:i + len(alt)] = str(alt)
+        except ValueError as e: # Can be raised if name is not part of tabix for vcf
+            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
+                # The chromosome name is not part of the vcf
+                # The sequence returned is the same as the reference
+                pass
+            else:
+                # This is something else
+                raise e
+
         # slice the list in case we added an MNP in last position
         if self.faidx.as_raw:
             return ''.join(seq_mut[:end - start + 1])
@@ -1273,10 +1389,57 @@ class FastaVariant(Fasta):
             return seq
 
 
-def wrap_sequence(n, sequence, fillvalue=''):
+def wrap_sequence(n, sequence, fillvalue='', newline='\n'):
     args = [iter(sequence)] * n
     for line in zip_longest(fillvalue=fillvalue, *args):
-        yield ''.join(line + ("\n", ))
+        yield ''.join(line) + newline
+
+
+class Rewind:
+    """
+    use a fileobject in a context manager and rewind it back to its original position
+    """
+    def __init__(self, fileobj):
+        self.fileobj = fileobj
+        self.origin = None
+
+    def __enter__(self):
+        self.origin = self.fileobj.tell()
+        return self.fileobj
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fileobj.seek(self.origin)
+        self.origin = None
+
+
+def getmtime_fsspec(path, fs):
+    """get the modification time of a file in a fsspec compatible way"""
+    if fs is None:
+        mtime = getmtime(path)
+    else:
+        # getting mtime for different fsspec filesystems is currently
+        # not well abstracted and leaks implementation details of
+        # different filesystems.
+        # See: https://github.com/fsspec/filesystem_spec/issues/526
+        f_info = fs.stat(path)
+        if 'mtime' in f_info:
+            mtime = f_info['mtime']
+        elif 'LastModified' in f_info:
+            mtime = f_info['LastModified']
+        elif 'updated' in f_info:
+            mtime = f_info['updated']
+        elif 'created' in f_info:
+            mtime = f_info['created']
+        else:
+            return None
+    if isinstance(mtime, float):
+        return mtime
+    elif isinstance(mtime, str):
+        return datetime.datetime.fromisoformat(mtime.replace("Z", "+00:00")).timestamp()
+    elif isinstance(mtime, datetime.datetime):
+        return mtime.timestamp()
+    else:
+        return None
 
 
 # To take a complement, we map each character in the first string in this pair
@@ -1287,13 +1450,9 @@ invalid_characters_set = set(
     chr(x) for x in range(256) if chr(x) not in complement_map[0])
 invalid_characters_string = ''.join(invalid_characters_set)
 
-if PY3:
-    complement_table = str.maketrans(complement_map[0], complement_map[1],
-                                     invalid_characters_string)
-    translate_arguments = (complement_table, )
-elif PY2:
-    complement_table = string.maketrans(complement_map[0], complement_map[1])
-    translate_arguments = (complement_table, invalid_characters_string)
+complement_table = str.maketrans(complement_map[0], complement_map[1],
+                                 invalid_characters_string)
+translate_arguments = (complement_table, )
 
 
 def complement(seq):
@@ -1323,6 +1482,8 @@ def translate_chr_name(from_name, to_name):
 
 
 def bed_split(bed_entry):
+    if bed_entry[0] == "#":
+        return (None, None, None)
     try:
         rname, start, end = bed_entry.rstrip().split()[:3]
     except (IndexError, ValueError):
