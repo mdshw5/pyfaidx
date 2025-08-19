@@ -21,7 +21,6 @@ def remove_index():
         pass  # some tests may delete this file
 
 @pytest.mark.skipif(not bio, reason="Biopython is not installed.")
-@pytest.mark.xfail
 def test_build_issue_126(remove_index):
     """ Samtools BGZF index should be identical to pyfaidx BGZF index """
     expect_index = (

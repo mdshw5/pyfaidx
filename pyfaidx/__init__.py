@@ -752,6 +752,7 @@ class Faidx(object):
                     raise IndexError("Unexpected end of .gzi file. ")
                 else:
                     self.gzi_index.append(BgzfBlock(cstart, None, ustart, None))
+
     def write_fai(self):
         with self.lock:
             with self._open_fai(mode='w') as outfile:
@@ -763,29 +764,6 @@ class Faidx(object):
             return self._fai_fs.open(self.indexname, mode=mode)
         else:
             return open(self.indexname, mode=mode)
-
-    # Only keep the correct build_gzi implementation (with append, not assignment by index)
-
-    def write_gzi(self):
-        """ Write the on disk format for the htslib .gzi index
-        https://github.com/samtools/htslib/issues/473"""
-        with open(self.gzi_indexname, 'wb') as bzi_file:
-            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
-            for block in self.gzi_index.values():
-                bzi_file.write(block.as_bytes())
-
-    def read_gzi(self):
-        """ Read the on disk format for the htslib .gzi index
-        https://github.com/samtools/htslib/issues/473"""
-        from ctypes import c_uint64, sizeof
-        with open(self.gzi_indexname, 'rb') as bzi_file:
-            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
-            for i in range(number_of_blocks):
-                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
-                if cstart == '' or ustart == '':
-                    raise IndexError("Unexpected end of .gzi file. ")
-                else:
-                    self.gzi_index[i] = BgzfBlock(cstart, None, ustart, None)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -868,16 +846,16 @@ class Faidx(object):
             else:
                 self.file.seek(bstart)
 
-                # If the requested sequence exceeds len(FastaRecord), return as much as possible
-                if bstart + seq_blen > i.bend and not self.strict_bounds:
-                    seq_blen = i.bend - bstart
-                # Otherwise it should be safe to read the sequence
-                if seq_blen > 0:
-                    seq = self.file.read(seq_blen).decode()
-                # If the requested sequence is negative, we will pad the empty string with default_seq.
-                # This was changed to support #155 with strict_bounds=True.
-                elif seq_blen <= 0:
-                    seq = ''
+            # If the requested sequence exceeds len(FastaRecord), return as much as possible
+            if bstart + seq_blen > i.bend and not self.strict_bounds:
+                seq_blen = i.bend - bstart
+            # Otherwise it should be safe to read the sequence
+            if seq_blen > 0:
+                seq = self.file.read(seq_blen).decode()
+            # If the requested sequence is negative, we will pad the empty string with default_seq.
+            # This was changed to support #155 with strict_bounds=True.
+            elif seq_blen <= 0:
+                seq = ''
 
         if not internals:
             return seq.replace('\n', '').replace('\r', '')
