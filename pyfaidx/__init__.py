@@ -348,31 +348,32 @@ class IndexRecord(
 
 
 class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
-	    __slots__ = ()
-	
-	    def __getitem__(self, key):
-	        if type(key) == str:
-	            return getattr(self, key)
-	        return tuple.__getitem__(self, key)
-	
-	    def as_bytes(self):
-	        return struct.pack('<QQ', self.cstart, self.ustart)
-	        
-	    def __lt__(self, other):
-	        if self.ustart < other:
-	            return True
-	        
-	    def __len__(self):
-	        return self.ulen
-	        
-	    @property
-	    def empty(self):
-	    """Check for the EOF marker, which is an empty BGZF block.
-	       https://github.com/biopython/biopython/blob/master/Bio/bgzf.py#L171"""
-	        if self.ulen == '0':
-	            return True
-	        else:
-	            return False
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        if type(key) == str:
+            return getattr(self, key)
+        return tuple.__getitem__(self, key)
+
+    def as_bytes(self):
+        return struct.pack('<QQ', self.cstart, self.ustart)
+
+    def __lt__(self, other):
+        if self.ustart < other:
+            return True
+
+    def __len__(self):
+        return self.ulen
+
+    @property
+    def empty(self):
+        """Check for the EOF marker, which is an empty BGZF block.
+        https://github.com/biopython/biopython/blob/master/Bio/bgzf.py#L171"""
+        if self.ulen == 0:
+            return True
+        else:
+            return False
 	            
 
 class Faidx(object):
@@ -442,6 +443,7 @@ class Faidx(object):
             raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
         
         if self.filename.lower().endswith(('.bgz', '.gz')):
+            self.gzi_indexname = self.filename + '.gzi'
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -719,39 +721,37 @@ class Faidx(object):
                 raise e
                 
     def build_gzi(self):
-	        """ Build the htslib .gzi index format """
-	        from Bio import bgzf
-	        with open(self.filename, 'rb') as bgzf_file:
-	            self.gzi_index = []
-	            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
-	                self.gzi_index.append(BgzfBlock(*values))
-	        eof = self.gzi_index.pop()
-	        if not eof.empty:
-	            raise IOError("BGZF EOF marker not found. File %s is not a valid BGZF file." % self.filename)
-	        
-	                
+        """ Build the htslib .gzi index format """
+        from Bio import bgzf
+        with open(self.filename, 'rb') as bgzf_file:
+            self.gzi_index = []
+            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
+                self.gzi_index.append(BgzfBlock(*values))
+        eof = self.gzi_index.pop()
+        if not eof.empty:
+            raise IOError("BGZF EOF marker not found. File %s is not a valid BGZF file." % self.filename)
+
     def write_gzi(self):
-	        """ Write the on disk format for the htslib .gzi index
-	        https://github.com/samtools/htslib/issues/473"""
-	        with open(self.gzi_indexname, 'wb') as bzi_file:
-	            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
-	            for block in self.gzi_index:
-	                bzi_file.write(block.as_bytes())
-	                
+        """ Write the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        with open(self.gzi_indexname, 'wb') as bzi_file:
+            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
+            for block in self.gzi_index:
+                bzi_file.write(block.as_bytes())
+
     def read_gzi(self):
-	        """ Read the on disk format for the htslib .gzi index
-	        https://github.com/samtools/htslib/issues/473"""
-	        from ctypes import c_uint64, sizeof
-	        with open(self.gzi_indexname, 'rb') as bzi_file:
-	            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
-	            self.gzi_index = []
-	            for i in range(number_of_blocks):
-	                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
-	                if cstart == '' or ustart == '':
-	                    raise IndexError("Unexpected end of .gzi file. ")
-	                else:
-	                    self.gzi_index.append(BgzfBlock(cstart, None, ustart, None))
-	                
+        """ Read the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        from ctypes import c_uint64, sizeof
+        with open(self.gzi_indexname, 'rb') as bzi_file:
+            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
+            self.gzi_index = []
+            for i in range(number_of_blocks):
+                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
+                if cstart == '' or ustart == '':
+                    raise IndexError("Unexpected end of .gzi file. ")
+                else:
+                    self.gzi_index.append(BgzfBlock(cstart, None, ustart, None))
     def write_fai(self):
         with self.lock:
             with self._open_fai(mode='w') as outfile:
@@ -764,12 +764,7 @@ class Faidx(object):
         else:
             return open(self.indexname, mode=mode)
 
-    def build_gzi(self):
-        """ Build the htslib .gzi index format """
-        from Bio import bgzf
-        with open(self.filename, 'rb') as bgzf_file:
-            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
-                self.gzi_index[i] = BGZFblock(*values)
+    # Only keep the correct build_gzi implementation (with append, not assignment by index)
 
     def write_gzi(self):
         """ Write the on disk format for the htslib .gzi index
@@ -790,7 +785,7 @@ class Faidx(object):
                 if cstart == '' or ustart == '':
                     raise IndexError("Unexpected end of .gzi file. ")
                 else:
-                    self.gzi_index[i] = BGZFblock(cstart, None, ustart, None)
+                    self.gzi_index[i] = BgzfBlock(cstart, None, ustart, None)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
