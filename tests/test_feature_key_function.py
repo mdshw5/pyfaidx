@@ -6,18 +6,18 @@ path = os.path.dirname(__file__)
 os.chdir(path)
 
 ACCESSION_TO_GENE_NAME_DICT = {
-    'gi|563317589|dbj|AB821309.1|': 'FGFR2',
-    'gi|557361099|gb|KF435150.1|': 'MDM4',
-    'gi|543583796|ref|NR_104216.1|': 'BARD1',
+    'AB821309.1': 'FGFR2',
+    'KF435150.1': 'MDM4',
+    'NR_104216.1': 'BARD1',
     # The rest are deliberately omitted
     # KF435149.1, NR_104215.1, NR_104212.1, NM_001282545.1 ...
     }
 
 ACCESSION_TO_DUPLICATED_GENE_NAME_DICT = {
-    'gi|563317589|dbj|AB821309.1|': 'FGFR2',
-    'gi|557361099|gb|KF435150.1|': 'MDM4',
-    'gi|543583796|ref|NR_104216.1|': 'BARD1',
-    'gi|543583795|ref|NR_104215.1|': 'BARD1', # Duplicated gene names will trigger a warning
+    'AB821309.1': 'FGFR2',
+    'KF435150.1': 'MDM4',
+    'NR_104216.1': 'BARD1',
+    'NR_104215.1': 'BARD1', # Duplicated gene names will trigger a warning
     # The rest are deliberately omitted
     # KF435149.1, NR_104212.1, NM_001282545.1 ...
     }
@@ -43,7 +43,7 @@ def remove_index():
 
 def test_keys(remove_index):
     genes = Fasta('data/genes.fasta', key_function=get_gene_name)
-    expect = ['BARD1', 'FGFR2', 'MDM4', 'gi|530364724|ref|XR_241079.1|', 'gi|530364725|ref|XR_241080.1|', 'gi|530364726|ref|XR_241081.1|', 'gi|530373235|ref|XM_005265507.1|', 'gi|530373237|ref|XM_005265508.1|', 'gi|530384534|ref|XM_005249642.1|', 'gi|530384536|ref|XM_005249643.1|', 'gi|530384538|ref|XM_005249644.1|', 'gi|530384540|ref|XM_005249645.1|', 'gi|543583738|ref|NM_001282548.1|', 'gi|543583740|ref|NM_001282549.1|', 'gi|543583785|ref|NM_000465.3|', 'gi|543583786|ref|NM_001282543.1|', 'gi|543583788|ref|NM_001282545.1|', 'gi|543583794|ref|NR_104212.1|', 'gi|543583795|ref|NR_104215.1|', 'gi|557361097|gb|KF435149.1|']
+    expect = ['BARD1', 'FGFR2', 'KF435149.1', 'MDM4', 'NR_104158.1', 'NR_104160.1', 'NR_104205.1', 'NR_104206.1', 'NR_104208.1', 'NR_104214.1', 'NR_104215.1', 'XR_241053.1', 'XR_241054.1', 'XR_241055.1', 'XR_241064.1', 'XR_241065.1', 'XR_241078.1', 'XR_241079.1', 'XR_241080.1', 'XR_241081.1']
     result = sorted(genes.keys())
     assert result == expect
 

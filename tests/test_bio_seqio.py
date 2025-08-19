@@ -24,19 +24,19 @@ def test_fetch_whole_entry(remove_index):
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
         seqio = SeqIO.to_dict(SeqIO.parse(fh, "fasta"))
-    assert str(fasta['gi|557361099|gb|KF435150.1|']) == str(seqio['gi|557361099|gb|KF435150.1|'].seq)
-    assert fasta['gi|557361099|gb|KF435150.1|'].name == str(seqio['gi|557361099|gb|KF435150.1|'].name)
+    assert str(fasta['KF435150.1']) == str(seqio['KF435150.1'].seq)
+    assert fasta['KF435150.1'].name == str(seqio['KF435150.1'].name)
 
 @pytest.mark.skipif(not bio, reason="Biopython is not installed.")
 def test_slice_whole_entry(remove_index):
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
         seqio = SeqIO.to_dict(SeqIO.parse(fh, "fasta"))
-    assert str(fasta['gi|557361099|gb|KF435150.1|'][::3]) == str(seqio['gi|557361099|gb|KF435150.1|'].seq[::3])
+    assert str(fasta['KF435150.1'][::3]) == str(seqio['KF435150.1'].seq[::3])
 
 @pytest.mark.skipif(not bio, reason="Biopython is not installed.")
 def test_revcomp_whole_entry(remove_index):
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
         seqio = SeqIO.to_dict(SeqIO.parse(fh, "fasta"))
-    assert str(fasta['gi|557361099|gb|KF435150.1|'][:].reverse.complement) == str(seqio['gi|557361099|gb|KF435150.1|'].reverse_complement().seq)
+    assert str(fasta['KF435150.1'][:].reverse.complement) == str(seqio['KF435150.1'].reverse_complement().seq)
