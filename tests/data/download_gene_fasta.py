@@ -5,18 +5,32 @@ def fetch_genes(filename, suffix=None):
     from Bio import Entrez
     Entrez.email = "mdshw5@gmail.com"
 
-    id_list = ['563317589', '557361099', '557361097', '543583796',
-               '543583795', '543583794', '543583788', '543583786',
-               '543583785', '543583740', '543583738', '530384540',
-               '530384538', '530384536', '530384534', '530373237',
-               '530373235', '530364726', '530364725', '530364724']
+    # Use accession.version identifiers instead of GI numbers
+    id_list = [
+        'AB821309.1',  # was 563317589
+        'KF435150.1',  # was 557361099
+        'KF435149.1',  # was 557361097
+        'NR_104216.1', # was 543583796
+        'NR_104215.1', # was 543583795
+        'NR_104214.1', # was 543583794
+        'NR_104208.1', # was 543583788
+        'NR_104206.1', # was 543583786
+        'NR_104205.1', # was 543583785
+        'NR_104160.1', # was 543583740
+        'NR_104158.1', # was 543583738
+        'XR_241081.1', # was 530384540
+        'XR_241080.1', # was 530384538
+        'XR_241079.1', # was 530384536
+        'XR_241078.1', # was 530384534
+        'XR_241065.1', # was 530373237
+        'XR_241064.1', # was 530373235
+        'XR_241055.1', # was 530364726
+        'XR_241054.1', # was 530364725
+        'XR_241053.1', # was 530364724
+    ]
 
-    search_results = Entrez.read(Entrez.epost("nucleotide", id=",".join(id_list)))
-
-    webenv = search_results["WebEnv"]
-    query_key = search_results["QueryKey"]
-
-    records = Entrez.efetch(db="nucleotide", rettype="fasta", retmode="text", webenv=webenv, query_key=query_key)
+    # Directly fetch by accession.version (no EPost needed)
+    records = Entrez.efetch(db="nucleotide", id=",".join(id_list), rettype="fasta", retmode="text")
 
     with open(filename, 'w') as fasta:
         for line in records:
@@ -32,6 +46,21 @@ def fetch_genes(filename, suffix=None):
                 if line[0] != '>':
                     line = line.lower()
                 lower.write(line)
+
+def issue_141_genes(newlines, carriages):
+    """ Creates a fasta file with the genes from issue #141 
+    https://github.com/mdshw5/pyfaidx/issues/141"""
+    # replace the newline characters with carriage returns
+    # open newlines file and read lines
+    with open(newlines, 'r') as newlines_file:
+        lines = newlines_file.readlines()
+    # open carriages file and write lines
+    with open(carriages, 'w') as carriages_file:
+        for line in lines:
+            # replace newline with carriage return
+            line = line.replace('\n', '\r\n')
+            # write the modified line to the file
+            carriages_file.write(line)
 
 def fetch_chr22(filename):
     import requests
@@ -95,6 +124,9 @@ if __name__ == "__main__":
     if not os.path.isfile("genes.fasta") or not os.path.isfile("genes.fasta.lower"):
         print("GETTING genes")
         fetch_genes("genes.fasta")
+    if not os.path.isfile("issue_141.fasta"):
+        print("GETTING issue 141 genes")
+        issue_141_genes("genes.fasta", "issue_141.fasta")
     if not os.path.isfile("chr22.vcf.gz"):
         print("GETTING vcf")
         fetch_chr22_vcf("chr22.vcf.gz")

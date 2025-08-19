@@ -25,8 +25,8 @@ def test_sequence_uppercase(remove_index):
     reference_upper = Fasta(filename, sequence_always_upper=True)
     reference_normal = Fasta(filename)
     os.remove('data/genes.fasta.lower.fai')
-    assert reference_upper['gi|557361099|gb|KF435150.1|'][
-        1:100].seq == reference_normal['gi|557361099|gb|KF435150.1|'][
+    assert reference_upper['KF435150.1'][
+    1:100].seq == reference_normal['KF435150.1'][
             1:100].seq.upper()
 
 def test_long_names(remove_index):
@@ -125,34 +125,39 @@ def remove_index_mutable():
     except EnvironmentError:
         pass  # some tests may delete this file
 
-    def test_mutate_fasta_to_same(remove_index_mutable):
-        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
-        fasta = Fasta('data/genes.fasta', mutable=False)
-        chunk = fasta['gi|557361099|gb|KF435150.1|'][0:100]
-        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk.seq
-        assert str(fasta['gi|557361099|gb|KF435150.1|']) == str(
-            mutable['gi|557361099|gb|KF435150.1|'])
 
-    def test_mutate_fasta_to_N(remove_index_mutable):
-        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
-        chunk = 100 * 'N'
-        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
-        assert mutable['gi|557361099|gb|KF435150.1|'][0:100].seq == chunk
+@pytest.mark.usefixtures('remove_index_mutable')
+def test_mutate_fasta_to_same():
+    mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+    fasta = Fasta('data/genes.fasta', mutable=False)
+    chunk = fasta['KF435150.1'][0:100]
+    mutable['KF435150.1'][0:100] = chunk.seq
+    assert str(fasta['KF435150.1']) == str(mutable['KF435150.1'])
 
-    def test_mutate_single_position(remove_index_mutable):
-        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
-        chunk = 'N'
-        mutable['gi|557361099|gb|KF435150.1|'][0] = chunk
-        assert mutable['gi|557361099|gb|KF435150.1|'][0].seq == chunk
+@pytest.mark.usefixtures('remove_index_mutable')
+def test_mutate_fasta_to_N():
+    mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+    chunk = 100 * 'N'
+    mutable['KF435150.1'][0:100] = chunk
+    assert mutable['KF435150.1'][0:100].seq == chunk
 
-    @pytest.mark.xfail(raises=TypeError)
-    def test_mutate_immutable_fasta(remove_index_mutable):
-        mutable = Fasta('data/genes_mutable.fasta', mutable=False)
-        chunk = 100 * 'N'
-        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
+@pytest.mark.usefixtures('remove_index_mutable')
+def test_mutate_single_position():
+    mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+    chunk = 'N'
+    mutable['KF435150.1'][0] = chunk
+    assert mutable['KF435150.1'][0].seq == chunk
 
-    @pytest.mark.xfail(raises=IOError)
-    def test_mutate_too_long(remove_index_mutable):
-        mutable = Fasta('data/genes_mutable.fasta', mutable=True)
-        chunk = 101 * 'N'
-        mutable['gi|557361099|gb|KF435150.1|'][0:100] = chunk
+@pytest.mark.xfail(raises=TypeError)
+@pytest.mark.usefixtures('remove_index_mutable')
+def test_mutate_immutable_fasta():
+    mutable = Fasta('data/genes_mutable.fasta', mutable=False)
+    chunk = 100 * 'N'
+    mutable['KF435150.1'][0:100] = chunk
+
+@pytest.mark.xfail(raises=IOError)
+@pytest.mark.usefixtures('remove_index_mutable')
+def test_mutate_too_long():
+    mutable = Fasta('data/genes_mutable.fasta', mutable=True)
+    chunk = 101 * 'N'
+    mutable['KF435150.1'][0:100] = chunk

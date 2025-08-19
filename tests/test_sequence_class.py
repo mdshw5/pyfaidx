@@ -1,10 +1,10 @@
 import pytest
 from pyfaidx import Sequence, complement
 
-seq = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
+seq = Sequence(name='KF435150.1', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
                     start=100, end=150)
 
-seq_invalid = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTPGCATGCAGCAGGTGCGCAAGGTGAAATNTTCACTGTTAAA',
+seq_invalid = Sequence(name='KF435150.1', seq='TTGAAGATTTPGCATGCAGCAGGTGCGCAAGGTGAAATNTTCACTGTTAAA',
                     start=100, end=150)
 
 comp_valid = 'TTGAAGATTTnGCATGCAGCAGGtgccaAGGTGAAATGTTNACTGTTAAA'
@@ -34,7 +34,7 @@ def test_comp_invalid():
         complement(comp_invalid)
 
 def test_check_coordinates():
-    x = Sequence(name='gi|557361099|gb|KF435150.1|', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
+    x = Sequence(name='KF435150.1', seq='TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA',
                  start=100, end=110)
     with pytest.raises(ValueError):
         _ = x[:]

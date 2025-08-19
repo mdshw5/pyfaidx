@@ -15,12 +15,12 @@ def remove_index():
     
 def test_integer_slice(remove_index):
     fasta = Fasta('data/genes.fasta')
-    expect = fasta['gi|563317589|dbj|AB821309.1|'][:100].seq
+    expect = fasta['AB821309.1'][:100].seq
     result = fasta[0][:100].seq
     assert expect == result
 
 def test_integer_index(remove_index):
     fasta = Fasta('data/genes.fasta')
-    expect = fasta['gi|563317589|dbj|AB821309.1|'][100].seq
+    expect = fasta['AB821309.1'][100].seq
     result = fasta[0][100].seq
     assert expect == result
