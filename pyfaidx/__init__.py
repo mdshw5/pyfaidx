@@ -403,6 +403,33 @@ class Faidx(object):
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
+        strict_bounds: if True, will raise FetchError if the requested region
+          is outside the bounds of the sequence.
+        read_ahead: number of bases to read ahead when fetching a sequence.
+        mutable: if True, the Faidx object will be mutable, allowing
+            modification of the FASTA file in place. This is not supported
+            for BGZF files, and will raise an UnsupportedCompressionFormat
+            exception if the file is compressed.
+        split_char: if not None, the keys will be split on this character
+        duplicate_action: how to handle duplicate keys in the index. Options are:
+            "stop" (default): raise ValueError if a duplicate key is found
+            "first": keep the first occurrence of the key
+            "last": keep the last occurrence of the key
+            "longest": keep the longest sequence for the key
+            "shortest": keep the shortest sequence for the key
+            "drop": drop the duplicate key
+        filt_function: a function that filters the keys returned by key_function.
+            The function should take a single argument (the key) and return
+            True if the key should be included, or False if it should be excluded.
+        one_based_attributes: if True, the start and end attributes of the
+            Sequence object will be one-based (i.e. start=1, end=length).
+        read_long_names: if True, the index will use the full sequence name
+            (including any whitespace) as the key. If False, the sequence name
+            will be split on whitespace and the first part will be used as the key.
+        sequence_always_upper: if True, the sequence will always be returned
+            in uppercase, regardless of the case in the FASTA file.
+        rebuild: if True, the index will be rebuilt if it is stale or does not exist.
+        build_index: if True, the index will be built if it does not exist or is stale.
         """
 
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
@@ -726,13 +753,21 @@ class Faidx(object):
             self.gzi_index = []
             for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
                 self.gzi_index.append(BgzfBlock(*values))
+        # htslib expects the last block to be an empty block, which is the EOF marker, 
+        # and discards it from the index before writing it to disk.
         eof = self.gzi_index.pop()
         if not eof.empty:
             raise IOError("BGZF EOF marker not found. File %s is not a valid BGZF file." % self.filename)
+        # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
+        # https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2401
+        first_block = self.gzi_index.pop(0) 
 
     def write_gzi(self):
         """ Write the on disk format for the htslib .gzi index
-        https://github.com/samtools/htslib/issues/473"""
+        https://github.com/samtools/htslib/issues/473
+        See note about file format in 
+        https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2382-L2384
+        """
         with open(self.gzi_indexname, 'wb') as bzi_file:
             bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
             for block in self.gzi_index:
@@ -744,7 +779,8 @@ class Faidx(object):
         from ctypes import c_uint64, sizeof
         with open(self.gzi_indexname, 'rb') as bzi_file:
             number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
-            self.gzi_index = []
+            # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
+            self.gzi_index = [BgzfBlock(0, None, 0, None)]
             for i in range(number_of_blocks):
                 cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
                 if cstart == '' or ustart == '':
