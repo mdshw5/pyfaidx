@@ -165,7 +165,6 @@ class Sequence(object):
                     slice_stop = 0
                 start = self_end - slice_stop
                 end = self_start + slice_stop
-                #print(locals())
             else:
                 start = self_start + slice_start
                 end = self_start + slice_stop + correction_factor
@@ -839,9 +838,7 @@ class Faidx(object):
                     start_block = self.gzi_index[insertion_i]
                 else:
                     start_block = self.gzi_index[insertion_i - 1]
-                within_block_offset = start_block.ustart + bstart
-                print(self.gzi_index)
-                print(locals())
+                within_block_offset = bstart - start_block.ustart
                 self.file.seek(bgzf.make_virtual_offset(start_block.cstart, within_block_offset))
             else:
                 self.file.seek(bstart)
