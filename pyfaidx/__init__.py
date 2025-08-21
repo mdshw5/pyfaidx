@@ -359,8 +359,12 @@ class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
         return struct.pack('<QQ', self.cstart, self.ustart)
 
     def __lt__(self, other):
-        if self.ustart < other:
-            return True
+        """Compare BgzfBlock ustart to an integer, or to another BgzfBlock by ustart."""
+        if isinstance(other, BgzfBlock):
+            return self.ustart < other.ustart
+        elif isinstance(other, (int, float)):
+            return self.ustart < other
+        return NotImplemented
 
     def __len__(self):
         return self.ulen
@@ -1575,38 +1579,6 @@ def get_valid_filename(s):
     """
     s = str(s).strip().replace(' ', '_')
     return re.sub(r'(?u)[^-\w.]', '', s)              
-
-def unpack_gzi_to_blocks(gzi_bytes):
-    """ Unpacks the bgzip .gzi format to a tuple of 
-    (compressed offset, uncompressed offset) describing 
-    the BGZF compressed FASTA file. 
-    >>> unpack_gzi_to_blocks(b'\x02\x00\x00\x00\x00\x00\x00\x00\x1e(\x00\x00\x00\x00\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x8a1\x00\x00\x00\x00\x00\x00\xff\x1c\x01\x00\x00\x00\x00\x00')
-    ((10270, 65280), (12682, 72959))
-    """
-    import struct
-    
-    n_bytes = len(gzi_bytes)
-    gzi_ints = struct.Struct('<%sQ' % str(n_bytes // 8)).unpack(gzi_bytes)  # little-endian 64-bit unsigned integers
-    n_blocks = gzi_ints[0]
-    
-    block_offsets = tuple(zip(*[iter(gzi_ints[1:])] * 2))
-    return block_offsets
-    
-def pack_blocks_to_gzi(block_offsets):
-    """ Packs the bgzip .gzi format from a tuple of 
-    (compressed offset, uncompressed offset) describing 
-    the BGZF compressed FASTA file. 
-    >>> pack_blocks_to_gzi(((10270, 65280), (12682, 72959)))
-    b'\x02\x00\x00\x00\x00\x00\x00\x00\x1e(\x00\x00\x00\x00\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x8a1\x00\x00\x00\x00\x00\x00\xff\x1c\x01\x00\x00\x00\x00\x00'
-    """
-    import struct
-    from itertools import chain
-    
-    n_blocks = len(block_offsets)
-    gzi_bytes = struct.Struct('<%sQ' % str(n_blocks * 2 + 1)).pack(n_blocks, *chain(*block_offsets))  # little-endian 64-bit unsigned integers
-    
-    return gzi_bytes
-
 
 if __name__ == "__main__":
     import doctest
