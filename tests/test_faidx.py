@@ -1,7 +1,7 @@
 import os
 import filecmp
 import pytest
-from pyfaidx import BedError, FetchError
+from pyfaidx import BedError, FetchError, FastaNotFoundError
 from pyfaidx.cli import main
 from tempfile import NamedTemporaryFile
 
@@ -55,6 +55,104 @@ def test_not_regexp(remove_index):
 def test_not_regexp_multi(remove_index):
     main(['data/genes.fasta', '-g', 'XR', '-g', 'XM', '-v'])
 
+def test_faidx_cli_invalid_args():
+    """Test that the CLI raises an error for invalid arguments."""
+    with pytest.raises(SystemExit):
+        main(['--invalid-arg'])
+
+def test_faidx_cli_missing_file():
+    """Test that the CLI raises an error for a missing file."""
+    with pytest.raises(FastaNotFoundError):
+        main(['nonexistent_file.fasta'])
+
+def test_faidx_cli_transform_nucleotides():
+    """Test that the CLI can transform nucleotides."""
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        with NamedTemporaryFile(delete=False) as transform_table:
+            temp_fasta.write(b'>test\nATCG\n')
+            temp_fasta.close()
+            result = main(['--out', transform_table.name, '--transform', 'nucleotide', temp_fasta.name ])
+            assert result is None  # CLI should not return anything
+            with open(transform_table.name, 'r') as f:
+                content = f.read()
+            # Check that the output matches the expected format
+            assert content == 'name\tstart\tend\tA\tT\tC\tG\tN\tothers\n' +\
+                            'test\t1\t4\t1\t1\t1\t1\t0\t0\n'
+    # Clean up temporary files
+    os.remove(temp_fasta.name)
+    os.remove(transform_table.name)
+
+def test_faidx_cli_transform_transposed():
+    """Test that the CLI can transform sequences to transposed format."""
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        with NamedTemporaryFile(delete=False) as transform_table:
+            temp_fasta.write(b'>test\nATCG\n')
+            temp_fasta.close()
+            result = main(['--out', transform_table.name, '--transform', 'transposed', temp_fasta.name])
+            assert result is None  # CLI should not return anything
+            with open(transform_table.name, 'r') as f:
+                content = f.read()
+            # Check that the output matches the expected format
+            assert content == 'test\t1\t4\tATCG\n'
+    # Clean up temporary files
+    os.remove(temp_fasta.name)
+    os.remove(transform_table.name)
+
+def test_faidx_cli_transform_bed():
+    """Test that the CLI can transform sequences to BED format."""
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        with NamedTemporaryFile(delete=False) as transform_bed:
+            temp_fasta.write(b'>test\nATCG\n')
+            temp_fasta.close()
+            result = main(['--out', transform_bed.name, '--transform', 'bed', temp_fasta.name])
+            assert result is None  # CLI should not return anything
+            with open(transform_bed.name, 'r') as f:
+                content = f.read()
+            # Check that the output matches the expected format
+            assert content == 'test\t0\t4\n'
+    # Clean up temporary files
+    os.remove(temp_fasta.name)
+    os.remove(transform_bed.name)
+
+def test_faidx_cli_transform_chromsizes():
+    """Test that the CLI can transform sequences to chromsizes format."""
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        with NamedTemporaryFile(delete=False) as transform_chromsizes:
+            temp_fasta.write(b'>test\nATCG\n')
+            temp_fasta.close()
+            result = main(['--out', transform_chromsizes.name, '--transform', 'chromsizes', temp_fasta.name])
+            assert result is None  # CLI should not return anything
+            with open(transform_chromsizes.name, 'r') as f:
+                content = f.read()
+            # Check that the output matches the expected format
+            assert content == 'test\t4\n'
+    # Clean up temporary files
+    os.remove(temp_fasta.name)
+    os.remove(transform_chromsizes.name)
+
+def test_faidx_cli_size_range():
+    """Test that the CLI can handle size range arguments."""
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        with NamedTemporaryFile(delete=False) as output_file:
+            temp_fasta.write(b'>test1\nATCG\n' + b'>test2\nAT\n' + b'>test3\nATCGTAGC\n')
+            temp_fasta.close()
+            result = main(['--size-range', '3,5', '--out', output_file.name, temp_fasta.name])
+            assert result is None  # CLI should not return anything
+            # Check that the output contains only sequences within the size range
+            with open(output_file.name, 'r') as f:
+                content = f.read()
+            assert '>test1' in content
+            assert '>test2' not in content
+            assert '>test3' not in content
+    # Clean up temporary files
+    os.remove(temp_fasta.name)
+    os.remove(output_file.name)
+
+def test_default_seq_length():
+    """Test that passing a default sequence > 1 raises an error."""
+    with pytest.raises(SystemExit):
+        main(['data/genes.fasta', '--default-seq', 'NN'])
+
 def test_faidx_exit_on_missing_file():
     """Test that Faidx.__exit__ does not raise AttributeError if file is missing. (#229)"""
     class FaidxWrapper:
@@ -67,6 +165,7 @@ def test_faidx_exit_on_missing_file():
             # Should not raise AttributeError
             if hasattr(self, 'obj'):
                 del self.obj
+
 
     wrapper = FaidxWrapper()
     # Deleting wrapper should not raise AttributeError

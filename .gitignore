@@ -13,3 +13,6 @@ tests/data/chr22*
 .eggs/
 tests/data/genes.fasta.gz
 *~
+tests/data/genes.fasta.lower
+tests/data/genes.fasta
+tests/data/issue_141.fasta

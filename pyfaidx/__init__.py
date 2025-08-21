@@ -4,9 +4,11 @@ Fasta file -> Faidx -> Fasta -> FastaRecord -> Sequence
 """
 
 import datetime
+import bisect
 import os
 import re
 import string
+import struct
 import sys
 import shutil
 import warnings
@@ -163,7 +165,6 @@ class Sequence(object):
                     slice_stop = 0
                 start = self_end - slice_stop
                 end = self_start + slice_stop
-                #print(locals())
             else:
                 start = self_start + slice_start
                 end = self_start + slice_stop + correction_factor
@@ -345,6 +346,39 @@ class IndexRecord(
         return self.rlen
 
 
+class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        if type(key) == str:
+            return getattr(self, key)
+        return tuple.__getitem__(self, key)
+
+    def as_bytes(self):
+        return struct.pack('<QQ', self.cstart, self.ustart)
+
+    def __lt__(self, other):
+        """Compare BgzfBlock ustart to an integer, or to another BgzfBlock by ustart."""
+        if isinstance(other, BgzfBlock):
+            return self.ustart < other.ustart
+        elif isinstance(other, (int, float)):
+            return self.ustart < other
+        return NotImplemented
+
+    def __len__(self):
+        return self.ulen
+
+    @property
+    def empty(self):
+        """Check for the EOF marker, which is an empty BGZF block.
+        https://github.com/biopython/biopython/blob/master/Bio/bgzf.py#L171"""
+        if self.ulen == 0:
+            return True
+        else:
+            return False
+	            
+
 class Faidx(object):
     """ A python implementation of samtools faidx FASTA indexing """
 
@@ -373,6 +407,33 @@ class Faidx(object):
         as_raw: optional parameter to specify whether to return sequences as a
           Sequence() object or as a raw string.
           Default: False (i.e. return a Sequence() object).
+        strict_bounds: if True, will raise FetchError if the requested region
+          is outside the bounds of the sequence.
+        read_ahead: number of bases to read ahead when fetching a sequence.
+        mutable: if True, the Faidx object will be mutable, allowing
+            modification of the FASTA file in place. This is not supported
+            for BGZF files, and will raise an UnsupportedCompressionFormat
+            exception if the file is compressed.
+        split_char: if not None, the keys will be split on this character
+        duplicate_action: how to handle duplicate keys in the index. Options are:
+            "stop" (default): raise ValueError if a duplicate key is found
+            "first": keep the first occurrence of the key
+            "last": keep the last occurrence of the key
+            "longest": keep the longest sequence for the key
+            "shortest": keep the shortest sequence for the key
+            "drop": drop the duplicate key
+        filt_function: a function that filters the keys returned by key_function.
+            The function should take a single argument (the key) and return
+            True if the key should be included, or False if it should be excluded.
+        one_based_attributes: if True, the start and end attributes of the
+            Sequence object will be one-based (i.e. start=1, end=length).
+        read_long_names: if True, the index will use the full sequence name
+            (including any whitespace) as the key. If False, the sequence name
+            will be split on whitespace and the first part will be used as the key.
+        sequence_always_upper: if True, the sequence will always be returned
+            in uppercase, regardless of the case in the FASTA file.
+        rebuild: if True, the index will be rebuilt if it is stale or does not exist.
+        build_index: if True, the index will be built if it does not exist or is stale.
         """
 
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
@@ -412,6 +473,7 @@ class Faidx(object):
             raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
         
         if self.filename.lower().endswith(('.bgz', '.gz')):
+            self.gzi_indexname = self.filename + '.gzi'
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -457,10 +519,6 @@ class Faidx(object):
         self.duplicate_action = duplicate_action
         self.as_raw = as_raw
         self.default_seq = default_seq
-        if self._bgzf and self.default_seq is not None:
-            raise FetchError(
-                "The default_seq argument is not supported with using BGZF compression. Please decompress your FASTA file and try again."
-            )
         if self._bgzf:
             self.strict_bounds = True
         else:
@@ -481,6 +539,7 @@ class Faidx(object):
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
 
+            # Check if .fai index exists
             if self._fai_fs is None:
                 index_exists = os.path.exists(self.indexname)
             else:
@@ -497,6 +556,19 @@ class Faidx(object):
             else:
                 index_is_stale = False
 
+            # If BGZF and .gzi is missing, force rebuild of .fai before .gzi
+            if self._bgzf and not os.path.exists(self.gzi_indexname):
+                # Always rebuild .fai if .gzi is missing for BGZF
+                try:
+                    self.build_index()
+                except FastaIndexingError:
+                    self.file.close()
+                    raise
+                # After .fai is rebuilt, continue to build .gzi below
+                index_exists = True
+                index_is_stale = False
+
+            # Usual .fai build logic
             if (
                 build_index
                 and (not index_exists or (index_is_stale and rebuild))
@@ -506,6 +578,17 @@ class Faidx(object):
                 except FastaIndexingError:
                     self.file.close()
                     raise
+
+            # BGZF: handle .gzi index
+            if self._bgzf:
+                if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
+                    self.read_gzi()
+                elif os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) < getmtime(self.gzi_indexname) and not rebuild:
+                    self.read_gzi()
+                    warnings.warn("BGZF Index file {0} is older than FASTA file {1}.".format(self.gzi_indexname, self.filename), RuntimeWarning)
+                else:
+                    self.build_gzi()
+                    self.write_gzi()
 
             try:
                 self.read_fai()
@@ -634,8 +717,7 @@ class Faidx(object):
                                     "Bad sequence name %s at line %s." %
                                     (line.rstrip('\n\r'), str(i)))
                             offset += line_blen
-                            thisoffset = fastafile.tell(
-                            ) if self._bgzf else offset
+                            thisoffset = offset
                         else:  # check line and advance offset
                             if not blen:
                                 blen = line_blen
@@ -683,6 +765,48 @@ class Faidx(object):
                     % self.indexname)
             elif isinstance(e, FastaIndexingError):
                 raise e
+                
+    def build_gzi(self):
+        """ Build the htslib .gzi index format """
+        from Bio import bgzf
+        with open(self.filename, 'rb') as bgzf_file:
+            self.gzi_index = []
+            for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
+                self.gzi_index.append(BgzfBlock(*values))
+        # htslib expects the last block to be an empty block, which is the EOF marker, 
+        # and discards it from the index before writing it to disk.
+        eof = self.gzi_index.pop()
+        if not eof.empty:
+            raise IOError("BGZF EOF marker not found. File %s is not a valid BGZF file." % self.filename)
+        # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
+        # https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2401
+        first_block = self.gzi_index.pop(0) 
+
+    def write_gzi(self):
+        """ Write the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473
+        See note about file format in 
+        https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2382-L2384
+        """
+        with open(self.gzi_indexname, 'wb') as bzi_file:
+            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
+            for block in self.gzi_index:
+                bzi_file.write(block.as_bytes())
+
+    def read_gzi(self):
+        """ Read the on disk format for the htslib .gzi index
+        https://github.com/samtools/htslib/issues/473"""
+        from ctypes import c_uint64, sizeof
+        with open(self.gzi_indexname, 'rb') as bzi_file:
+            number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
+            # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
+            self.gzi_index = [BgzfBlock(0, None, 0, None)]
+            for i in range(number_of_blocks):
+                cstart, ustart = struct.unpack('<QQ', bzi_file.read(sizeof(c_uint64) * 2))
+                if cstart == '' or ustart == '':
+                    raise IndexError("Unexpected end of .gzi file. ")
+                else:
+                    self.gzi_index.append(BgzfBlock(cstart, None, ustart, None))
 
     def write_fai(self):
         with self.lock:
@@ -749,34 +873,42 @@ class Faidx(object):
         newlines_to_end = int(end / i.lenc) if i.lenc else 0
         newlines_inside = newlines_to_end - newlines_before
         newline_blen = i.lenb - i.lenc
-        seq_blen = newlines_inside * newline_blen + seq_len
-        bstart = i.offset + newlines_before * newline_blen + start0
+        seq_blen = (newlines_inside * newline_blen) + seq_len
+        bstart = i.offset + (newlines_before * newline_blen) + start0
         if seq_blen < 0 and self.strict_bounds:
             raise FetchError("Requested coordinates start={0:n} end={1:n} are "
                              "invalid.\n".format(start, end))
         elif end > i.rlen and self.strict_bounds:
+            if self._bgzf:
+                raise FetchError("Requested end coordinate {0:n} outside of {1}. "
+                                 "strict_bounds=False is incompatible with BGZF compressed files."
+                                 "\n".format(end, rname))
             raise FetchError("Requested end coordinate {0:n} outside of {1}. "
                              "\n".format(end, rname))
 
         with self.lock:
-            if self._bgzf:  # We can't add to virtual offsets, so we need to read from the beginning of the record and trim the beginning if needed
-                self.file.seek(i.offset)
-                chunk = start0 + (newlines_before * newline_blen) + (newlines_inside * newline_blen) + seq_len
-                chunk_seq = self.file.read(chunk).decode()
-                seq = chunk_seq[start0 + newlines_before:]
+            if self._bgzf: 
+                from Bio import bgzf
+                insertion_i = bisect.bisect_left(self.gzi_index, bstart)
+                if insertion_i == 0:  # bisect_left already returns index to the left if values are the same
+                    start_block = self.gzi_index[insertion_i]
+                else:
+                    start_block = self.gzi_index[insertion_i - 1]
+                within_block_offset = bstart - start_block.ustart
+                self.file.seek(bgzf.make_virtual_offset(start_block.cstart, within_block_offset))
             else:
                 self.file.seek(bstart)
 
-                # If the requested sequence exceeds len(FastaRecord), return as much as possible
-                if bstart + seq_blen > i.bend and not self.strict_bounds:
-                    seq_blen = i.bend - bstart
-                # Otherwise it should be safe to read the sequence
-                if seq_blen > 0:
-                    seq = self.file.read(seq_blen).decode()
-                # If the requested sequence is negative, we will pad the empty string with default_seq.
-                # This was changed to support #155 with strict_bounds=True.
-                elif seq_blen <= 0:
-                    seq = ''
+            # If the requested sequence exceeds len(FastaRecord), return as much as possible
+            if bstart + seq_blen > i.bend and not self.strict_bounds:
+                seq_blen = i.bend - bstart
+            # Otherwise it should be safe to read the sequence
+            if seq_blen > 0:
+                seq = self.file.read(seq_blen).decode()
+            # If the requested sequence is negative, we will pad the empty string with default_seq.
+            # This was changed to support #155 with strict_bounds=True.
+            elif seq_blen <= 0:
+                seq = ''
 
         if not internals:
             return seq.replace('\n', '').replace('\r', '')
@@ -1446,8 +1578,7 @@ def get_valid_filename(s):
     'chromosome_6.fa'
     """
     s = str(s).strip().replace(' ', '_')
-    return re.sub(r'(?u)[^-\w.]', '', s)
-
+    return re.sub(r'(?u)[^-\w.]', '', s)              
 
 if __name__ == "__main__":
     import doctest
