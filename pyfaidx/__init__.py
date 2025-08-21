@@ -398,7 +398,8 @@ class Faidx(object):
                  read_long_names=False,
                  sequence_always_upper=False,
                  rebuild=True,
-                 build_index=True):
+                 build_index=True,
+                 gzi_indexname=None):
         """
         filename: name of fasta file or fsspec.core.OpenFile instance
         indexname: name of index file or fsspec.core.OpenFile instance
@@ -434,6 +435,7 @@ class Faidx(object):
             in uppercase, regardless of the case in the FASTA file.
         rebuild: if True, the index will be rebuilt if it is stale or does not exist.
         build_index: if True, the index will be built if it does not exist or is stale.
+        gzi_indexname: for BGZF/GZ FASTA, name of .gzi file or fsspec.core.OpenFile instance
         """
 
         if fsspec and isinstance(filename, fsspec.core.OpenFile):
@@ -473,7 +475,17 @@ class Faidx(object):
             raise TypeError("indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % indexname)
         
         if self.filename.lower().endswith(('.bgz', '.gz')):
-            self.gzi_indexname = self.filename + '.gzi'
+            if fsspec and isinstance(gzi_indexname, fsspec.core.OpenFile):
+                self.gzi_indexname = gzi_indexname.path
+                self._gzi_fs = gzi_indexname.fs
+            elif isinstance(gzi_indexname, str) or hasattr(gzi_indexname, '__fspath__'):
+                self.gzi_indexname = str(gzi_indexname)
+                self._gzi_fs = None
+            elif gzi_indexname is None:
+                self.gzi_indexname = self.filename + '.gzi'
+                self._gzi_fs = self._fs
+            else:
+                raise TypeError("gzi_indexname expected NoneType, str, os.PathLike or fsspec.OpenFile, got: %r" % gzi_indexname)
             # Only try to import Bio if we actually need the bgzf reader.
             try:
                 from Bio import bgzf
@@ -557,7 +569,14 @@ class Faidx(object):
                 index_is_stale = False
 
             # If BGZF and .gzi is missing, force rebuild of .fai before .gzi
-            if self._bgzf and not os.path.exists(self.gzi_indexname):
+            if self._bgzf:
+                if self._gzi_fs is None:
+                    gzi_exists = os.path.exists(self.gzi_indexname)
+                else:
+                    gzi_exists = self._gzi_fs.exists(self.gzi_indexname)
+            else:
+                gzi_exists = False
+            if self._bgzf and not gzi_exists:
                 # Always rebuild .fai if .gzi is missing for BGZF
                 try:
                     self.build_index()
@@ -581,11 +600,15 @@ class Faidx(object):
 
             # BGZF: handle .gzi index
             if self._bgzf:
-                if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
+                if self._gzi_fs is None:
+                    gzi_exists = os.path.exists(self.gzi_indexname)
+                else:
+                    gzi_exists = self._gzi_fs.exists(self.gzi_indexname)
+                if gzi_exists and getmtime_fsspec(self.gzi_indexname, self._gzi_fs) >= getmtime_fsspec(self.filename, self._fs):
                     self.read_gzi()
-                elif os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) < getmtime(self.gzi_indexname) and not rebuild:
-                    self.read_gzi()
+                elif gzi_exists and getmtime_fsspec(self.gzi_indexname, self._gzi_fs) < getmtime_fsspec(self.filename, self._fs) and not rebuild:
                     warnings.warn("BGZF Index file {0} is older than FASTA file {1}.".format(self.gzi_indexname, self.filename), RuntimeWarning)
+                    self.read_gzi()
                 else:
                     self.build_gzi()
                     self.write_gzi()
@@ -769,7 +792,11 @@ class Faidx(object):
     def build_gzi(self):
         """ Build the htslib .gzi index format """
         from Bio import bgzf
-        with open(self.filename, 'rb') as bgzf_file:
+        if self._fs is None:
+            file_ctx = open(self.filename, 'rb')
+        else:
+            file_ctx = self._fs.open(self.filename, 'rb')
+        with file_ctx as bgzf_file:
             self.gzi_index = []
             for i, values in enumerate(bgzf.BgzfBlocks(bgzf_file)):
                 self.gzi_index.append(BgzfBlock(*values))
@@ -788,7 +815,7 @@ class Faidx(object):
         See note about file format in 
         https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2382-L2384
         """
-        with open(self.gzi_indexname, 'wb') as bzi_file:
+        with self._open_gzi('wb') as bzi_file:
             bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
             for block in self.gzi_index:
                 bzi_file.write(block.as_bytes())
@@ -797,7 +824,7 @@ class Faidx(object):
         """ Read the on disk format for the htslib .gzi index
         https://github.com/samtools/htslib/issues/473"""
         from ctypes import c_uint64, sizeof
-        with open(self.gzi_indexname, 'rb') as bzi_file:
+        with self._open_gzi('rb') as bzi_file:
             number_of_blocks = struct.unpack('<Q', bzi_file.read(sizeof(c_uint64)))[0]
             # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
             self.gzi_index = [BgzfBlock(0, None, 0, None)]
@@ -819,6 +846,12 @@ class Faidx(object):
             return self._fai_fs.open(self.indexname, mode=mode)
         else:
             return open(self.indexname, mode=mode)
+
+    def _open_gzi(self, mode):
+        if self._gzi_fs:
+            return self._gzi_fs.open(self.gzi_indexname, mode=mode)
+        else:
+            return open(self.gzi_indexname, mode=mode)
 
     def from_buffer(self, start, end):
         i_start = start - self.buffer['start']  # want [0, 1) coordinates from [1, 1] coordinates
@@ -1213,16 +1246,19 @@ class Fasta(object):
                  duplicate_action="stop",
                  sequence_always_upper=False,
                  rebuild=True,
-                 build_index=True):
+                 build_index=True,
+                 gzi_indexname=None):
         """
         An object that provides a pygr compatible interface.
         filename:  name of fasta file or fsspec.core.OpenFile instance
         indexname: name of index file or fsspec.core.OpenFile instance
+        gzi_indexname: for BGZF/GZ FASTA, name of .gzi file or fsspec.core.OpenFile instance
         """
         self.mutable = mutable
         self.faidx = Faidx(
             filename,
             indexname=indexname,
+            gzi_indexname=gzi_indexname,
             key_function=key_function,
             as_raw=as_raw,
             default_seq=default_seq,
