@@ -535,6 +535,7 @@ class Faidx(object):
         self.mutable = mutable
         with self.lock:  # lock around index generation so only one thread calls method
 
+            # Check if .fai index exists
             if self._fai_fs is None:
                 index_exists = os.path.exists(self.indexname)
             else:
@@ -551,15 +552,30 @@ class Faidx(object):
             else:
                 index_is_stale = False
 
+            # If BGZF and .gzi is missing, force rebuild of .fai before .gzi
+            if self._bgzf and not os.path.exists(self.gzi_indexname):
+                # Always rebuild .fai if .gzi is missing for BGZF
+                try:
+                    self.build_index()
+                except FastaIndexingError:
+                    self.file.close()
+                    raise
+                # After .fai is rebuilt, continue to build .gzi below
+                index_exists = True
+                index_is_stale = False
+
+            # Usual .fai build logic
             if (
                 build_index
                 and (not index_exists or (index_is_stale and rebuild))
             ):
                 try:
-                    self.build_index()                
+                    self.build_index()
                 except FastaIndexingError:
                     self.file.close()
                     raise
+
+            # BGZF: handle .gzi index
             if self._bgzf:
                 if os.path.exists(self.gzi_indexname) and getmtime(self.gzi_indexname) >= getmtime(self.gzi_indexname):
                     self.read_gzi()
