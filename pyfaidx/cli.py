@@ -1,10 +1,14 @@
 #!/usr/bin/env python
+
 import argparse
 import sys
 import os.path
 import re
 from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
 from collections import defaultdict
+from operator import itemgetter
+from heapq import nlargest
+from itertools import repeat
 
 def detect_fasta_newline(filepath):
     """Detect the newline style used in a FASTA file by reading the first non-header line."""
@@ -118,7 +122,7 @@ def mask_sequence(args):
                 span = len(fasta[rname][start:end])
             fasta[rname][start:end] = span * args.default_seq
         elif args.mask_by_case:
-            fasta[rname][start:end] = fasta[rname][start:end].lowercase()
+            fasta[rname][start:end] = str(fasta[rname][start:end]).lower()
 
 
 def split_regions(args):
@@ -153,7 +157,13 @@ def transform_sequence(args, fasta, name, start=None, end=None):
         C = nucs.pop('C', 0)
         G = nucs.pop('G', 0)
         N = nucs.pop('N', 0)
-        others = '|'.join([':'.join((k, str(v))) for k, v in nucs.items()])
+        # If there are other nucleotides, we will report them as well
+        # Set others to 0 if no other nucleotides are present
+        if not nucs:
+            others = 0
+        else:
+            others = '|'.join([':'.join((k, str(v))) for k, v in nucs.items()])
+        # Return the nucleotide counts in a tab-separated format
         return '{sname}\t{sstart}\t{send}\t{A}\t{T}\t{C}\t{G}\t{N}\t{others}\n'.format(sname=s.name, sstart=s.start, send=s.end, **locals())
     elif args.transform == 'transposed':
         return '{name}\t{start}\t{end}\t{seq}\n'.format(name=s.name, start=s.start, end=s.end, seq=str(s))
@@ -252,13 +262,15 @@ class Counter(dict):
     def __missing__(self, key):
         return 0
 
+
     def most_common(self, n=None):
         '''List the n most common elements and their counts from the most
         common to the least.  If n is None, then list all element counts.
         '''
+        items = self.items()
         if n is None:
-            return sorted(self.iteritems(), key=itemgetter(1), reverse=True)
-        return nlargest(n, self.iteritems(), key=itemgetter(1))
+            return sorted(items, key=itemgetter(1), reverse=True)
+        return nlargest(n, items, key=itemgetter(1))
 
     def elements(self):
         '''Iterator over elements repeating each as many times as its count.
@@ -267,7 +279,7 @@ class Counter(dict):
         elements() will ignore it.
 
         '''
-        for elem, count in self.iteritems():
+        for elem, count in self.items():
             for _ in repeat(None, count):
                 yield elem
 
