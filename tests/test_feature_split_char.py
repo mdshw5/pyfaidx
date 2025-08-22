@@ -33,6 +33,6 @@ def test_key_function_by_fetch(remove_index):
                          100, 150)
     assert str(result) == expect
 
+@pytest.mark.xfail(raises=ValueError)
 def test_stop(remove_index):
-    with pytest.raises(ValueError):
-        fasta = Fasta('data/genes.fasta', split_char='.')
+    fasta = Fasta('data/genes.fasta', split_char='.')

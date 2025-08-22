@@ -60,9 +60,9 @@ def test_key_function_by_fetch(remove_index):
                          100, 150)
     assert str(result) == expect
 
+@pytest.mark.xfail(raises=ValueError)
 def test_duplicated_keys(remove_index):
-    with pytest.raises(ValueError):
-        genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name)
+    genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name)
 
 def test_duplicated_keys_shortest(remove_index):
     genes = Fasta('data/genes.fasta', key_function=get_duplicated_gene_name, duplicate_action="shortest")

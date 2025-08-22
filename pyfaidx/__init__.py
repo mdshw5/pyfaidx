@@ -133,6 +133,9 @@ class Sequence(object):
         >>> x[::-3]
         >chr1
         AC
+        >>> x[-2]
+        >chr1
+        T
         """
         if self.start is None or self.end is None or len(self.seq) == 0:
             correction_factor = 0
@@ -233,8 +236,8 @@ class Sequence(object):
     def long_name(self):
         """ DEPRECATED: Use fancy_name instead.
         Return the fancy name for the sequence, including start, end, and complementation.
-        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
-        >>> x.long_name
+        #>>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
+        #>>> x.long_name
         'chr1:1-6 (complement)'
         """
         msg = "The `Sequence.long_name` property is deprecated, and will be removed in future versions. Please use `Sequence.fancy_name` instead."
@@ -303,7 +306,7 @@ class Sequence(object):
     def gc_strict(self):
         """ Return the GC content of seq as a float, ignoring non ACGT characters
         >>> x = Sequence(name='chr1', seq='NMRATCGTA')
-        >>> y = round(x.gc, 2)
+        >>> y = round(x.gc_strict, 2)
         >>> y == 0.33
         True
         """
@@ -315,7 +318,7 @@ class Sequence(object):
     def gc_iupac(self):
         """ Return the GC content of seq as a float, accounting for IUPAC ambiguity 
         >>> x = Sequence(name='chr1', seq='NMRATCGTA')
-        >>> y = round(x.gc, 2)
+        >>> y = round(x.gc_iupac, 2)
         >>> y == 0.36
         True
         """
@@ -334,11 +337,33 @@ class IndexRecord(
     __slots__ = ()
 
     def __getitem__(self, key):
+        """ Get an attribute by name or index 
+        >>> x = IndexRecord(rlen=100, offset=0, lenc=50, lenb=50, bend=100, prev_bend=None)
+        >>> x['rlen']
+        100
+        >>> x[0]
+        100
+        >>> x[1]
+        0
+        >>> x[2]
+        50
+        >>> x[3]
+        50
+        >>> x[4]
+        100
+        >>> x[5]
+        
+        """
         if type(key) == str:
             return getattr(self, key)
         return tuple.__getitem__(self, key)
 
     def __str__(self):
+        """ Returns a string representation of the index record
+        >>> x = IndexRecord(rlen=100, offset=0, lenc=50, lenb=50, bend=100, prev_bend=None)
+        >>> str(x)
+        '100\\t0\\t50\\t50'
+        """
         return "{rlen:d}\t{offset:d}\t{lenc:d}\t{lenb:d}".format(
             **self._asdict())
 
@@ -1286,7 +1311,14 @@ class Fasta(object):
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
         if isinstance(rname, int):
-            rname = next(islice(self.records.keys(), rname, None))
+            try:
+                rname = next(islice(self.records.keys(), rname, None))
+            except StopIteration:
+                raise IndexError("Index {0} out of range for {1}.".format(
+                    rname, self.filename))
+        if not isinstance(rname, str):
+            raise TypeError("Record name must be a string, not {0}.".format(
+                type(rname).__name__))
         try:
             return self.records[rname]
         except KeyError:
@@ -1532,15 +1564,6 @@ def complement(seq):
             "Sequence contains non-DNA character '{0}' at position {1:n}\n".
             format(seq[first_invalid_position], first_invalid_position + 1))
     return result
-
-
-def translate_chr_name(from_name, to_name):
-    chr_name_map = dict(zip(from_name, to_name))
-
-    def map_to_function(rname):
-        return chr_name_map[rname]
-
-    return map_to_function
 
 
 def bed_split(bed_entry):

@@ -20,7 +20,7 @@ def remove_index():
         pass  # some tests may delete this file
 
 @pytest.mark.skipif(not bio, reason="Biopython is not installed.")
-def test_fetch_whole_entry(remove_index):
+def test_fetch_whole_entry():
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
         seqio = SeqIO.to_dict(SeqIO.parse(fh, "fasta"))
@@ -28,7 +28,7 @@ def test_fetch_whole_entry(remove_index):
     assert fasta['KF435150.1'].name == str(seqio['KF435150.1'].name)
 
 @pytest.mark.skipif(not bio, reason="Biopython is not installed.")
-def test_slice_whole_entry(remove_index):
+def test_slice_whole_entry():
     fasta = Fasta('data/genes.fasta')
     with open('data/genes.fasta', "r") as fh:
         seqio = SeqIO.to_dict(SeqIO.parse(fh, "fasta"))

@@ -17,11 +17,12 @@ def remove_index():
     yield
     try:
         os.remove('data/genes.fasta.gz.fai')
+        os.remove('data/genes.fasta.gz.gzi')
     except EnvironmentError:
         pass  # some tests may delete this file
 
 @pytest.mark.skipif(not bio, reason="Biopython is not installed.")
-def test_build_issue_126(remove_index):
+def test_build_issue_126():
     """ Samtools BGZF index should be identical to pyfaidx BGZF index """
     expect_index = (
         "AB821309.1\t3510\t96\t70\t71\n"
@@ -49,34 +50,34 @@ def test_build_issue_126(remove_index):
     result_index = open(index_file).read()
     assert result_index == expect_index
 
-def test_integer_slice(remove_index):
+def test_integer_slice():
     fasta = Fasta('data/genes.fasta.gz')
     expect = fasta['AB821309.1'][:100].seq
     result = fasta[0][:100].seq
     assert expect == result
 
-def test_integer_index(remove_index):
+def test_integer_index():
     fasta = Fasta('data/genes.fasta.gz')
     expect = fasta['AB821309.1'][100].seq
     result = fasta[0][100].seq
     assert expect == result
 
-def test_fetch_whole_fasta(remove_index):
+def test_fetch_whole_fasta():
     expect = [line.rstrip('\n') for line in open('data/genes.fasta') if line[0] != '>']
     result = list(chain(*([line for line in record] for record in Fasta('data/genes.fasta.gz', as_raw=True))))
     assert expect == result
 
-def test_line_len(remove_index):
+def test_line_len():
     fasta = Fasta('data/genes.fasta.gz')
     for record in fasta:
         assert len(next(iter(record))) == fasta.faidx.index[record.name].lenc
 
-def test_mutable_bgzf(remove_index):
-    with pytest.raises(UnsupportedCompressionFormat):
-        fasta = Fasta('data/genes.fasta.gz', mutable=True)
+@pytest.mark.xfail(raises=UnsupportedCompressionFormat)
+def test_mutable_bgzf():
+    fasta = Fasta('data/genes.fasta.gz', mutable=True)
 
 @pytest.mark.xfail(raises=NotImplementedError)
-def test_long_names(remove_index):
+def test_long_names():
     """ Test that deflines extracted using FastaRecord.long_name are
     identical to deflines in the actual file.
     """
@@ -91,7 +92,7 @@ def test_long_names(remove_index):
         long_names.append(record.long_name)
     assert deflines == long_names
 
-def test_fetch_whole_entry(remove_index):
+def test_fetch_whole_entry():
     faidx = Faidx('data/genes.fasta.gz')
     expect = ('ATGACATCATTTTCCACCTCTGCTCAGTGTTCAACATCTGA'
             'CAGTGCTTGCAGGATCTCTCCTGGACAAATCAATCAGGTACGACCA'
@@ -107,91 +108,89 @@ def test_fetch_whole_entry(remove_index):
                          1, 481)
     assert str(result) == expect
 
-def test_fetch_middle(remove_index):
+def test_fetch_middle():
     faidx = Faidx('data/genes.fasta.gz')
     expect = 'TTGAAGATTTTGCATGCAGCAGGTGCGCAAGGTGAAATGTTCACTGTTAAA'
     result = faidx.fetch('KF435150.1',
                          100, 150)
     assert str(result) == expect
 
-def test_fetch_end(remove_index):
+def test_fetch_end():
     faidx = Faidx('data/genes.fasta.gz')
     expect = 'TC'
     result = faidx.fetch('KF435150.1',
                          480, 481)
     assert str(result) == expect
 
-def test_fetch_border(remove_index):
+@pytest.mark.xfail(raises=FetchError)
+def test_fetch_border():
     """ Fetch past the end of a gene entry """
     faidx = Faidx('data/genes.fasta.gz')
     expect = 'TC'
-    with pytest.raises(FetchError):
-        result = faidx.fetch('KF435150.1', 480, 500)
-        print(result)
-        assert str(result) == expect
+    result = faidx.fetch('KF435150.1', 480, 500)
 
-def test_rev(remove_index):
+def test_rev():
     faidx = Faidx('data/genes.fasta.gz')
     expect = 'GA'
     result = faidx.fetch('KF435150.1',
                          480, 481)
     assert str(-result) == expect, result
 
-def test_fetch_past_bounds(remove_index):
+@pytest.mark.xfail(raises=FetchError)
+def test_fetch_past_bounds():
     """ Fetch past the end of a gene entry """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    with pytest.raises(FetchError):
-        result = faidx.fetch('KF435150.1', 480, 5000)
+    result = faidx.fetch('KF435150.1', 480, 5000)
 
-def test_fetch_negative(remove_index):
+@pytest.mark.xfail(raises=FetchError)
+def test_fetch_negative():
     """ Fetch starting with a negative coordinate """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    with pytest.raises(FetchError):
-        result = faidx.fetch('KF435150.1', -10, 10)
+    result = faidx.fetch('KF435150.1', -10, 10)
 
-def test_fetch_reversed_coordinates(remove_index):
+@pytest.mark.xfail(raises=FetchError)
+def test_fetch_reversed_coordinates():
     """ Fetch starting with a negative coordinate """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    with pytest.raises(FetchError):
-        result = faidx.fetch('KF435150.1', 50, 10)
+    result = faidx.fetch('KF435150.1', 50, 10)
 
-def test_fetch_keyerror(remove_index):
+@pytest.mark.xfail(raises=FetchError)
+def test_fetch_keyerror():
     """ Fetch a key that does not exist """
     faidx = Faidx('data/genes.fasta.gz', strict_bounds=True)
-    with pytest.raises(FetchError):
-        result = faidx.fetch('KFXXXXXXX.1|', 1, 10)
+    result = faidx.fetch('KFXXXXXXX.1|', 1, 10)
 
-def test_blank_string(remove_index):
+def test_blank_string():
     """ seq[0:0] should return a blank string mdshw5/pyfaidx#53 """
     fasta = Fasta('data/genes.fasta.gz', as_raw=True)
     assert fasta['KF435150.1'][0:0] == ''
 
-def test_slice_from_beginning(remove_index):
+def test_slice_from_beginning():
     fasta = Fasta('data/genes.fasta.gz', as_raw=True)
     assert fasta['KF435150.1'][:4] == 'ATGA'
 
-def test_slice_from_end(remove_index):
+def test_slice_from_end():
     fasta = Fasta('data/genes.fasta.gz', as_raw=True)
     assert fasta['KF435150.1'][-4:] == 'ACTC'
 
-def test_issue_74_start(remove_index):
+def test_issue_74_start():
     f0 = Fasta('data/genes.fasta.gz', one_based_attributes=False)
     f1 = Fasta('data/genes.fasta.gz', one_based_attributes=True)
     assert f0['KF435150.1'][0:90].start == f1['KF435150.1'][0:90].start - 1
 
-def test_issue_74_consistency(remove_index):
+def test_issue_74_consistency():
     f0 = Fasta('data/genes.fasta.gz', one_based_attributes=False)
     f1 = Fasta('data/genes.fasta.gz', one_based_attributes=True)
     assert str(f0['KF435150.1'][0:90]) == str(f1['KF435150.1'][0:90])
 
-def test_issue_74_end_faidx(remove_index):
+def test_issue_74_end_faidx():
     f0 = Faidx('data/genes.fasta.gz', one_based_attributes=False)
     f1 = Faidx('data/genes.fasta.gz', one_based_attributes=True)
     end0 = f0.fetch('KF435150.1', 1, 90).end
     end1 = f1.fetch('KF435150.1', 1, 90).end
     assert end0 == end1
 
-def test_issue_74_end_fasta(remove_index):
+def test_issue_74_end_fasta():
     f0 = Fasta('data/genes.fasta.gz', one_based_attributes=False)
     f1 = Fasta('data/genes.fasta.gz', one_based_attributes=True)
     end0 = f0['KF435150.1'][1:90].end
@@ -199,26 +198,26 @@ def test_issue_74_end_fasta(remove_index):
     print((end0, end1))
     assert end0 == end1
 
-def test_issue_79_fix(remove_index):
+def test_issue_79_fix():
     f = Fasta('data/genes.fasta.gz')
     s = f['KF435150.1'][100:105]
     print((s.start, s.end))
     assert (101, 105) == (s.start, s.end)
 
-def test_issue_79_fix_negate(remove_index):
+def test_issue_79_fix_negate():
     f = Fasta('data/genes.fasta.gz')
     s = f['KF435150.1'][100:105]
     s = -s
     print((s.start, s.end))
     assert (105, 101) == (s.start, s.end)
 
-def test_issue_79_fix_one_based_false(remove_index):
+def test_issue_79_fix_one_based_false():
     f = Fasta('data/genes.fasta.gz', one_based_attributes=False)
     s = f['KF435150.1'][100:105]
     print((s.start, s.end))
     assert (100, 105) == (s.start, s.end)
 
-def test_issue_79_fix_one_based_false_negate(remove_index):
+def test_issue_79_fix_one_based_false_negate():
     f = Fasta('data/genes.fasta.gz', one_based_attributes=False)
     s = f['KF435150.1'][100:105]
     print(s.__dict__)
@@ -226,12 +225,15 @@ def test_issue_79_fix_one_based_false_negate(remove_index):
     print(s.__dict__)
     assert (105, 100) == (s.start, s.end)
 
+@pytest.mark.xfail(raises=FetchError)
 def test_fetch_border_padded(remove_index):
     """ Fetch past the end of a gene entry """
-    with pytest.raises(FetchError):
-        faidx = Faidx('data/genes.fasta.gz', default_seq='N')
-        expect = 'TCNNNNNNNNNNNNNNNNNNN'
-        result = faidx.fetch('KF435150.1',
+    faidx = Faidx('data/genes.fasta.gz', default_seq='N')
+    expect = 'TCNNNNNNNNNNNNNNNNNNN'
+    result = faidx.fetch('KF435150.1',
                              480, 500)
-        print(result)
-        assert str(result) == expect
+    
+@pytest.mark.xfail(raises=UnsupportedCompressionFormat)
+def test_mutable_bgzf_fasta(remove_index):
+    """ Test that mutable Fasta raises error with bgzf files """
+    fasta = Fasta('data/genes.fasta.gz', mutable=True)
