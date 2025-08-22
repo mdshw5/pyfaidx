@@ -133,6 +133,9 @@ class Sequence(object):
         >>> x[::-3]
         >chr1
         AC
+        >>> x[-2]
+        >chr1
+        T
         """
         if self.start is None or self.end is None or len(self.seq) == 0:
             correction_factor = 0
@@ -303,7 +306,7 @@ class Sequence(object):
     def gc_strict(self):
         """ Return the GC content of seq as a float, ignoring non ACGT characters
         >>> x = Sequence(name='chr1', seq='NMRATCGTA')
-        >>> y = round(x.gc, 2)
+        >>> y = round(x.gc_strict, 2)
         >>> y == 0.33
         True
         """
@@ -315,7 +318,7 @@ class Sequence(object):
     def gc_iupac(self):
         """ Return the GC content of seq as a float, accounting for IUPAC ambiguity 
         >>> x = Sequence(name='chr1', seq='NMRATCGTA')
-        >>> y = round(x.gc, 2)
+        >>> y = round(x.gc_iupac, 2)
         >>> y == 0.36
         True
         """
