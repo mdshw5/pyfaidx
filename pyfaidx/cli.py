@@ -107,22 +107,21 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
 
 
 def mask_sequence(args):
-    fasta = Fasta(args.fasta, mutable=True, split_char=args.delimiter)
+    with Fasta(args.fasta, mutable=True, split_char=args.delimiter) as fasta:
+        regions_to_fetch, split_function = split_regions(args)
 
-    regions_to_fetch, split_function = split_regions(args)
-
-    for region in regions_to_fetch:
-        rname, start, end = split_function(region)
-        if args.mask_with_default_seq:
-            if start and end:
-                span = end - start
-            elif not start and not end:
-                span = len(fasta[rname])
-            else:
-                span = len(fasta[rname][start:end])
-            fasta[rname][start:end] = span * args.default_seq
-        elif args.mask_by_case:
-            fasta[rname][start:end] = str(fasta[rname][start:end]).lower()
+        for region in regions_to_fetch:
+            rname, start, end = split_function(region)
+            if args.mask_with_default_seq:
+                if start and end:
+                    span = end - start
+                elif not start and not end:
+                    span = len(fasta[rname])
+                else:
+                    span = len(fasta[rname][start:end])
+                fasta[rname][start:end] = span * args.default_seq
+            elif args.mask_by_case:
+                fasta[rname][start:end] = str(fasta[rname][start:end]).lower()
 
 
 def split_regions(args):
@@ -224,8 +223,7 @@ def main(ext_args=None):
         mask_sequence(args)
     else:
         write_sequence(args)
-
-    
+   
 
 def check_seq_length(value):
     if value is None:
