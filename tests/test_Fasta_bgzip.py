@@ -232,3 +232,8 @@ def test_fetch_border_padded(remove_index):
     expect = 'TCNNNNNNNNNNNNNNNNNNN'
     result = faidx.fetch('KF435150.1',
                              480, 500)
+    
+@pytest.mark.xfail(raises=UnsupportedCompressionFormat)
+def test_mutable_bgzf_fasta(remove_index):
+    """ Test that mutable Fasta raises error with bgzf files """
+    fasta = Fasta('data/genes.fasta.gz', mutable=True)

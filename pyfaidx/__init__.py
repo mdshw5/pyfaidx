@@ -337,11 +337,33 @@ class IndexRecord(
     __slots__ = ()
 
     def __getitem__(self, key):
+        """ Get an attribute by name or index 
+        >>> x = IndexRecord(rlen=100, offset=0, lenc=50, lenb=50, bend=100, prev_bend=None)
+        >>> x['rlen']
+        100
+        >>> x[0]
+        100
+        >>> x[1]
+        0
+        >>> x[2]
+        50
+        >>> x[3]
+        50
+        >>> x[4]
+        100
+        >>> x[5]
+        
+        """
         if type(key) == str:
             return getattr(self, key)
         return tuple.__getitem__(self, key)
 
     def __str__(self):
+        """ Returns a string representation of the index record
+        >>> x = IndexRecord(rlen=100, offset=0, lenc=50, lenb=50, bend=100, prev_bend=None)
+        >>> str(x)
+        '100\\t0\\t50\\t50'
+        """
         return "{rlen:d}\t{offset:d}\t{lenc:d}\t{lenb:d}".format(
             **self._asdict())
 
@@ -1289,7 +1311,14 @@ class Fasta(object):
     def __getitem__(self, rname):
         """Return a chromosome by its name, or its numerical index."""
         if isinstance(rname, int):
-            rname = next(islice(self.records.keys(), rname, None))
+            try:
+                rname = next(islice(self.records.keys(), rname, None))
+            except StopIteration:
+                raise IndexError("Index {0} out of range for {1}.".format(
+                    rname, self.filename))
+        if not isinstance(rname, str):
+            raise TypeError("Record name must be a string, not {0}.".format(
+                type(rname).__name__))
         try:
             return self.records[rname]
         except KeyError:
@@ -1535,15 +1564,6 @@ def complement(seq):
             "Sequence contains non-DNA character '{0}' at position {1:n}\n".
             format(seq[first_invalid_position], first_invalid_position + 1))
     return result
-
-
-def translate_chr_name(from_name, to_name):
-    chr_name_map = dict(zip(from_name, to_name))
-
-    def map_to_function(rname):
-        return chr_name_map[rname]
-
-    return map_to_function
 
 
 def bed_split(bed_entry):

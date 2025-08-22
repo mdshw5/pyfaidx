@@ -161,3 +161,9 @@ def test_mutate_too_long():
     mutable = Fasta('data/genes_mutable.fasta', mutable=True)
     chunk = 101 * 'N'
     mutable['KF435150.1'][0:100] = chunk
+
+def test_fast_sum_FastaRecord_len():
+    """ Test that the sum of FastaRecord lengths is correct """
+    fasta = Fasta('data/genes.fasta')
+    total_length = sum(len(record) for record in fasta)
+    assert total_length == len(fasta) 
