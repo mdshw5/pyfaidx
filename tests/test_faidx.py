@@ -173,3 +173,30 @@ def test_faidx_exit_on_missing_file(remove_index):
         del wrapper
     except AttributeError as e:
         pytest.fail(f"Unexpected AttributeError on __del__: {e}")
+
+def test_faidx_sequence_masking_default():
+    import time
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        temp_fasta.write(b'>test\nATCG\n')
+        temp_fasta_name = temp_fasta.name
+    result = main(['--mask-with-default-seq', '--default-seq', 'N', temp_fasta_name, 'test:1-2'])
+    assert result is None  # CLI should not return anything
+    with open(temp_fasta_name, 'r') as f:
+        content = f.read()
+    # Check that the output matches the expected format
+    assert content == '>test\nNNCG\n'
+    # Clean up temporary files
+    os.remove(temp_fasta_name)
+
+def test_faidx_sequence_masking_case():
+    with NamedTemporaryFile(delete=False) as temp_fasta:
+        temp_fasta.write(b'>test\nATCG\n')
+        temp_fasta_name = temp_fasta.name
+    result = main(['--mask-by-case', temp_fasta_name, 'test:1-2'])
+    assert result is None  # CLI should not return anything
+    with open(temp_fasta_name, 'r') as f:
+        content = f.read()
+    # Check that the output matches the expected format
+    assert content == '>test\natCG\n'
+    # Clean up temporary files
+    os.remove(temp_fasta_name)

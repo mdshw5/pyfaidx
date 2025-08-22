@@ -65,3 +65,26 @@ def test_all_diff(remove_index):
         assert all(ref['22'][pos-1] != fasta['22'][pos-1] for pos in fasta['22'].variant_sites)
     except (ImportError, IOError):
         pytest.skip("pysam not installed.")
+
+
+def test_call_filter_parameter(remove_index):
+    try:
+        import pysam
+        # Valid call_filter
+        fasta = FastaVariant('data/chr22.fasta', 'data/chr22.vcf.gz', call_filter='GQ > 30', hom=True, het=True, as_raw=True)
+        assert hasattr(fasta, 'filter')
+        assert 'GQ' in fasta.filter and '30' in fasta.filter
+        # Invalid call_filter (should raise ValueError)
+        with pytest.raises(ValueError):
+            FastaVariant('data/chr22.fasta', 'data/chr22.vcf.gz', call_filter='invalidfilter', hom=True, het=True, as_raw=True)
+    except (ImportError, IOError):
+        pytest.skip("pysam not installed.")
+
+def test_invalid_vcf_filename(remove_index):
+    try:
+        import pysam
+        with pytest.raises((IOError, FileNotFoundError, OSError)):
+            FastaVariant('data/chr22.fasta', 'data/does_not_exist.vcf.gz', hom=True, het=True, as_raw=True)
+    except (ImportError, IOError):
+        pytest.skip("pysam not installed.")
+
