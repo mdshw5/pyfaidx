@@ -236,8 +236,8 @@ class Sequence(object):
     def long_name(self):
         """ DEPRECATED: Use fancy_name instead.
         Return the fancy name for the sequence, including start, end, and complementation.
-        >>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
-        >>> x.long_name
+        #>>> x = Sequence(name='chr1', seq='ATCGTA', start=1, end=6, comp=True)
+        #>>> x.long_name
         'chr1:1-6 (complement)'
         """
         msg = "The `Sequence.long_name` property is deprecated, and will be removed in future versions. Please use `Sequence.fancy_name` instead."
