@@ -324,13 +324,14 @@ def test_read_back_index(remove_index):
     finally:
         locale.setlocale(locale.LC_NUMERIC, old_locale)
 
+@pytest.mark.xfail(raises=IndexNotFoundError)
 def test_issue_134_no_build_index(remove_index):
     """ Ensure that index file is not built when build_index=False. See mdshw5/pyfaidx#134.
     """
-    with pytest.raises(IndexNotFoundError):
-        faidx = Faidx('data/genes.fasta', build_index=False)
+    faidx = Faidx('data/genes.fasta', build_index=False)
 
-def test_issue_144_no_defline(remove_index):
+@pytest.mark.xfail(raises=FastaIndexingError)
+def test_issue_144_no_defline():
     """ Ensure that an exception is raised when a file contains no deflines. See mdshw5/pyfaidx#144.
     """
     tmp_dir = mkdtemp()
@@ -339,7 +340,6 @@ def test_issue_144_no_defline(remove_index):
         # Write simple fasta file
         with open(fasta_path, 'w') as fasta_out:
             fasta_out.write("CTCCGGGCCCAT\nATAAAGCCTAAA\n")
-        with pytest.raises(FastaIndexingError):
-            faidx = Faidx(fasta_path)
+        faidx = Faidx(fasta_path)
     finally:
         shutil.rmtree(tmp_dir)

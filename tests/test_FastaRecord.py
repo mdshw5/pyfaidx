@@ -16,7 +16,7 @@ def remove_index():
     except EnvironmentError:
         pass  # some tests may delete this file
     
-def test_sequence_uppercase(remove_index):
+def test_sequence_uppercase():
     """Test that the sequence is always returned in
     uppercase, even if it is in lowercase in the
     reference genome.
@@ -29,7 +29,7 @@ def test_sequence_uppercase(remove_index):
     1:100].seq == reference_normal['KF435150.1'][
             1:100].seq.upper()
 
-def test_long_names(remove_index):
+def test_long_names():
     """ Test that deflines extracted using FastaRecord.long_name are
     identical to deflines in the actual file.
     """
@@ -45,7 +45,7 @@ def test_long_names(remove_index):
     print(tuple(zip(deflines, long_names)))
     assert deflines == long_names
 
-def test_issue_62(remove_index):
+def test_issue_62():
     """ Check for pathogenic FastaRecord.long_name behavior in mdshw5/pyfaidx#62 """
     deflines = []
     line_len = None
@@ -75,7 +75,7 @@ def test_issue_62(remove_index):
     sys.stdout.writelines(tuple(Differ().compare(deflines, long_names)))
     assert deflines == long_names
 
-def test_unpadded_length(remove_index):
+def test_unpadded_length():
     filename = "data/padded.fasta"
     with open(filename, 'w') as padded:
         padded.write(">test_padded\n")

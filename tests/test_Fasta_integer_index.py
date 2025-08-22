@@ -13,7 +13,7 @@ def remove_index():
     except EnvironmentError:
         pass  # some tests may delete this file
     
-def test_integer_slice(remove_index):
+def test_integer_slice():
     fasta = Fasta('data/genes.fasta')
     expect = fasta['AB821309.1'][:100].seq
     result = fasta[0][:100].seq
