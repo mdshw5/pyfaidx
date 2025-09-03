@@ -76,7 +76,6 @@ def test_line_len():
 def test_mutable_bgzf():
     fasta = Fasta('data/genes.fasta.gz', mutable=True)
 
-@pytest.mark.xfail(raises=NotImplementedError)
 def test_long_names():
     """ Test that deflines extracted using FastaRecord.long_name are
     identical to deflines in the actual file.
