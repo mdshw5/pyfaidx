@@ -1,6 +1,6 @@
 import struct
 import pytest
-from pyfaidx import BgzfBlock
+from pyfaidx import BgzfBlock, make_virtual_offset
 
 def test_bgzfblock_fields():
     block = BgzfBlock(10, 20, 30, 40)
@@ -43,3 +43,22 @@ def test_bgzfblock_empty_true():
 def test_bgzfblock_empty_false():
     block = BgzfBlock(0, 0, 0, 1)
     assert block.empty is False
+
+def test_make_virtual_offset():
+    # Normal case
+    assert make_virtual_offset(1, 1) == (1 << 16) | 1
+    assert make_virtual_offset(0, 0) == 0
+    assert make_virtual_offset(12345, 54321) == (12345 << 16) | 54321
+    # Edge cases
+    assert make_virtual_offset(0, 65535) == (0 << 16) | 65535
+    assert make_virtual_offset(281474976710655, 0) == (281474976710655 << 16)
+    # Error cases
+    import pytest
+    with pytest.raises(ValueError):
+        make_virtual_offset(-1, 0)
+    with pytest.raises(ValueError):
+        make_virtual_offset(0, -1)
+    with pytest.raises(ValueError):
+        make_virtual_offset(0, 65536)
+    with pytest.raises(ValueError):
+        make_virtual_offset(281474976710656, 0)
