@@ -117,6 +117,20 @@ def fetch_chr22_vcf(filename):
         with open(filename + '.tbi', 'wb') as out:
             out.write(tbi.content)
 
+def fetch_anomala_cuprea_entomopoxvirus_faa_gz():
+    import requests
+    url = "https://github.com/user-attachments/files/22107565/Anomala_cuprea_entomopoxvirus.faa.gz"
+    out_path = os.path.join(os.path.dirname(__file__), "Anomala_cuprea_entomopoxvirus.faa.gz")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    if not os.path.isfile(out_path):
+        print(f"Downloading {url} to {out_path}")
+        resp = requests.get(url)
+        resp.raise_for_status()
+        with open(out_path, "wb") as f:
+            f.write(resp.content)
+    else:
+        print(f"File already exists: {out_path}")
+
 
 if __name__ == "__main__":
     path = os.path.dirname(__file__)
@@ -138,3 +152,4 @@ if __name__ == "__main__":
         add_fake_chr("chr22.fasta", "chr22andfake.fasta")
     bgzip_compress_fasta("genes.fasta")
     bgzip_compress_fasta("chr22.fasta")
+    fetch_anomala_cuprea_entomopoxvirus_faa_gz()
