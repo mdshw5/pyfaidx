@@ -830,9 +830,6 @@ class Faidx(object):
         eof = self.gzi_index.pop()
         if not eof.empty:
             raise IOError("BGZF EOF marker not found. File %s is not a valid BGZF file." % self.filename)
-        # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
-        # https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2401
-        first_block = self.gzi_index.pop(0) 
 
     def write_gzi(self):
         """ Write the on disk format for the htslib .gzi index
@@ -841,8 +838,10 @@ class Faidx(object):
         https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2382-L2384
         """
         with self._open_gzi('wb') as bzi_file:
-            bzi_file.write(struct.pack('<Q', len(self.gzi_index)))
-            for block in self.gzi_index:
+            bzi_file.write(struct.pack('<Q', len(self.gzi_index) - 1))
+            # htslib discards the first block which has cstart=0, ustart=0, and ulen=0.
+            # https://github.com/samtools/htslib/blob/d677f345fe35d451587319ca38ac611862a46e1b/bgzf.c#L2401
+            for block in self.gzi_index[1:]:
                 bzi_file.write(block.as_bytes())
 
     def read_gzi(self):
