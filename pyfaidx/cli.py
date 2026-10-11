@@ -135,7 +135,13 @@ def split_regions(args):
 
 
 def transform_sequence(args, fasta, name, start=None, end=None):
-    line_len = fasta.faidx.index[name].lenc
+    index_record = fasta.faidx.index[name]
+    if args.transform == 'chromsizes' and start is None and end is None and not args.complement:
+        # Whole-record lengths are already available in the FASTA index.
+        # Keep complement requests on the sequence path to validate the bases.
+        if args.no_output:
+            return
+        return '{name}\t{length}\n'.format(name=name, length=index_record.rlen)
     s = fasta[name][start:end]
     if args.complement:
         s = s.complement

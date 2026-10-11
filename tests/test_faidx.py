@@ -1,7 +1,7 @@
 import os
 import filecmp
 import pytest
-from pyfaidx import BedError, FetchError, FastaNotFoundError
+from pyfaidx import BedError, FetchError, FastaNotFoundError, Fasta, Faidx
 from pyfaidx.cli import main
 from tempfile import NamedTemporaryFile
 
@@ -114,21 +114,26 @@ def test_faidx_cli_transform_bed():
     os.remove(temp_fasta.name)
     os.remove(transform_bed.name)
 
-def test_faidx_cli_transform_chromsizes():
-    """Test that the CLI can transform sequences to chromsizes format."""
-    with NamedTemporaryFile(delete=False) as temp_fasta:
-        with NamedTemporaryFile(delete=False) as transform_chromsizes:
-            temp_fasta.write(b'>test\nATCG\n')
-            temp_fasta.close()
-            result = main(['--out', transform_chromsizes.name, '--transform', 'chromsizes', temp_fasta.name])
-            assert result is None  # CLI should not return anything
-            with open(transform_chromsizes.name, 'r') as f:
-                content = f.read()
-            # Check that the output matches the expected format
-            assert content == 'test\t4\n'
-    # Clean up temporary files
-    os.remove(temp_fasta.name)
-    os.remove(transform_chromsizes.name)
+@pytest.mark.parametrize('compressed', [False, True])
+def test_faidx_cli_transform_chromsizes(tmp_path, capsys, monkeypatch, compressed):
+    """Whole-record lengths should not require fetching chromosome sequences."""
+    filename = tmp_path / ('chromosomes.fa.gz' if compressed else 'chromosomes.fa')
+    content = b'>chr1 description\nATCG\nATCG\n>chr2\nATCGA\n'
+    if compressed:
+        from Bio.bgzf import BgzfWriter
+        with BgzfWriter(str(filename), 'wb') as fasta:
+            fasta.write(content)
+    else:
+        filename.write_bytes(content)
+    with Fasta(str(filename)):
+        pass  # Build the indexes before checking indexed retrieval.
+
+    def unexpected_fetch(*args, **kwargs):
+        pytest.fail('chromsizes fetched sequence instead of using the index')
+
+    monkeypatch.setattr(Faidx, 'fetch', unexpected_fetch)
+    main(['--transform', 'chromsizes', str(filename)])
+    assert capsys.readouterr().out == 'chr1\t8\nchr2\t5\n'
 
 def test_faidx_cli_size_range():
     """Test that the CLI can handle size range arguments."""
