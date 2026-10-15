@@ -744,11 +744,22 @@ class Faidx(object):
                         line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
+                        if rname is None and line[0] != '>':
+                            # before the first record, skip comment lines
+                            # (the original FASTA convention) and blank lines
+                            if line[0] == ';' or not line.strip():
+                                offset += line_blen
+                                continue
+                            raise FastaIndexingError(
+                                "Unexpected text before the first sequence "
+                                "definition line in %s at line %d. Check that "
+                                "sequence definition lines start with '>' and "
+                                "comment lines with ';'." % (self.filename, i + 1))
                         # write an index line
                         if line[0] == '>':
                             valid_entry = check_bad_lines(
                                 rname, bad_lines, i - 1)
-                            if valid_entry and i > 0:
+                            if valid_entry and rname is not None:
                                 indexfile.write(
                                     "{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(
                                         rname, rlen, thisoffset, clen, blen))
