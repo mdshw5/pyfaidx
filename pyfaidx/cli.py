@@ -112,6 +112,8 @@ def mask_sequence(args):
 
         for region in regions_to_fetch:
             rname, start, end = split_function(region)
+            if rname is None:
+                continue
             if args.mask_with_default_seq:
                 if start and end:
                     span = end - start

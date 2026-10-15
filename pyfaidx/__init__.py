@@ -1576,7 +1576,8 @@ def complement(seq):
 
 
 def bed_split(bed_entry):
-    if bed_entry[0] == "#":
+    bed_entry = bed_entry.strip()
+    if not bed_entry or bed_entry.startswith("#"):
         return (None, None, None)
     try:
         rname, start, end = bed_entry.rstrip().split()[:3]
