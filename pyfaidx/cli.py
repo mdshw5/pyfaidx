@@ -135,24 +135,21 @@ def split_regions(args):
 
 
 def transform_sequence(args, fasta, name, start=None, end=None):
-    index_record = fasta.faidx.index[name]
-    if args.transform == 'chromsizes' and start is None and end is None and not args.complement:
-        # Whole-record lengths are already available in the FASTA index.
-        # Keep complement requests on the sequence path to validate the bases.
-        if args.no_output:
-            return
-        return '{name}\t{length}\n'.format(name=name, length=index_record.rlen)
+      # first handle case where the output does not require sequence retrieval
+    if args.no_output:
+        return
+    elif args.transform == 'bed':
+        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start - 1 , end=s.end)
+    elif args.transform == 'chromsizes':
+        if not start and not end:
+            return '{name}\t{length}\n'.format(name=s.name, length=len(fasta[name]))
+        else:
+            return '{name}\t{length}\n'.format(name=s.name, length=len(fasta[name][start:end]))
     s = fasta[name][start:end]
     if args.complement:
         s = s.complement
     if args.reverse:
         s = s.reverse
-    if args.no_output:
-        return
-    if args.transform == 'bed':
-        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start - 1 , end=s.end)
-    elif args.transform == 'chromsizes':
-        return '{name}\t{length}\n'.format(name=s.name, length=len(s))
     elif args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
