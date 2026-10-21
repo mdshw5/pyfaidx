@@ -4,7 +4,7 @@ import argparse
 import sys
 import os.path
 import re
-from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
+from pyfaidx import Fasta, Sequence, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
 from collections import defaultdict
 from operator import itemgetter
 from heapq import nlargest
@@ -137,18 +137,34 @@ def split_regions(args):
 
 
 def transform_sequence(args, fasta, name, start=None, end=None):
-    line_len = fasta.faidx.index[name].lenc
+      # first handle case where the output does not require sequence retrieval   
+    if args.no_output:
+        return
+    elif args.transform == 'bed':
+        if not start and not end:
+            return '{name}\t{start}\t{end}\n'.format(name=name, start=0, end=len(fasta[name]))
+        else:
+            s_proxy = Sequence(name=name,
+                               seq=''.join(['N',] * len(fasta[name])),
+                               start=1,
+                               end=len(fasta[name]))
+            s_proxy = s_proxy[start:end]
+            return '{name}\t{start}\t{end}\n'.format(name=s_proxy.name, start=s_proxy.start - 1 , end=s_proxy.end)
+    elif args.transform == 'chromsizes':
+        if not start and not end:
+            return '{name}\t{length}\n'.format(name=name, length=len(fasta[name]))
+        else:
+            s_proxy = Sequence(name=name,
+                               seq=''.join(['N',] * len(fasta[name])),
+                               start=1,
+                               end=len(fasta[name]))
+            s_proxy = s_proxy[start:end]
+            return '{name}\t{length}\n'.format(name=s_proxy.name, length=len(s_proxy))
     s = fasta[name][start:end]
     if args.complement:
         s = s.complement
     if args.reverse:
         s = s.reverse
-    if args.no_output:
-        return
-    if args.transform == 'bed':
-        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start - 1 , end=s.end)
-    elif args.transform == 'chromsizes':
-        return '{name}\t{length}\n'.format(name=s.name, length=len(s))
     elif args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
