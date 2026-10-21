@@ -143,7 +143,9 @@ def transform_sequence(args, fasta, name, start=None, end=None):
             return '{name}\t{start}\t{end}\n'.format(name=name, start=0, end=len(fasta[name]))
         else:
             s_proxy = Sequence(name=name,
-                               seq=''.join(['N',] * len(fasta[name])))
+                               seq=''.join(['N',] * len(fasta[name])),
+                               start=1,
+                               end=len(fasta[name]))
             s_proxy = s_proxy[start:end]
             return '{name}\t{start}\t{end}\n'.format(name=s_proxy.name, start=s_proxy.start - 1 , end=s_proxy.end)
     elif args.transform == 'chromsizes':
