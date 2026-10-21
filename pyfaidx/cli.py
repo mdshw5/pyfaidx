@@ -139,12 +139,12 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     if args.no_output:
         return
     elif args.transform == 'bed':
-        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start - 1 , end=s.end)
+        return '{name}\t{start}\t{end}\n'.format(name=name, start=start - 1 , end=end)
     elif args.transform == 'chromsizes':
         if not start and not end:
-            return '{name}\t{length}\n'.format(name=s.name, length=len(fasta[name]))
+            return '{name}\t{length}\n'.format(name=name, length=len(fasta[name]))
         else:
-            return '{name}\t{length}\n'.format(name=s.name, length=len(fasta[name][start:end]))
+            return '{name}\t{length}\n'.format(name=name, length=len(fasta[name][start:end]))
     s = fasta[name][start:end]
     if args.complement:
         s = s.complement
