@@ -1113,6 +1113,11 @@ class FastaRecord(object):
         Coordinates are 0-based, end-exclusive."""
         try:
             if isinstance(n, slice):
+                if n.step is not None and n.step < 0:
+                    start, stop, step = n.indices(len(self))
+                    if start <= stop:
+                        return self._fa.get_seq(self.name, 1, 0)[::step]
+                    return self._fa.get_seq(self.name, stop + 2, start + 1)[::step]
                 start, stop, step = n.start, n.stop, n.step
                 if start is None:
                     start = 0
