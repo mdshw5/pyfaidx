@@ -134,7 +134,7 @@ class Sequence(object):
         >chr1
         AC
         >>> x[-2]
-        >chr1
+        >chr1:4-5
         T
         """
         if self.start is None or self.end is None or len(self.seq) == 0:
@@ -182,11 +182,9 @@ class Sequence(object):
         elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
-            if self.start:
-                return self.__class__(self.name, self.seq[n], self.start + n,
-                                      self.start + n, self.comp)
-            else:
-                return self.__class__(self.name, self.seq[n], self.comp)
+            if not 0 <= n < len(self):
+                raise IndexError('String index out of range')
+            return self[n:n + 1]
 
     def __str__(self):
         return self.seq
