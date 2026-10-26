@@ -183,7 +183,7 @@ class Sequence(object):
             if n < 0:
                 n = len(self) + n
             if not 0 <= n < len(self):
-                raise IndexError('string index out of range')
+                raise IndexError('String index out of range')
             return self[n:n + 1]
 
     def __str__(self):
