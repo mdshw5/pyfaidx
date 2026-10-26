@@ -52,7 +52,7 @@ Usage
     >>> genes
     Fasta("tests/data/genes.fasta")  # set strict_bounds=True for bounds checking
 
-Acts like a dictionary.
+Acts like a dictionary. Record names are always strings, so dictionary-style lookups need a ``str`` key.
 
 .. code:: python
 
@@ -92,6 +92,12 @@ Indexes like a list:
     >>> genes[0][:50]
     >AB821309.1:1-50
     ATGGTCAGCTGGGGTCGTTTCATCTGCCTGGTCGTGGTCACCATGGCAAC
+
+An ``int`` key is always a position in the file, never a record name. If your
+record names are numbers (for example chromosomes ``1``, ``2``, ... in Ensembl
+or TAIR10 genomes), convert the key first: ``genes[str(chrom)]``. This is easy
+to miss when names come from a table, since pandas reads a numeric ``chrom``
+column as integers.
 
 Slices just like a string:
 
