@@ -205,3 +205,42 @@ def test_faidx_sequence_masking_case():
     assert content == '>test\natCG\n'
     # Clean up temporary files
     os.remove(temp_fasta_name)
+
+
+@pytest.mark.parametrize('action, selected', [
+    ('first', 0), ('last', 2), ('longest', 1), ('shortest', 2)])
+@pytest.mark.parametrize('mode', ['extract', 'transform', 'soft-mask', 'hard-mask'])
+def test_faidx_cli_duplicates_action(tmp_path, capsys, action, selected, mode):
+    sequences = ['AAAA', 'CCCCCC', 'TT']
+    filename = tmp_path / 'duplicates.fa'
+    filename.write_bytes(''.join('>chr1\n' + seq + '\n' for seq in sequences).encode())
+    args = [str(filename), '--duplicates-action', action]
+    if mode == 'extract':
+        args += ['--no-names']
+    elif mode == 'transform':
+        args += ['--transform', 'transposed']
+    elif mode == 'soft-mask':
+        args += ['chr1:1-2', '--mask-by-case']
+    else:
+        args += ['chr1:1-2', '--mask-with-default-seq', '--default-seq', 'N']
+
+    main(args)
+    output = capsys.readouterr().out
+    sequence = sequences[selected]
+    if mode == 'extract':
+        assert output == sequence + '\n'
+    elif mode == 'transform':
+        assert output == 'chr1\t1\t{}\t{}\n'.format(len(sequence), sequence)
+    else:
+        assert output == ''
+        prefix = sequence[:2].lower() if mode == 'soft-mask' else 'NN'
+        sequences[selected] = prefix + sequence[2:]
+    assert filename.read_text() == ''.join('>chr1\n' + seq + '\n' for seq in sequences)
+
+
+@pytest.mark.parametrize('action', [[], ['--duplicates-action', 'stop']])
+def test_faidx_cli_duplicate_names_stop(tmp_path, action):
+    filename = tmp_path / 'duplicates.fa'
+    filename.write_bytes(b'>chr1\nAAAA\n>chr1\nTT\n')
+    with pytest.raises(ValueError, match='Duplicate key "chr1"'):
+        main([str(filename)] + action)

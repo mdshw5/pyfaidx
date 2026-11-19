@@ -33,7 +33,7 @@ def write_sequence(args):
     if args.invert_match:
         filt_function = lambda x: not re.compile(args.regex).search(x)
 
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.long_names, rebuild=not args.no_rebuild)
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.long_names, rebuild=not args.no_rebuild, duplicate_action=args.duplicates_action)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
@@ -107,7 +107,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
 
 
 def mask_sequence(args):
-    with Fasta(args.fasta, mutable=True, split_char=args.delimiter) as fasta:
+    with Fasta(args.fasta, mutable=True, split_char=args.delimiter, duplicate_action=args.duplicates_action) as fasta:
         regions_to_fetch, split_function = split_regions(args)
 
         for region in regions_to_fetch:
