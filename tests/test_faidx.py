@@ -45,6 +45,19 @@ def test_auto_strand():
             print()
             print(noto_strand.read())
             assert filecmp.cmp(auto_strand.name, noto_strand.name)
+
+
+@pytest.mark.parametrize('regions, expected', [
+    ([], 'ACGTAC\nGATT\n'),
+    (['test'], 'ACGTAC\n'),
+    (['test:2-5'], 'CGTA\n'),
+    (['test:5-2'], 'TACG\n'),
+])
+def test_auto_strand_regions(tmp_path, capsys, regions, expected):
+    filename = tmp_path / 'reference.fa'
+    filename.write_bytes(b'>test\nACGTAC\n>other\nGATT\n')
+    main(['--auto-strand', '--no-names', str(filename)] + regions)
+    assert capsys.readouterr().out == expected
     
 def test_regexp():
     main(['data/genes.fasta', '-g', 'XR'])
