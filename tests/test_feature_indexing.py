@@ -25,6 +25,26 @@ def test_version_issue_206():
     import pyfaidx
     assert isinstance(pyfaidx.__version__, str)    
 
+def test_fetch_genes_writes_lf_on_windows(tmp_path, monkeypatch):
+    from Bio import Entrez
+    from tests.data.download_gene_fasta import fetch_genes
+
+    filename = str(tmp_path / 'genes.fasta')
+    monkeypatch.setattr(Entrez, 'efetch', lambda **kwargs: iter(['>gene\n', 'ACGT\n']))
+    original_open = builtins.open
+
+    def windows_open(file, mode='r', *args, **kwargs):
+        if str(file) in (filename, filename + '.lower') and 'w' in mode:
+            kwargs.setdefault('newline', '\r\n')
+        return original_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, 'open', windows_open)
+    fetch_genes(filename)
+    assert (tmp_path / 'genes.fasta').read_bytes() == b'>gene\nACGT\n'
+    assert (tmp_path / 'genes.fasta.lower').read_bytes() == b'>gene\nacgt\n'
+    with Faidx(filename) as index:
+        assert str(index.index['gene']) == '4\t6\t4\t5'
+
 def test_build(remove_index):
     # Removed old GI-based expect_index assignments
     expect_index = (

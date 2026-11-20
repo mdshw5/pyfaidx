@@ -18,12 +18,18 @@ jobs:
         python-version: ['3.15', '3.14', '3.13', '3.12', '3.11']
         os: [ubuntu-latest, macos-latest, windows-latest]
         exclude:
-          # mac os: exclude all but the last two (available) python releases
+          # macOS and Windows: test only the latest two Python releases
           - os: macos-latest
             python-version: '3.13'
           - os: macos-latest
             python-version: '3.12'
           - os: macos-latest
+            python-version: '3.11'
+          - os: windows-latest
+            python-version: '3.13'
+          - os: windows-latest
+            python-version: '3.12'
+          - os: windows-latest
             python-version: '3.11'
 
     steps:

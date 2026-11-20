@@ -32,7 +32,7 @@ def fetch_genes(filename, suffix=None):
     # Directly fetch by accession.version (no EPost needed)
     records = Entrez.efetch(db="nucleotide", id=",".join(id_list), rettype="fasta", retmode="text")
 
-    with open(filename, 'w') as fasta:
+    with open(filename, 'w', newline='\n') as fasta:
         for line in records:
             if suffix is not None and line[0] == '>':
                 line = line.rstrip('\n')
@@ -41,7 +41,7 @@ def fetch_genes(filename, suffix=None):
                 continue
             fasta.write(line)
     with open(filename, 'r') as fasta:
-        with open('.'.join([filename, 'lower']), 'w') as lower:
+        with open('.'.join([filename, 'lower']), 'w', newline='\n') as lower:
             for line in fasta:
                 if line[0] != '>':
                     line = line.lower()
