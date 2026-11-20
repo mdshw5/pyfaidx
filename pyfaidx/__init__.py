@@ -1060,7 +1060,7 @@ class Faidx(object):
         prev_bend = index_record.prev_bend
         defline_end = index_record.offset
         self.file.seek(prev_bend)
-        return self.file.read(defline_end - prev_bend).decode()[1:-1]
+        return _defline_from_chunk(self.file.read(defline_end - prev_bend).decode())
 
     def _long_name_from_bgzf(self, index_record):
         """ Return the full sequence defline and description for BGZF compressed files.
@@ -1080,8 +1080,7 @@ class Faidx(object):
         
         defline_length = offset_to_seq - prev_bend
         
-        defline = self.file.read(defline_length).decode()        
-        return defline[1:].rstrip('\r\n')
+        return _defline_from_chunk(self.file.read(defline_length).decode())
 
     def close(self):
         self.__exit__()
@@ -1503,6 +1502,13 @@ class FastaVariant(Fasta):
         else:
             seq.seq = ''.join(seq_mut[:end - start + 1])
             return seq
+
+
+def _defline_from_chunk(chunk):
+    """ Return the defline, without '>', from the text between the end of the
+    previous record's sequence and the start of this record's sequence. That text
+    can also hold blank lines and ';' comment lines, and lines can end in CRLF. """
+    return chunk.rstrip('\r\n').rsplit('\n', 1)[-1].rstrip('\r')[1:]
 
 
 def wrap_sequence(n, sequence, fillvalue='', newline='\n'):
