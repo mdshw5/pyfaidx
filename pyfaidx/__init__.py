@@ -1037,9 +1037,10 @@ class Faidx(object):
                 else:
                     newline_char = '\n'
                 self.file.seek(internals['bstart'])
-                if internals['newlines_inside'] == 0:
+                # Use the line breaks actually read: the last line of a file can end without one
+                if newline_char not in file_seq:
                     self.file.write(seq.encode())
-                elif internals['newlines_inside'] > 0:
+                else:
                     n = 0
                     m = file_seq.index(newline_char)
                     while m < len(seq):
