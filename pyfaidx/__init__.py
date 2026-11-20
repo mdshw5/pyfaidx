@@ -1022,11 +1022,13 @@ class Faidx(object):
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
         with self.lock:
-            if len(seq) != len(file_seq) - internals['newlines_inside']:
+            # A line break can be two characters ('\r\n'), so count the sequence characters
+            file_seq_len = len(file_seq) - file_seq.count('\r') - file_seq.count('\n')
+            if len(seq) != file_seq_len:
                 raise IOError(
                     "Specified replacement sequence needs to have the same length as original."
                 )
-            elif len(seq) == len(file_seq) - internals['newlines_inside']:
+            else:
                 line_len = internals['i'].lenc
                 if '\r\n' in file_seq:
                     newline_char = '\r\n'
