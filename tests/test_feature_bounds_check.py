@@ -21,12 +21,13 @@ GC""")
     os.remove('data/zero_length.fasta.fai')
               
 def test_index_zero_length(setup_zero):
-    fasta = Fasta('data/zero_length.fasta')
+    with Fasta('data/zero_length.fasta') as fasta:
+        assert 'B' in fasta
     
 def test_fetch_zero_length(setup_zero):
-    fasta = Fasta('data/zero_length.fasta')
-    b = fasta["B"]
-    assert str(b) == ''
+    with Fasta('data/zero_length.fasta') as fasta:
+        b = fasta["B"]
+        assert str(b) == ''
         
 @pytest.fixture
 def remove_index():

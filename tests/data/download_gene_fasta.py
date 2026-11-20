@@ -55,7 +55,7 @@ def issue_141_genes(newlines, carriages):
     with open(newlines, 'r') as newlines_file:
         lines = newlines_file.readlines()
     # open carriages file and write lines
-    with open(carriages, 'w') as carriages_file:
+    with open(carriages, 'w', newline='') as carriages_file:
         for line in lines:
             # replace newline with carriage return
             line = line.replace('\n', '\r\n')

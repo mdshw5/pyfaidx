@@ -53,7 +53,7 @@ def test_issue_62():
         with open('data/issue_62.fa', 'wb') as fasta_uniform_len:
             for line in fasta_file:
                 if line.startswith(b'>'):
-                    deflines.append(line[1:-1].decode('ascii'))
+                    deflines.append(line[1:].rstrip(b'\r\n').decode('ascii'))
                     fasta_uniform_len.write(line)
                 elif line_len is None:
                     line_len = len(line)
@@ -141,6 +141,15 @@ def test_mutate_fasta_to_N():
     chunk = 100 * 'N'
     mutable['KF435150.1'][0:100] = chunk
     assert mutable['KF435150.1'][0:100].seq == chunk
+
+def test_mutate_crlf_fasta_preserves_line_endings(tmp_path):
+    filename = tmp_path / 'crlf.fasta'
+    filename.write_bytes(b'>chr1\r\nACGT\r\nACGT\r\n')
+
+    with Fasta(str(filename), mutable=True) as fasta:
+        fasta['chr1'][1:7] = 'CCCCCC'
+
+    assert filename.read_bytes() == b'>chr1\r\nACCC\r\nCCCT\r\n'
 
 @pytest.mark.usefixtures('remove_index_mutable')
 def test_mutate_single_position():

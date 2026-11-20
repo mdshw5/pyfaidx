@@ -1,29 +1,17 @@
 import os
-import pytest
 from pathlib import Path
 from pyfaidx import Faidx, Fasta
 
-path = os.path.dirname(__file__)
-os.chdir(path)
-
-@pytest.fixture
-def remove_index():
-    yield
-    try:
-        os.remove('data/genes.fasta.fai')
-    except EnvironmentError:
-        pass  # some tests may delete this file
-
-def test_Faidx(remove_index):
+def test_Faidx(tmp_path):
     """ Ensures that Faidx can be created with a pathlib.Path as filename """
-    filename = 'data/genes.fasta'
-    faidx = Faidx(filename)
-    faidx_w_path = Faidx(Path(filename))
-    assert faidx.filename == faidx_w_path.filename
+    filename = tmp_path / 'genes.fasta'
+    filename.write_text('>chr1\nACGT\n')
+    with Faidx(str(filename)) as faidx, Faidx(Path(filename)) as faidx_w_path:
+        assert os.path.samefile(faidx.filename, faidx_w_path.filename)
 
-def test_Fasta(remove_index):
+def test_Fasta(tmp_path):
     """ Ensures that Fasta can be created with a pathlib.Path as filename """
-    filename = 'data/genes.fasta'
-    fasta = Fasta(filename)
-    fasta_w_path = Fasta(Path(filename))
-    assert fasta.filename == fasta_w_path.filename
+    filename = tmp_path / 'genes.fasta'
+    filename.write_text('>chr1\nACGT\n')
+    with Fasta(str(filename)) as fasta, Fasta(Path(filename)) as fasta_w_path:
+        assert os.path.samefile(fasta.filename, fasta_w_path.filename)

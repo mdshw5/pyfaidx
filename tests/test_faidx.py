@@ -35,16 +35,15 @@ def test_fetch_error():
 def test_key_warning():
     main(['data/genes.fasta', 'foo'])
     
-def test_auto_strand():
+def test_auto_strand(tmp_path):
     """ Test that --auto-strand produces the same output as --reverse --complement"""
-    with NamedTemporaryFile() as auto_strand:
-        with NamedTemporaryFile() as noto_strand:
-            main(['--auto-strand', '-o', auto_strand.name, 'data/genes.fasta', 'KF435150.1:100-1'])
-            main(['--reverse', '--complement', '-o', noto_strand.name, 'data/genes.fasta', 'KF435150.1:1-100'])
-            print(auto_strand.read())
-            print()
-            print(noto_strand.read())
-            assert filecmp.cmp(auto_strand.name, noto_strand.name)
+    fasta = tmp_path / 'genes.fasta'
+    fasta.write_text('>KF435150.1\n' + ('AACCGTTA' * 50) + '\n')
+    auto_strand = tmp_path / 'auto-strand.fa'
+    noto_strand = tmp_path / 'reverse-complement.fa'
+    main(['--auto-strand', '--no-names', '-o', str(auto_strand), str(fasta), 'KF435150.1:100-1'])
+    main(['--reverse', '--complement', '--no-names', '-o', str(noto_strand), str(fasta), 'KF435150.1:1-100'])
+    assert filecmp.cmp(auto_strand, noto_strand)
 
 
 @pytest.mark.parametrize('regions, expected', [
@@ -227,7 +226,7 @@ def test_faidx_cli_duplicates_action(tmp_path, capsys, action, selected, mode):
     sequences = ['AAAA', 'CCCCCC', 'TT']
     filename = tmp_path / 'duplicates.fa'
     filename.write_bytes(''.join('>chr1\n' + seq + '\n' for seq in sequences).encode())
-    args = [str(filename), '--duplicates-action', action]
+    args = [str(filename)]
     if mode == 'extract':
         args += ['--no-names']
     elif mode == 'transform':
@@ -236,6 +235,7 @@ def test_faidx_cli_duplicates_action(tmp_path, capsys, action, selected, mode):
         args += ['chr1:1-2', '--mask-by-case']
     else:
         args += ['chr1:1-2', '--mask-with-default-seq', '--default-seq', 'N']
+    args += ['--duplicates-action', action]
 
     main(args)
     output = capsys.readouterr().out
