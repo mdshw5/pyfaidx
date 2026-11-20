@@ -95,6 +95,7 @@ def test_unpadded_length():
     result = fasta["test_padded"].unpadded_len
     print(expect, result)
     assert expect == result
+    fasta.close()
     os.remove('data/padded.fasta')
     os.remove('data/padded.fasta.fai')
 

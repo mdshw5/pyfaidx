@@ -127,7 +127,7 @@ def test_valgrind_short_lines(remove_index):
     """
     # http://stackoverflow.com/a/23212515/717419
     if platform.system() == 'Windows':
-        raise SkipTest
+        pytest.skip("NamedTemporaryFile cannot be reopened on Windows")
     indexed = []
     with open('data/genes.fasta') as genes:
         fasta = genes.readlines()
@@ -157,7 +157,7 @@ def test_valgrind_long_lines(remove_index):
     """
     # http://stackoverflow.com/a/23212515/717419
     if platform.system() == 'Windows':
-        raise SkipTest
+        pytest.skip("NamedTemporaryFile cannot be reopened on Windows")
     indexed = []
     with open('data/genes.fasta') as genes:
         fasta = genes.readlines()
@@ -187,7 +187,7 @@ def test_valgrind_blank_lines(remove_index):
     """
     # http://stackoverflow.com/a/23212515/717419
     if platform.system() == 'Windows':
-        raise SkipTest
+        pytest.skip("NamedTemporaryFile cannot be reopened on Windows")
     indexed = []
     with open('data/genes.fasta') as genes:
         fasta = genes.readlines()
@@ -314,6 +314,8 @@ def test_read_back_index(remove_index):
         new_locale = 'en_US.utf8'
     elif platform.system() == "Darwin":
         new_locale = 'en_US.UTF-8'
+    elif platform.system() == "Windows":
+        new_locale = 'English_United States.1252'
     
     old_locale = locale.getlocale(locale.LC_NUMERIC)
     try:
