@@ -686,7 +686,9 @@ class Faidx(object):
                     bend = offset + newlines + rlen
                     rec = IndexRecord(rlen, offset, lenc, lenb, bend,
                                       prev_bend)
-                    if self.read_long_names:
+                    if self.read_long_names and self._bgzf:
+                        rname = self._long_name_from_bgzf(rec)
+                    elif self.read_long_names:
                         rname = self._long_name_from_index_record(rec)
                     if self.split_char:
                         rname = filter(self.filt_function,

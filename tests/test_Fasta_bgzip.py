@@ -236,3 +236,16 @@ def test_fetch_border_padded(remove_index):
 def test_mutable_bgzf_fasta(remove_index):
     """ Test that mutable Fasta raises error with bgzf files """
     fasta = Fasta('data/genes.fasta.gz', mutable=True)
+
+
+def test_read_long_names_past_first_block(tmp_path):
+    # A defline past the first 64 KiB of uncompressed data is in a later BGZF block
+    bgzf = pytest.importorskip("Bio.bgzf")
+    seq = 'ACGT' * 50000
+    text = '>chr1 first record\n' + '\n'.join(seq[i:i + 60] for i in range(0, len(seq), 60)) + '\n>chr2 second record\nACGTACGT\n'
+    path = str(tmp_path / 'long.fa.gz')
+    with bgzf.BgzfWriter(path, 'wb') as out:
+        out.write(text.encode())
+    fa = Fasta(path, read_long_names=True)
+    assert list(fa.keys()) == ['chr1 first record', 'chr2 second record']
+    assert str(fa['chr2 second record'][:]) == 'ACGTACGT'
