@@ -1024,12 +1024,13 @@ class Faidx(object):
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
         with self.lock:
-            if len(seq) != len(file_seq) - internals['newlines_inside']:
+            line_breaks = file_seq.splitlines(keepends=True)
+            sequence_length = sum(len(line.rstrip('\r\n')) for line in line_breaks)
+            if len(seq) != sequence_length:
                 raise IOError(
                     "Specified replacement sequence needs to have the same length as original."
                 )
-            elif len(seq) == len(file_seq) - internals['newlines_inside']:
-                line_len = internals['i'].lenc
+            else:
                 if '\r\n' in file_seq:
                     newline_char = '\r\n'
                 elif '\r' in file_seq:
@@ -1039,15 +1040,15 @@ class Faidx(object):
                 self.file.seek(internals['bstart'])
                 if internals['newlines_inside'] == 0:
                     self.file.write(seq.encode())
-                elif internals['newlines_inside'] > 0:
-                    n = 0
-                    m = file_seq.index(newline_char)
-                    while m < len(seq):
-                        self.file.write(''.join([seq[n:m], newline_char]).encode())
-                        n = m
-                        m += line_len
-                    self.file.write(seq[n:].encode())
-                    self.file.flush()
+                else:
+                    lines = file_seq.split(newline_char)
+                    offset = 0
+                    replacement = []
+                    for line in lines:
+                        replacement.append(seq[offset:offset + len(line)])
+                        offset += len(line)
+                    self.file.write(newline_char.join(replacement).encode())
+                self.file.flush()
 
     def get_long_name(self, rname):
         """ Return the full sequence defline and description. External method using the self.index """
