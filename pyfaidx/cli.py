@@ -165,7 +165,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
         s = s.complement
     if args.reverse:
         s = s.reverse
-    elif args.transform == 'nucleotide':
+    if args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
         nucs.update([(c, ss.count(c)) for c in set(ss)])
