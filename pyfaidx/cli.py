@@ -79,7 +79,7 @@ def write_sequence(args):
 def fetch_sequence(args, fasta, name, start=None, end=None):
     try:
         line_len = fasta.faidx.index[name].lenc
-        if args.auto_strand and start > end and start is not None and end is not None:
+        if args.auto_strand and start is not None and end is not None and start > end:
             # flip (0, 1] coordinates
             sequence = fasta[name][end - 1:start + 1]
             sequence = sequence.reverse.complement

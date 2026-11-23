@@ -686,7 +686,9 @@ class Faidx(object):
                     bend = offset + newlines + rlen
                     rec = IndexRecord(rlen, offset, lenc, lenb, bend,
                                       prev_bend)
-                    if self.read_long_names:
+                    if self.read_long_names and self._bgzf:
+                        rname = self._long_name_from_bgzf(rec)
+                    elif self.read_long_names:
                         rname = self._long_name_from_index_record(rec)
                     if self.split_char:
                         rname = filter(self.filt_function,
@@ -1022,14 +1024,13 @@ class Faidx(object):
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
         with self.lock:
-            # A line break can be two characters ('\r\n'), so count the sequence characters
-            file_seq_len = len(file_seq) - file_seq.count('\r') - file_seq.count('\n')
-            if len(seq) != file_seq_len:
+            line_breaks = file_seq.splitlines(keepends=True)
+            sequence_length = sum(len(line.rstrip('\r\n')) for line in line_breaks)
+            if len(seq) != sequence_length:
                 raise IOError(
                     "Specified replacement sequence needs to have the same length as original."
                 )
             else:
-                line_len = internals['i'].lenc
                 if '\r\n' in file_seq:
                     newline_char = '\r\n'
                 elif '\r' in file_seq:
@@ -1037,18 +1038,17 @@ class Faidx(object):
                 else:
                     newline_char = '\n'
                 self.file.seek(internals['bstart'])
-                # Use the line breaks actually read: the last line of a file can end without one
-                if newline_char not in file_seq:
+                if internals['newlines_inside'] == 0:
                     self.file.write(seq.encode())
                 else:
-                    n = 0
-                    m = file_seq.index(newline_char)
-                    while m < len(seq):
-                        self.file.write(''.join([seq[n:m], newline_char]).encode())
-                        n = m
-                        m += line_len
-                    self.file.write(seq[n:].encode())
-                    self.file.flush()
+                    lines = file_seq.split(newline_char)
+                    offset = 0
+                    replacement = []
+                    for line in lines:
+                        replacement.append(seq[offset:offset + len(line)])
+                        offset += len(line)
+                    self.file.write(newline_char.join(replacement).encode())
+                self.file.flush()
 
     def get_long_name(self, rname):
         """ Return the full sequence defline and description. External method using the self.index """
@@ -1063,7 +1063,7 @@ class Faidx(object):
         prev_bend = index_record.prev_bend
         defline_end = index_record.offset
         self.file.seek(prev_bend)
-        return self.file.read(defline_end - prev_bend).decode()[1:-1]
+        return _defline_from_chunk(self.file.read(defline_end - prev_bend).decode())
 
     def _long_name_from_bgzf(self, index_record):
         """ Return the full sequence defline and description for BGZF compressed files.
@@ -1083,8 +1083,7 @@ class Faidx(object):
         
         defline_length = offset_to_seq - prev_bend
         
-        defline = self.file.read(defline_length).decode()        
-        return defline[1:].rstrip('\r\n')
+        return _defline_from_chunk(self.file.read(defline_length).decode())
 
     def close(self):
         self.__exit__()
@@ -1506,6 +1505,13 @@ class FastaVariant(Fasta):
         else:
             seq.seq = ''.join(seq_mut[:end - start + 1])
             return seq
+
+
+def _defline_from_chunk(chunk):
+    """ Return the defline, without '>', from the text between the end of the
+    previous record's sequence and the start of this record's sequence. That text
+    can also hold blank lines and ';' comment lines, and lines can end in CRLF. """
+    return chunk.rstrip('\r\n').rsplit('\n', 1)[-1].rstrip('\r')[1:]
 
 
 def wrap_sequence(n, sequence, fillvalue='', newline='\n'):

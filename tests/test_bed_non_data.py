@@ -22,6 +22,7 @@ def test_bed_non_data_lines(tmp_path, capsys, non_data, mode):
         args += ['--mask-with-default-seq', '--default-seq', 'N']
     main(args)
     output = capsys.readouterr().out
+    output = output.replace('\r\n', '\n')
     if mode == 'extract':
         assert output == 'AC\nAC\n'
     elif mode == 'transform':
