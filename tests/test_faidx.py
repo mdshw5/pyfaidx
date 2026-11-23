@@ -110,6 +110,18 @@ def test_faidx_cli_transform_transposed():
     os.remove(temp_fasta.name)
     os.remove(transform_table.name)
 
+@pytest.mark.parametrize('transform, expected', [
+    ('transposed', 'test\t4\t1\tGCAA\n'),
+    ('nucleotide', 'name\tstart\tend\tA\tT\tC\tG\tN\tothers\n'
+                   'test\t4\t1\t2\t0\t1\t1\t0\t0\n'),
+])
+def test_faidx_cli_transform_reverse(tmp_path, capsys, transform, expected):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>test\nAACG\n')
+    main(['--reverse', '--transform', transform, str(fasta)])
+    assert capsys.readouterr().out == expected
+
+
 def test_faidx_cli_transform_bed():
     """Test that the CLI can transform sequences to BED format."""
     with NamedTemporaryFile(delete=False) as temp_fasta:
