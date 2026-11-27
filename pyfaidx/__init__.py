@@ -395,6 +395,14 @@ class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
             return self.ustart < other
         return NotImplemented
 
+    def __gt__(self, other):
+        """Compare BgzfBlock ustart to an integer, or to another BgzfBlock by ustart."""
+        if isinstance(other, BgzfBlock):
+            return self.ustart > other.ustart
+        elif isinstance(other, (int, float)):
+            return self.ustart > other
+        return NotImplemented
+
     def __len__(self):
         return self.ulen
 
@@ -961,22 +969,15 @@ class Faidx(object):
                              "\n".format(end, rname))
 
         with self.lock:
-            if self._bgzf: 
-                insertion_i = bisect.bisect_left(self.gzi_index, bstart)
-                if insertion_i == 0:  # bisect_left already returns index to the left if values are the same
-                    start_block = self.gzi_index[insertion_i]
-                else:
-                    start_block = self.gzi_index[insertion_i - 1]
-                within_block_offset = bstart - start_block.ustart
-                self.file.seek(make_virtual_offset(start_block.cstart, within_block_offset))
-            else:
-                self.file.seek(bstart)
-
             # If the requested sequence exceeds len(FastaRecord), return as much as possible
             if bstart + seq_blen > i.bend and not self.strict_bounds:
                 seq_blen = i.bend - bstart
             # Otherwise it should be safe to read the sequence
             if seq_blen > 0:
+                if self._bgzf:
+                    self.file.seek(self._bgzf_virtual_offset(bstart))
+                else:
+                    self.file.seek(bstart)
                 seq = self.file.read(seq_blen).decode()
             # If the requested sequence is negative, we will pad the empty string with default_seq.
             # This was changed to support #155 with strict_bounds=True.
@@ -1065,24 +1066,21 @@ class Faidx(object):
         self.file.seek(prev_bend)
         return _defline_from_chunk(self.file.read(defline_end - prev_bend).decode())
 
+    def _bgzf_virtual_offset(self, offset):
+        """Return the canonical BGZF virtual offset for an uncompressed byte offset."""
+        insertion_i = bisect.bisect_right(self.gzi_index, offset)
+        start_block = self.gzi_index[max(0, insertion_i - 1)]
+        within_block_offset = offset - start_block.ustart
+        return make_virtual_offset(start_block.cstart, within_block_offset)
+
     def _long_name_from_bgzf(self, index_record):
         """ Return the full sequence defline and description for BGZF compressed files.
         Uses information from the .fai file to efficiently access the sequence defline. """
 
         offset_to_seq = index_record.offset
-        prev_bend = index_record.prev_bend        
-        insertion_i = bisect.bisect_left(self.gzi_index, prev_bend)
-        if insertion_i == 0:
-            start_block = self.gzi_index[insertion_i]
-        else:
-            start_block = self.gzi_index[insertion_i - 1]
-        
-        within_block_offset = prev_bend - start_block.ustart
-        
-        self.file.seek(make_virtual_offset(start_block.cstart, within_block_offset))
-        
+        prev_bend = index_record.prev_bend
+        self.file.seek(self._bgzf_virtual_offset(prev_bend))
         defline_length = offset_to_seq - prev_bend
-        
         return _defline_from_chunk(self.file.read(defline_length).decode())
 
     def close(self):

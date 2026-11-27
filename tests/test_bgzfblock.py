@@ -32,6 +32,17 @@ def test_bgzfblock_lt():
     assert (block < 200) is True
     assert (block < 50) is False
 
+def test_bgzfblock_gt():
+    block = BgzfBlock(0, 0, 100, 10)
+    other = BgzfBlock(0, 0, 200, 10)
+    assert (block > 50) is True
+    assert (block > 100) is False
+    assert (block > 200) is False
+    assert (50 < block) is True
+    assert (100 < block) is False
+    assert (other > block) is True
+    assert (block > other) is False
+
 def test_bgzfblock_len():
     block = BgzfBlock(0, 0, 0, 42)
     assert len(block) == 42
