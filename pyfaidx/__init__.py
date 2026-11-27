@@ -1049,6 +1049,8 @@ class Faidx(object):
                         offset += len(line)
                     self.file.write(newline_char.join(replacement).encode())
                 self.file.flush()
+                # A different name may refer to the same sequence via split_char.
+                self.buffer['name'] = None
 
     def get_long_name(self, rname):
         """ Return the full sequence defline and description. External method using the self.index """
