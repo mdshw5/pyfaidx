@@ -1182,6 +1182,8 @@ class FastaRecord(object):
         https://github.com/Illumina/hap.py/blob/master/src/c%2B%2B/lib/tools/Fasta.cpp#L284
         """
         length = len(self)
+        if length == 0:
+            return 0
         stop = False
         for line in iter(self):
             if stop:
@@ -1194,6 +1196,8 @@ class FastaRecord(object):
                 else:
                     stop = True
                     break
+        if length == 0:
+            return 0
         stop = False
         for line in reversed(self):
             if stop:

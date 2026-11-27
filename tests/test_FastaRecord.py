@@ -119,6 +119,23 @@ def test_unpadded_length():
     os.remove('data/padded.fasta')
     os.remove('data/padded.fasta.fai')
 
+@pytest.mark.parametrize('as_raw', [False, True])
+def test_unpadded_length_all_n_and_empty(tmp_path, as_raw):
+    filename = tmp_path / 'all_n_and_empty.fasta'
+    filename.write_text(
+        '>all_n\n' + ('N' * 80 + '\n') * 2 +
+        '>all_n_lower\n' + ('n' * 50 + '\n') * 2 +
+        '>empty\n' +
+        '>single_base\n' + 'N' * 10 + 'A' + 'N' * 10 + '\n' +
+        '>padded\n' + 'N' * 5 + 'ACGT' + 'N' * 5 + '\n'
+    )
+    with Fasta(str(filename), as_raw=as_raw) as fasta:
+        assert fasta['all_n'].unpadded_len == 0
+        assert fasta['all_n_lower'].unpadded_len == 0
+        assert fasta['empty'].unpadded_len == 0
+        assert fasta['single_base'].unpadded_len == 1
+        assert fasta['padded'].unpadded_len == 4
+
 def test_numpy_array(remove_index):
     """ Test the __array_interface__ """
     import numpy
