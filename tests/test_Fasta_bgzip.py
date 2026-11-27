@@ -249,3 +249,123 @@ def test_read_long_names_past_first_block(tmp_path):
     fa = Fasta(path, read_long_names=True)
     assert list(fa.keys()) == ['chr1 first record', 'chr2 second record']
     assert str(fa['chr2 second record'][:]) == 'ACGTACGT'
+
+
+def _make_bgzf_block(data):
+    import struct
+    import zlib
+    comp = zlib.compressobj(level=6, method=zlib.DEFLATED, wbits=-15)
+    cdata = comp.compress(data) + comp.flush()
+    crc = zlib.crc32(data) & 0xFFFFFFFF
+    isize = len(data) & 0xFFFFFFFF
+    bsize = 12 + 6 + len(cdata) + 8 - 1
+    header = struct.pack('<BBBBIBBHBBHH', 31, 139, 8, 4, 0, 0, 255, 6, 66, 67, 2, bsize)
+    footer = struct.pack('<II', crc, isize)
+    return header + cdata + footer
+
+
+def _start0_for_bstart(rec, target_bstart):
+    newline_blen = rec.lenb - rec.lenc
+    approx = max(0, int((target_bstart - rec.offset) * rec.lenc / rec.lenb) - rec.lenc)
+    for start0 in range(approx, approx + 3 * rec.lenc):
+        nb = int((start0 - 1) / rec.lenc) if start0 > 0 else 0
+        if rec.offset + nb * newline_blen + start0 == target_bstart:
+            return start0
+    raise AssertionError(f"Could not find start0 for bstart={target_bstart}")
+
+
+def test_bgzf_fetch_at_exact_block_boundaries(tmp_path):
+    bgzf = pytest.importorskip("Bio.bgzf")
+    bases = 'ACGT'
+    lines = [''.join(bases[(i * 7 + j) % 4] for j in range(80)) for i in range(2500)]
+    full_seq = ''.join(lines)
+    raw = ('>chr1\n' + '\n'.join(lines) + '\n').encode('ascii')
+    path = str(tmp_path / 'boundaries.fa.bgz')
+    with bgzf.BgzfWriter(path, 'wb') as out:
+        out.write(raw)
+
+    # Verify both fresh build_gzi() and reloaded read_gzi()
+    for _ in range(2):
+        with Fasta(path) as fa:
+            rec = fa.faidx.index['chr1']
+            boundaries = [b.ustart for b in fa.faidx.gzi_index[1:]]
+            assert boundaries == [65536, 131072, 196608]
+            for ustart in boundaries:
+                s0 = _start0_for_bstart(rec, ustart)
+                for delta in (-1, 0, 1):
+                    idx = s0 + delta
+                    assert str(fa['chr1'][idx:idx + 12]) == full_seq[idx:idx + 12]
+
+
+def test_bgzf_long_name_at_exact_64k_boundary(tmp_path):
+    bgzf = pytest.importorskip("Bio.bgzf")
+    header1 = '>chr1 first contig\n'
+    full_lines = (65536 - len(header1)) // 81
+    rem = (65536 - len(header1)) - full_lines * 81
+    lines = ['A' * 80] * full_lines + ['C' * (rem - 1)]
+    chr1_text = header1 + '\n'.join(lines) + '\n'
+    assert len(chr1_text) == 65536
+    raw = (chr1_text + '>chr2 second contig\nACGTACGT\n').encode('ascii')
+    path = str(tmp_path / 'long_boundary.fa.bgz')
+    with bgzf.BgzfWriter(path, 'wb') as out:
+        out.write(raw)
+
+    with Fasta(path, read_long_names=True) as fa:
+        assert list(fa.keys()) == ['chr1 first contig', 'chr2 second contig']
+        assert str(fa['chr2 second contig'][:]) == 'ACGTACGT'
+
+    with Fasta(path) as fa:
+        assert fa['chr2'].long_name == 'chr2 second contig'
+
+
+def test_bgzf_canonical_virtual_offset_at_block_boundary(tmp_path):
+    pytest.importorskip("Bio.bgzf")
+    bases = 'ACGT'
+    lines = [''.join(bases[(i * 7 + j) % 4] for j in range(80)) for i in range(1000)]
+    full_seq = ''.join(lines)
+    raw = ('>chr1\n' + '\n'.join(lines) + '\n').encode('ascii')
+
+    # htslib-style 65280-byte block + empty intermediate block sharing the same ustart
+    path = tmp_path / 'canonical.fa.bgz'
+    path.write_bytes(
+        _make_bgzf_block(raw[:65280])
+        + _make_bgzf_block(b'')
+        + _make_bgzf_block(raw[65280:])
+        + _make_bgzf_block(b'')
+    )
+
+    with Fasta(str(path)) as fa:
+        rec = fa.faidx.index['chr1']
+        s0 = _start0_for_bstart(rec, 65280)
+        data_block = fa.faidx.gzi_index[2]
+        assert data_block.ustart == 65280
+        seeks = []
+        orig_seek = fa.faidx.file.seek
+
+        def spy_seek(virtual_offset):
+            seeks.append((virtual_offset >> 16, virtual_offset & 0xFFFF))
+            return orig_seek(virtual_offset)
+
+        fa.faidx.file.seek = spy_seek
+        got = str(fa['chr1'][s0:s0 + 10])
+        fa.faidx.file.seek = orig_seek
+
+        assert got == full_seq[s0:s0 + 10]
+        assert seeks == [(data_block.cstart, 0)]
+
+
+def test_bgzf_empty_slice_at_64k_eof_boundary(tmp_path):
+    bgzf = pytest.importorskip("Bio.bgzf")
+    header = '>chr1\n'
+    # Exactly 65536 uncompressed bytes with no trailing newline
+    seq = 'ACGT' * 16382 + 'AC'  # 65530 bases; 6 + 65530 = 65536
+    raw = (header + seq).encode('ascii')
+    assert len(raw) == 65536
+    path = str(tmp_path / 'eof64k.fa.bgz')
+    with bgzf.BgzfWriter(path, 'wb') as out:
+        out.write(raw)
+
+    with Fasta(path) as fa:
+        rlen = len(fa['chr1'])
+        assert str(fa['chr1'][rlen:rlen]) == ''
+        assert str(fa['chr1'][-4:]) == 'GTAC'
