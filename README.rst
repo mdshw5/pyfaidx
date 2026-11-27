@@ -54,6 +54,74 @@ Usage
 
 Acts like a dictionary. Record names are always strings, so dictionary-style lookups need a ``str`` key.
 
+``Fasta`` and ``Faidx`` constructor options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Both ``Fasta`` and ``Faidx`` accept the following indexing and retrieval options:
+
+``filename``
+    FASTA file name or an ``fsspec`` ``OpenFile`` object.
+``indexname``
+    Optional ``.fai`` path or ``fsspec`` ``OpenFile``. The default is
+    ``filename + ".fai"``.
+``gzi_indexname``
+    Optional ``.gzi`` path or ``fsspec`` ``OpenFile`` for BGZF-compressed FASTA.
+    The default is ``filename + ".gzi"``.
+``key_function``
+    Callback used to derive each index key from the FASTA record name.
+``split_char``
+    Split record names on this character and expose each resulting key.
+``duplicate_action``
+    Controls duplicate keys: ``stop`` raises ``ValueError`` (the default),
+    ``first`` or ``last`` keeps one matching record, ``longest`` or ``shortest``
+    keeps the longest or shortest record, and ``drop`` removes duplicated keys.
+``filt_function``
+    Callback that receives a candidate key and returns ``True`` to include it or
+    ``False`` to exclude it.
+``as_raw``
+    Return raw strings instead of ``Sequence`` objects.
+``strict_bounds``
+    Raise ``FetchError`` when a requested region is outside a record's bounds.
+    The default is ``False``.
+``default_seq``
+    Character used to fill missing positions when ``strict_bounds=False``.
+``read_ahead``
+    Number of bases to keep in the read-ahead buffer for sequential access.
+``one_based_attributes``
+    Use one-based start attributes and the 0-based end convention in
+    ``Sequence`` objects. The default is ``True``; this does not change slice
+    coordinates.
+``read_long_names``
+    Use the complete FASTA header as the index key instead of the first
+    whitespace-delimited name.
+``sequence_always_upper``
+    Convert returned sequences to uppercase.
+``mutable``
+    Open the FASTA for in-place modifications. This is not supported for BGZF
+    compressed files or ``fsspec`` objects.
+``rebuild``
+    Rebuild stale or missing indexes. The default is ``True``.
+``build_index``
+    Build the ``.fai`` index when it is missing or stale. The default is
+    ``True``.
+
+``Fasta`` provides the dictionary and sequence-record interface documented
+above. ``Faidx`` is the lower-level interface and returns indexed data through
+``fetch(name, start, end)``, where ``start`` and ``end`` are 1-based inclusive
+coordinates. To modify a mutable FASTA directly with ``Faidx``, use
+``to_file(name, start, end, replacement)`` with 1-based inclusive coordinates;
+the replacement must have exactly the same length as the requested region.
+Mutable modifications are immediate and permanent.
+
+.. code:: python
+
+    >>> from pyfaidx import Faidx
+    >>> fa = Faidx('tests/data/genes.fasta', mutable=True)
+    >>> fa.to_file('NM_001282543.1', 1, 10, 'NNNNNNNNNN')
+    >>> fa.fetch('NM_001282543.1', 1, 10)
+    >NM_001282543.1:1-10
+    NNNNNNNNNN
+
 .. code:: python
 
     >>> genes.keys()
@@ -323,6 +391,30 @@ Any portion of the FastaRecord can be replaced with an equivalent-length string.
 
 The FastaVariant class provides a way to integrate single nucleotide variant calls to generate a consensus sequence.
 
+``FastaVariant`` requires the ``pyvcf3`` package and a tabix-indexed VCF
+(``.vcf.gz`` plus ``.tbi``). It accepts all ``Fasta``/``Faidx`` options through
+``**kwargs`` and the following variant-specific options:
+
+``vcf_file``
+    Required path to the compressed, tabix-indexed VCF file.
+``sample``
+    VCF sample name to use. If omitted, the first sample in the VCF is used;
+    a warning is emitted when a VCF contains multiple samples and no sample is
+    selected.
+``het``
+    Include heterozygous calls. The default is ``True``.
+``hom``
+    Include homozygous alternate calls. The default is ``True``.
+``call_filter``
+    Optional PyVCF-style genotype expression in the form ``'FIELD OPERATOR
+    VALUE'``, for example ``'GQ > 30'`` or ``'GT == "0/1"'``. Operators may be
+    ``>``, ``<``, ``=``, ``!``, or ``!=``.
+
+Set both ``het=False`` and ``hom=False`` to exclude genotype calls.
+``variant_sites`` contains the 1-based positions where the reference and
+consensus differ. Indels are skipped; only SNP and multibase alternate calls
+are currently applied to retrieved sequence.
+
 .. code:: python
 
     # new in v0.4.0
@@ -392,10 +484,13 @@ cli script: faidx
       -i {bed,chromsizes,nucleotide,transposed}, --transform {bed,chromsizes,nucleotide,transposed} transform the requested regions into another format. default: None
       -c, --complement      complement the sequence. default: False
       -r, --reverse         reverse the sequence. default: False
+      -y, --auto-strand     reverse complement when the region start coordinate is
+                            greater than the end coordinate. default: False
       -a SIZE_RANGE, --size-range SIZE_RANGE
                             selected sequences are in the size range [low, high]. example: 1,1000 default: None
       -n, --no-names        omit sequence names from output. default: False
-      -f, --full-names      output full names including description. default: False
+      -f, --long-names      output full names including description. default: False
+      -t, --no-coords       omit coordinates from output headers. default: False
       -x, --split-files     write each region to a separate file (names are derived from regions)
       -l, --lazy            fill in --default-seq for missing ranges. default: False
       -s DEFAULT_SEQ, --default-seq DEFAULT_SEQ
@@ -412,8 +507,7 @@ cli script: faidx
       -m, --mask-with-default-seq
                             mask the FASTA file using --default-seq default: False
       -M, --mask-by-case    mask the FASTA file by changing to lowercase. default: False
-      -e HEADER_FUNCTION, --header-function HEADER_FUNCTION
-                            python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: None
+      --no-output           suppress sequence output. default: False
       --no-rebuild          do not rebuild the .fai index even if it is out of date. default: False
       --version             print pyfaidx version number
 
@@ -430,7 +524,7 @@ Examples:
     >NM_001282543.1:300-320
     GTAATTGTGTAAGTGACTGCA
 
-    $ faidx --full-names tests/data/genes.fasta NM_001282543.1:201-210
+    $ faidx --long-names tests/data/genes.fasta NM_001282543.1:201-210
     >NM_001282543.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 2, mRNA
     CTCGTTCCGC
 
@@ -618,7 +712,7 @@ To get test running on your machine:
 
  - Run the tests with
 
-      pytests
+      pytest
 
 Acknowledgements
 ----------------
