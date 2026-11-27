@@ -52,6 +52,8 @@ def write_sequence(args):
                 sequence_len = len(fasta[name])
             if args.size_range[0] > sequence_len or args.size_range[1] < sequence_len:
                 continue
+        if args.no_output and args.transform:
+            continue
         if args.split_files:  # open output file based on sequence name
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = get_valid_filename(filename)

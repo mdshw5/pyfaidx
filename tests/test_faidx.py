@@ -231,6 +231,27 @@ def test_faidx_sequence_masking_case():
     os.remove(temp_fasta_name)
 
 
+@pytest.mark.parametrize('transform', ['bed', 'chromsizes', 'nucleotide', 'transposed'])
+def test_faidx_transform_no_output(tmp_path, capsys, transform):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>chr1\nATCG\n')
+
+    main([str(fasta), '--no-output', '--transform', transform])
+
+    assert capsys.readouterr().out == ''
+    assert fasta.with_suffix('.fa.fai').is_file()
+
+
+def test_faidx_transform_no_output_rejects_malformed_bed(tmp_path):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>chr1\nATCG\n')
+    bed = tmp_path / 'regions.bed'
+    bed.write_text('chr1\t0\t2\nchr1\t0\n')
+
+    with pytest.raises(BedError):
+        main([str(fasta), '--bed', str(bed), '--no-output', '--transform', 'bed'])
+
+
 @pytest.mark.parametrize('action, selected', [
     ('first', 0), ('last', 2), ('longest', 1), ('shortest', 2)])
 @pytest.mark.parametrize('mode', ['extract', 'transform', 'soft-mask', 'hard-mask'])
