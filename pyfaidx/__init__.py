@@ -1527,14 +1527,11 @@ class FastaVariant(Fasta):
                     ref_end = record.POS + len(ref) - 1
                     if ref_end < start or ref_start > end:
                         continue
-                    if any(edit_pos <= ref_end and ref_start <= edit_pos + len(edits[edit_pos][0]) - 1
-                           for edit_pos in edits):
-                        continue
-                    if any(ref_start <= deleted_end and deleted_start <= ref_end
-                           for deleted_start, deleted_end in deleted_intervals):
+                    if edits and ref_start <= last_ref_end:
                         continue
 
                     edits[ref_start] = (ref, alt)
+                    last_ref_end = ref_end
                     if len(alt) < len(ref):
                         deleted_intervals.append((ref_start, ref_end))
         except ValueError as e: # Can be raised if name is not part of tabix for vcf
