@@ -1371,6 +1371,8 @@ class Fasta(object):
         # Get sequence from real genome object and save result.
         seq = self.faidx.fetch(name, start, end)
         if rc:
+            if self.faidx.as_raw:
+                return complement(seq[::-1])
             return -seq
         else:
             return seq
