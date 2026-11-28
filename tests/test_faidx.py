@@ -28,6 +28,28 @@ def test_split_entry():
     assert os.path.exists('KF435150.1.fasta')
     os.remove('KF435150.1.fasta')
 
+
+def test_split_nucleotide_headers(tmp_path, monkeypatch):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>test\nAACG\n>other\nTTN\n')
+    monkeypatch.chdir(tmp_path)
+
+    main(['--split-files', '--transform', 'nucleotide', str(fasta), 'test', 'other'])
+
+    header = 'name\tstart\tend\tA\tT\tC\tG\tN\tothers\n'
+    assert (tmp_path / 'test.fa').read_text() == header + 'test\t1\t4\t2\t0\t1\t1\t0\t0\n'
+    assert (tmp_path / 'other.fa').read_text() == header + 'other\t1\t3\t0\t2\t0\t0\t1\t0\n'
+
+
+def test_long_names_with_coordinates(tmp_path, capsys):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>test full description\nAACG\n')
+
+    main(['--long-names', str(fasta), 'test:2-3'])
+
+    assert capsys.readouterr().out == '>test full description\nAC\n'
+
+
 @pytest.mark.xfail(raises=FetchError)
 def test_fetch_error():
     main(['data/genes.fasta', 'KF435150.1:1-1000'])
