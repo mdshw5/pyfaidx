@@ -1607,11 +1607,20 @@ def bed_split(bed_entry):
     bed_entry = bed_entry.strip()
     if not bed_entry or bed_entry.startswith("#"):
         return (None, None, None)
-    try:
-        rname, start, end = bed_entry.rstrip().split()[:3]
-    except (IndexError, ValueError):
+    fields = bed_entry.split()
+    if len(fields) < 3:
         raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
-    start, end = (int(start), int(end))
+    rname, start, end = fields[:3]
+    if not rname or any(char in rname for char in ('"', "'", '&')):
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    if not re.fullmatch(r'[0-9]+', start) or not re.fullmatch(r'[0-9]+', end):
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    try:
+        start, end = int(start), int(end)
+    except ValueError:
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    if start > end:
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
     return (rname, start, end)
 
 

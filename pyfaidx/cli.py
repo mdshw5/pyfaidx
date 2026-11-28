@@ -99,7 +99,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.no_names:
         pass
     else:
-        if (start or end) and not args.no_coords:
+        if start is not None and end is not None and not args.no_coords:
             yield ''.join(['>', sequence.fancy_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
@@ -117,13 +117,14 @@ def mask_sequence(args):
             if rname is None:
                 continue
             if args.mask_with_default_seq:
-                if start and end:
+                if start is not None and end is not None:
                     span = end - start
                 elif not start and not end:
                     span = len(fasta[rname])
                 else:
                     span = len(fasta[rname][start:end])
-                fasta[rname][start:end] = span * args.default_seq
+                if span > 0:
+                    fasta[rname][start:end] = span * args.default_seq
             elif args.mask_by_case:
                 fasta[rname][start:end] = str(fasta[rname][start:end]).lower()
 
@@ -143,7 +144,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
     if args.no_output:
         return
     elif args.transform == 'bed':
-        if not start and not end:
+        if start is None and end is None:
             return '{name}\t{start}\t{end}\n'.format(name=name, start=0, end=len(fasta[name]))
         else:
             s_proxy = Sequence(name=name,
@@ -153,7 +154,7 @@ def transform_sequence(args, fasta, name, start=None, end=None):
             s_proxy = s_proxy[start:end]
             return '{name}\t{start}\t{end}\n'.format(name=s_proxy.name, start=s_proxy.start - 1 , end=s_proxy.end)
     elif args.transform == 'chromsizes':
-        if not start and not end:
+        if start is None and end is None:
             return '{name}\t{length}\n'.format(name=name, length=len(fasta[name]))
         else:
             s_proxy = Sequence(name=name,

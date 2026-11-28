@@ -1,7 +1,33 @@
 import pytest
 
-from pyfaidx import BedError
+from pyfaidx import BedError, bed_split
 from pyfaidx.cli import main
+
+
+@pytest.mark.parametrize('entry, expected', [
+    ('chr1\t000\t10', ('chr1', 0, 10)),
+    ('chr1 10 10', ('chr1', 10, 10)),
+    ('chr1\t0\t0\tfeature', ('chr1', 0, 0)),
+])
+def test_bed_split_valid_entries(entry, expected):
+    assert bed_split(entry) == expected
+
+
+@pytest.mark.parametrize('entry', [
+    'chr1\t1.5\t2',
+    'chr1\tstart\t2',
+    'chr1\t-1\t2',
+    'chr1\t1\t-2',
+    'chr1\t3\t2',
+    'chr1\t0',
+    '\t0\t2',
+    'chr1&\t0\t2',
+    '"chr1"\t0\t2',
+    'chr1\t' + '9' * 5000 + '\t1',
+])
+def test_bed_split_rejects_malformed_entries(entry):
+    with pytest.raises(BedError):
+        bed_split(entry)
 
 
 @pytest.mark.parametrize('non_data', ['# comment\n', '\n', ' \t \n', '  # comment\n'])
@@ -52,3 +78,27 @@ def test_nonempty_malformed_bed_still_fails(tmp_path):
     bed.write_text('chr1\t0\n')
     with pytest.raises(BedError):
         main([str(fasta), '--bed', str(bed)])
+
+
+def test_zero_length_bed_interval_transforms_correctly(tmp_path, capsys):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_text('>chr1\nACGT\n')
+    bed = tmp_path / 'zero-length.bed'
+    bed.write_text('chr1\t0\t0\n')
+
+    main([str(fasta), '--bed', str(bed), '--transform', 'bed'])
+
+    assert capsys.readouterr().out == 'chr1\t0\t0\n'
+
+
+def test_zero_length_bed_interval_does_not_mask_reference(tmp_path):
+    fasta = tmp_path / 'reference.fa'
+    original = '>chr1\nACGT\n'
+    fasta.write_text(original)
+    bed = tmp_path / 'zero-length.bed'
+    bed.write_text('chr1\t0\t0\n')
+
+    main([str(fasta), '--bed', str(bed), '--mask-with-default-seq',
+          '--default-seq', 'N'])
+
+    assert fasta.read_text() == original
