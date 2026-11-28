@@ -45,9 +45,16 @@ def write_sequence(args):
         # allow the split_funtion to return None to signify input we should skip
         if name == None:
             continue
+        fetch_start, fetch_end = start, end
+        reverse_complement = False
+        if (args.auto_strand and not args.bed and
+                start is not None and end is not None and start >= end):
+            # ucsc_split subtracts one from the start of a closed interval.
+            fetch_start, fetch_end = end - 1, start + 1
+            reverse_complement = True
         if args.size_range:
             if start is not None and end is not None:
-                sequence_len = end - start
+                sequence_len = fetch_end - fetch_start
             else:
                 sequence_len = len(fasta[name])
             if args.size_range[0] > sequence_len or args.size_range[1] < sequence_len:
@@ -67,9 +74,11 @@ def write_sequence(args):
                 if not header and args.transform == 'nucleotide':
                     outfile.write("name\tstart\tend\tA\tT\tC\tG\tN\tothers\n")
                     header = True
-                outfile.write(transform_sequence(args, fasta, name, start, end))
+                outfile.write(transform_sequence(args, fasta, name, fetch_start, fetch_end,
+                                                 reverse_complement))
             else:
-                for line in fetch_sequence(args, fasta, name, start, end):
+                for line in fetch_sequence(args, fasta, name, fetch_start, fetch_end,
+                                           reverse_complement):
                     outfile.write(line)
         except FetchError as e:
             raise FetchError(str(e) + " Try setting --lazy.\n")
@@ -78,15 +87,12 @@ def write_sequence(args):
     fasta.__exit__()
 
 
-def fetch_sequence(args, fasta, name, start=None, end=None):
+def fetch_sequence(args, fasta, name, start=None, end=None, reverse_complement=False):
     try:
         line_len = fasta.faidx.index[name].lenc
-        if args.auto_strand and start is not None and end is not None and start > end:
-            # flip (0, 1] coordinates
-            sequence = fasta[name][end - 1:start + 1]
-            sequence = sequence.reverse.complement
-        else:
-            sequence = fasta[name][start:end]
+        sequence = fasta[name][start:end]
+        if reverse_complement:
+            sequence = -sequence
     except KeyError:
         sys.stderr.write("warning: {name} not found in file\n".format(**locals()))
         return
@@ -139,7 +145,7 @@ def split_regions(args):
     return (regions_to_fetch, split_function)
 
 
-def transform_sequence(args, fasta, name, start=None, end=None):
+def transform_sequence(args, fasta, name, start=None, end=None, reverse_complement=False):
       # first handle case where the output does not require sequence retrieval   
     if args.no_output:
         return
@@ -164,6 +170,8 @@ def transform_sequence(args, fasta, name, start=None, end=None):
             s_proxy = s_proxy[start:end]
             return '{name}\t{length}\n'.format(name=s_proxy.name, length=len(s_proxy))
     s = fasta[name][start:end]
+    if reverse_complement:
+        s = -s
     if args.complement:
         s = s.complement
     if args.reverse:

@@ -57,6 +57,24 @@ def test_auto_strand_regions(tmp_path, capsys, regions, expected):
     filename.write_bytes(b'>test\nACGTAC\n>other\nGATT\n')
     main(['--auto-strand', '--no-names', str(filename)] + regions)
     assert capsys.readouterr().out == expected
+
+
+@pytest.mark.parametrize('region, options, expected', [
+    pytest.param('test:4-3', ['--no-names'], 'AC\n', id='adjacent'),
+    pytest.param('test:7-2', ['--no-names', '--size-range', '6,6'],
+                 'GTTACG\n', id='size-range'),
+    pytest.param('test:7-2', ['--transform', 'transposed'],
+                 'test\t7\t2\tGTTACG\n', id='transposed'),
+    pytest.param('test:7-2', ['--transform', 'nucleotide'],
+                 'name\tstart\tend\tA\tT\tC\tG\tN\tothers\n'
+                 'test\t7\t2\t1\t2\t1\t2\t0\t0\n', id='nucleotide'),
+])
+def test_auto_strand_descending(tmp_path, capsys, region, options, expected):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>test\nACGTAACG\n')
+    main(['--auto-strand', *options, str(fasta), region])
+    assert capsys.readouterr().out == expected
+
     
 def test_regexp():
     main(['data/genes.fasta', '-g', 'XR'])
