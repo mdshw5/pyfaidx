@@ -71,7 +71,7 @@ def write_sequence(args):
             outfile = sys.stdout
         try:
             if args.transform:
-                if not header and args.transform == 'nucleotide':
+                if args.transform == 'nucleotide' and (args.split_files or not header):
                     outfile.write("name\tstart\tend\tA\tT\tC\tG\tN\tothers\n")
                     header = True
                 outfile.write(transform_sequence(args, fasta, name, fetch_start, fetch_end,
@@ -105,7 +105,9 @@ def fetch_sequence(args, fasta, name, start=None, end=None, reverse_complement=F
     if args.no_names:
         pass
     else:
-        if start is not None and end is not None and not args.no_coords:
+        if args.long_names:
+            yield ''.join(['>', fasta[name].long_name, '\n'])
+        elif start is not None and end is not None and not args.no_coords:
             yield ''.join(['>', sequence.fancy_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
