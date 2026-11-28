@@ -42,9 +42,29 @@ def ensure_tiny_vcf_tbi():
 
 
 def _make_fasta_variant(vcf_gz, **kwargs):
+    kwargs.setdefault("indels", True)
     return FastaVariant(
-        os.path.join("data", "tiny.fa"), vcf_gz, as_raw=True, hom=True, het=True, **kwargs
+        os.path.join("data", "tiny.fa"), vcf_gz,
+        as_raw=True, hom=True, het=True, **kwargs
     )
+
+
+def test_indels_disabled_by_default(ensure_tiny_vcf_tbi):
+    """Without indels=True only SNPs are applied, as in previous releases."""
+    with FastaVariant(
+        os.path.join("data", "tiny.fa"), ensure_tiny_vcf_tbi,
+        sample="sample1", as_raw=True,
+    ) as fasta:
+        # SNP at chr1:2 is applied; the chr1 indels are not.
+        assert fasta["chr1"][:] == "AGAACCCCGGGGTTTTAAAACCCCGGGGTTTTAAAACCCCGGGGTTTT"
+        assert fasta["chr1"][8:12] == "GGGG"
+        # The deletion at chr3:19 is not applied either.
+        assert fasta["chr3"][12:20] == "ACGTACGT"
+
+
+def test_mnp_not_applied_by_default(boundary_variants):
+    with boundary_variants("2/2", as_raw=True, indels=False) as fasta:
+        assert fasta.get_seq("chr", 3, 4) == "GT"
 
 
 @pytest.mark.parametrize(
@@ -190,6 +210,7 @@ def boundary_variants(tmp_path):
         compressed = str(path) + ".gz"
         pysam.tabix_compress(str(path), compressed, force=True)
         pysam.tabix_index(compressed, preset="vcf", force=True)
+        kwargs.setdefault("indels", True)
         return FastaVariant(str(reference), compressed, sample="S", **kwargs)
 
     return make
@@ -213,7 +234,7 @@ def test_edits_clipped_to_reference_window(boundary_variants, gt, start, end, ex
 
 def test_balanced_indels_clear_coordinates(ensure_tiny_vcf_tbi):
     with FastaVariant(os.path.join("data", "tiny.fa"), ensure_tiny_vcf_tbi,
-                      sample="sample1") as fasta:
+                      sample="sample1", indels=True) as fasta:
         seq = fasta.get_seq("chr3", 4, 12)
         assert str(seq) == "TGTTTACGT"
         assert seq.start is None and seq.end is None
@@ -266,7 +287,8 @@ def test_many_deletions_in_reference_order(tmp_path):
     compressed = str(vcf) + ".gz"
     pysam.tabix_compress(str(vcf), compressed)
     pysam.tabix_index(compressed, preset="vcf")
-    with FastaVariant(str(reference), compressed, sample="S", as_raw=True) as fasta:
+    with FastaVariant(str(reference), compressed, sample="S", as_raw=True,
+                      indels=True) as fasta:
         assert fasta["chr"][:] == "ACT" * 2000
 
 
@@ -298,6 +320,7 @@ def overlap_variants(tmp_path):
         compressed = str(vcf) + ".gz"
         pysam.tabix_compress(str(vcf), compressed, force=True)
         pysam.tabix_index(compressed, preset="vcf", force=True)
+        kwargs.setdefault("indels", True)
         return FastaVariant(str(reference), compressed, sample="S", **kwargs)
 
     return make

@@ -1422,6 +1422,7 @@ class FastaVariant(Fasta):
                  het=True,
                  hom=True,
                  call_filter=None,
+                 indels=False,
                  **kwargs):
         super(FastaVariant, self).__init__(filename, **kwargs)
         try:
@@ -1461,6 +1462,7 @@ class FastaVariant(Fasta):
             self.gt_type = set((2, ))
         else:
             self.gt_type = set()
+        self.indels = indels
 
     def __repr__(self):
         return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename,
@@ -1507,11 +1509,33 @@ class FastaVariant(Fasta):
                 if allele_index:
                     yield record.POS, str(record.ALT[allele_index - 1])
 
+    def _get_seq_snps(self, name, start, end):
+        """Historical SNP-only consensus path used when indels are disabled."""
+        seq = self.faidx.fetch(name, start, end)
+        if self.faidx.as_raw:
+            seq_mut = list(seq)
+            del seq
+        else:
+            seq_mut = list(seq.seq)
+            del seq.seq
+        for pos, alt in self._snp_variants(name, start - 1, end):
+            i = pos - start
+            seq_mut[i:i + len(alt)] = alt
+
+        # slice the list in case we added an MNP in last position
+        if self.faidx.as_raw:
+            return ''.join(seq_mut[:end - start + 1])
+        else:
+            seq.seq = ''.join(seq_mut[:end - start + 1])
+            return seq
+
     def get_seq(self, name, start, end):
         """Return a sequence by record name and interval [start, end].
         Replace positions with polymorphism with variant.
         Coordinates are 1-based, closed interval.
         """
+        if not self.indels:
+            return self._get_seq_snps(name, start, end)
         seq = self.faidx.fetch(name, start, end)
         reference = seq if self.faidx.as_raw else seq.seq
         window_end = start + len(reference) - 1
