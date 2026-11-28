@@ -1258,7 +1258,7 @@ class MutableFastaRecord(FastaRecord):
                     raise IndexError("Step operator is not implemented.")
                 if not start:
                     start = 0
-                if not stop:
+                if stop is None:
                     stop = len(self)
                 if stop < 0:
                     stop = len(self) + stop

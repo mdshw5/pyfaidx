@@ -28,3 +28,17 @@ def test_mutable_write_without_final_newline(tmp_path, newline, start, end, expe
     with Fasta(str(path), mutable=True) as fa:
         fa['chr1'][start:end] = 'n' * (end - start)
     assert path.read_bytes() == newline.join(['>chr1'] + expected).encode()
+
+
+@pytest.mark.parametrize('replacement, rejected', [('', False), ('n' * 16, True)])
+def test_mutable_empty_slice_at_start(tmp_path, replacement, rejected):
+    path = tmp_path / 'mutable.fa'
+    original = b'>chr1\nACGTACGTAC\nGGTTAA\n'
+    path.write_bytes(original)
+    with Fasta(str(path), mutable=True) as fa:
+        if rejected:
+            with pytest.raises(IOError):
+                fa['chr1'][:0] = replacement
+        else:
+            fa['chr1'][:0] = replacement
+    assert path.read_bytes() == original
