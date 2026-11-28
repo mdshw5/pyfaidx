@@ -406,3 +406,24 @@ def test_call_filter_still_applies_to_snps(ensure_tiny_vcf_tbi):
         sample="sample3", call_filter='GT == "1/1"', as_raw=True,
     ) as fasta:
         assert fasta["chr1"][0:3] == "AAA"
+
+
+def test_snp_consensus_falls_back_for_non_latin1(tmp_path):
+    """Non-Latin-1 FASTA text still uses the legacy list path."""
+    pysam = pytest.importorskip("pysam")
+    pytest.importorskip("vcf")
+    reference = tmp_path / "reference.fa"
+    reference.write_text(">chr\nACGT\u03a9ACGT\n")
+    vcf = tmp_path / "variants.vcf"
+    vcf.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr,length=9>\n"
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS\n"
+        "chr\t2\t.\tC\tT\t.\tPASS\t.\tGT\t1/1\n"
+    )
+    compressed = str(vcf) + ".gz"
+    pysam.tabix_compress(str(vcf), compressed, force=True)
+    pysam.tabix_index(compressed, preset="vcf", force=True)
+    with FastaVariant(str(reference), compressed, sample="S", as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ATGT\u03a9ACGT"
