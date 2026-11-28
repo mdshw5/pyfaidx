@@ -128,3 +128,13 @@ def test_variant_sites_contig_absent_from_vcf(multiallelic_input):
     with FastaVariant(reference, vcf, sample='HOM', as_raw=True) as fasta:
         assert fasta['other'][:] == 'ACGT'
         assert fasta['other'].variant_sites == ()
+
+
+def test_spliced_seq_applies_variants():
+    pytest.importorskip('vcf')
+    pytest.importorskip('pysam')
+    consensus = FastaVariant('data/chr22.fasta', 'data/chr22.vcf.gz', sample='NA06984')
+    intervals = [[16042791, 16042800], [21833116, 21833125]]
+    expected = ''.join(consensus.get_seq('22', s, e).seq for s, e in intervals)
+    assert expected.startswith('TCGTAGGACA')
+    assert consensus.get_spliced_seq('22', intervals).seq == expected
