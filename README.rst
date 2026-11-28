@@ -371,10 +371,13 @@ filter calls.
 
 ``variant_sites`` lists 1-based SNP positions; it does not include indels.
 Consensus retrieval applies literal SNPs, multibase substitutions and indels,
-choosing the lowest-index called ALT for multiallelic genotypes and skipping
-overlapping records after the first accepted edit. Non-literal alleles are
-skipped. For partially overlapping edits, ALT bases are assigned left-to-right
-to REF positions, with extra inserted bases assigned to the final REF position.
+choosing the lowest-index called ALT for multiallelic genotypes. Overlapping
+records after the first accepted edit are skipped, except for anchored indels
+that start exactly at the final reference position of the preceding edit, which
+are applied as in ``bcftools consensus`` (unless that preceding edit was itself
+an insertion). Non-literal alleles are skipped. For partially overlapping edits,
+ALT bases are assigned left-to-right to REF positions, with extra inserted bases
+assigned to the final REF position.
 Sequence coordinates are cleared when an indel overlaps the requested window,
 because consensus positions may no longer correspond to reference positions.
     

@@ -1475,6 +1475,20 @@ class FastaVariant(Fasta):
             default=0,
         )
 
+    @staticmethod
+    def _is_anchored_indel(ref, alt):
+        """Return True for a literal insertion/deletion with a shared anchor.
+
+        bcftools represents indels with a common first base (for example
+        ``G -> GTT`` or ``TTA -> T``).  Such records can be applied even when
+        their POS is the final reference position of the previous edit.
+        """
+        ref_upper = ref.upper()
+        alt_upper = alt.upper()
+        if len(ref_upper) == len(alt_upper):
+            return False
+        return alt_upper.startswith(ref_upper) or ref_upper.startswith(alt_upper)
+
     def _snp_variants(self, name, start, end):
         """Yield 1-based SNP positions and alleles for a 0-based VCF query."""
         try:
@@ -1504,6 +1518,7 @@ class FastaVariant(Fasta):
         parts = []
         cursor = start
         last_ref_end = None
+        prev_is_insert = False
         has_indel = False
         try:
             var = self.vcf.fetch(name, start - 1, end)
@@ -1525,9 +1540,43 @@ class FastaVariant(Fasta):
                     if ref_end < start or ref_start > window_end:
                         continue
                     if last_ref_end is not None and ref_start <= last_ref_end:
+                        # Match bcftools: an anchored indel is allowed to start
+                        # exactly at the final reference position of the previous
+                        # edit, unless that edit was itself an insertion.  The
+                        # shared anchor base has already been emitted (or
+                        # removed), so only the remaining reference bases and the
+                        # inserted suffix are added here.
+                        boundary_indel = (
+                            ref_start == last_ref_end
+                            and not prev_is_insert
+                            and self._is_anchored_indel(ref, alt)
+                        )
+                        if not boundary_indel:
+                            continue
+                        right = min(ref_end, window_end)
+                        if cursor <= right:
+                            if len(alt) > len(ref):
+                                parts.append(
+                                    reference[cursor - start:right - start + 1])
+                            elif len(alt) < len(ref):
+                                # A deletion ALT can retain more than its
+                                # anchor base; emit the portion that maps to
+                                # reference positions not yet consumed.
+                                alt_start = max(0, cursor - ref_start)
+                                alt_end = min(
+                                    len(alt), window_end - ref_start + 1)
+                                if alt_start < alt_end:
+                                    parts.append(alt[alt_start:alt_end])
+                            cursor = right + 1
+                        if len(alt) > len(ref) and ref_end <= window_end:
+                            parts.append(alt[len(ref):])
+                        last_ref_end = ref_end
+                        prev_is_insert = len(alt) > len(ref)
+                        has_indel = True
                         continue
 
                     last_ref_end = ref_end
+                    prev_is_insert = len(alt) > len(ref)
                     left = max(ref_start, start)
                     right = min(ref_end, window_end)
                     parts.append(reference[cursor - start:left - start])

@@ -268,3 +268,105 @@ def test_many_deletions_in_reference_order(tmp_path):
     pysam.tabix_index(compressed, preset="vcf")
     with FastaVariant(str(reference), compressed, sample="S", as_raw=True) as fasta:
         assert fasta["chr"][:] == "ACT" * 2000
+
+
+@pytest.fixture
+def overlap_variants(tmp_path):
+    """Build a 40 bp chromosome and a two-record VCF on demand."""
+    pysam = pytest.importorskip("pysam")
+    pytest.importorskip("vcf")
+    reference = tmp_path / "reference.fa"
+    reference.write_text(">chr\n" + "ACGT" * 10 + "\n")
+    created = []
+    header = (
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr,length=40>\n"
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS\n"
+    )
+
+    def make(records, **kwargs):
+        vcf = tmp_path / "variants_{}.vcf".format(len(created))
+        created.append(vcf)
+        vcf.write_text(
+            header
+            + "".join(
+                "chr\t{}\t.\t{}\t{}\t.\tPASS\t.\tGT\t1/1\n".format(pos, ref, alt)
+                for pos, ref, alt in records
+            )
+        )
+        compressed = str(vcf) + ".gz"
+        pysam.tabix_compress(str(vcf), compressed, force=True)
+        pysam.tabix_index(compressed, preset="vcf", force=True)
+        return FastaVariant(str(reference), compressed, sample="S", **kwargs)
+
+    return make
+
+
+def test_boundary_insertion_after_deletion(overlap_variants):
+    """An insertion anchored on the final base of a deletion is applied.
+
+    This matches ``bcftools consensus`` and is the pattern found in real
+    chr22 1000 Genomes indel calls.
+    """
+    records = [(11, "GTACGTACGT", "G"), (20, "T", "TG")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        # Whole chromosome, and windows wholly or partly inside the deletion.
+        assert fasta["chr"][:] == "ACGTACGTACGGACGTACGTACGTACGTACGT"
+        assert fasta["chr"][10:20] == "GG"
+        assert fasta["chr"][19:20] == "G"
+        assert fasta["chr"][11:19] == ""
+        assert fasta["chr"][9:21] == "CGGA"
+
+
+def test_boundary_insertion_extends_ref_span(overlap_variants):
+    """A multi-base REF insertion at the boundary emits its remaining ref bases."""
+    records = [(11, "GTACGTACGT", "G"), (20, "TAC", "TACG")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACGTACGTACGACGGTACGTACGTACGTACGT"
+        assert fasta["chr"][19:20] == ""
+        assert fasta["chr"][9:21] == "CGA"
+        assert fasta["chr"][19:22] == "ACG"
+
+
+def test_boundary_deletion_after_deletion(overlap_variants):
+    records = [(11, "GTACGTACGT", "G"), (20, "TAC", "T")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACGTACGTACGGTACGTACGTACGTACGT"
+        assert fasta["chr"][19:20] == ""
+        assert fasta["chr"][20:25] == "GTA"
+        assert fasta["chr"][9:21] == "CG"
+
+
+def test_boundary_deletion_with_multibase_alt(overlap_variants):
+    """A boundary deletion retains the ALT bases that map past the boundary."""
+    records = [(11, "GTACGTACGT", "G"), (20, "TACG", "TA")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACGTACGTACGATACGTACGTACGTACGT"
+        assert fasta["chr"][19:20] == ""
+        assert fasta["chr"][19:22] == "A"
+        assert fasta["chr"][20:25] == "ATA"
+
+
+def test_boundary_insertion_after_snp(overlap_variants):
+    """A substitution at the boundary leaves its base in place for an insertion."""
+    records = [(11, "G", "T"), (11, "G", "GG")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACGTACGTACTGTACGTACGTACGTACGTACGTACGTACGT"
+        assert fasta["chr"][10:20] == "TGTACGTACGT"
+
+
+def test_boundary_indel_skipped_after_insertion(overlap_variants):
+    """bcftools does not allow a boundary indel after a previous insertion."""
+    records = [(11, "G", "GTT"), (11, "G", "GAA")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACGTACGTACGTTTACGTACGTACGTACGTACGTACGTACGT"
+        assert fasta["chr"][10:20] == "GTTTACGTACGT"
+
+
+def test_non_anchored_overlap_is_skipped(overlap_variants):
+    """A complex overlapping allele is still skipped, as in bcftools."""
+    records = [(11, "GTACGTACGT", "G"), (20, "TA", "TGG")]
+    with overlap_variants(records, as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACGTACGTACGACGTACGTACGTACGTACGT"
+        assert fasta["chr"][19:20] == ""
