@@ -324,10 +324,10 @@ Any portion of the FastaRecord can be replaced with an equivalent-length string.
     >NM_001282543.1:1-15
     NNNNNNNNNNCTGGC
 
-The FastaVariant class provides a way to integrate single nucleotide variant calls to generate a consensus sequence.
+The FastaVariant class provides a way to integrate variant calls to generate a consensus sequence.
 
 Requires ``pyvcf3`` and a tabix-indexed VCF (``.vcf.gz`` plus ``.tbi``). By
-default, both heterozygous and homozygous alternate SNP calls are applied to
+default, both heterozygous and homozygous alternate calls are applied to
 the first VCF sample. See the options below the examples to choose a sample or
 filter calls.
 
@@ -362,16 +362,21 @@ filter calls.
 ``het`` and ``hom``
     Include heterozygous and homozygous alternate calls, respectively. Both
     default to ``True``. Set both to ``False`` to exclude genotype calls.
-    When an included SNP has multiple alternate alleles in the sample's
+    When an included variant has multiple alternate alleles in the sample's
     genotype, the first of those alleles in VCF ALT order is used.
 ``call_filter``
     Optional PyVCF-style genotype expression in the form ``'FIELD OPERATOR
     VALUE'``, for example ``'GQ > 30'`` or ``'GT == "0/1"'``. Supported
     operators are ``>``, ``<``, ``=``, ``!``, and ``!=``.
 
-``variant_sites`` contains the 1-based positions where the reference and
-consensus differ. Indels are skipped; SNP and multibase alternate calls are
-applied to retrieved sequence.
+``variant_sites`` lists 1-based SNP positions; it does not include indels.
+Consensus retrieval applies literal SNPs, multibase substitutions and indels,
+choosing the lowest-index called ALT for multiallelic genotypes and skipping
+overlapping records after the first accepted edit. Non-literal alleles are
+skipped. For partially overlapping edits, ALT bases are assigned left-to-right
+to REF positions, with extra inserted bases assigned to the final REF position.
+Sequence coordinates are cleared when an indel overlaps the requested window,
+because consensus positions may no longer correspond to reference positions.
     
 You can also specify paths using ``pathlib.Path`` objects.
 

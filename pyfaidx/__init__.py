@@ -1499,15 +1499,12 @@ class FastaVariant(Fasta):
         Coordinates are 1-based, closed interval.
         """
         seq = self.faidx.fetch(name, start, end)
-        if self.faidx.as_raw:
-            seq_mut = list(seq)
-            del seq
-        else:
-            seq_mut = list(seq.seq)
-            original_len = len(seq.seq)
-            del seq.seq
-        edits = {}
-        deleted_intervals = []
+        reference = seq if self.faidx.as_raw else seq.seq
+        window_end = start + len(reference) - 1
+        parts = []
+        cursor = start
+        last_ref_end = None
+        has_indel = False
         try:
             var = self.vcf.fetch(name, start - 1, end)
             for record in var:
@@ -1525,15 +1522,24 @@ class FastaVariant(Fasta):
 
                     ref_start = record.POS
                     ref_end = record.POS + len(ref) - 1
-                    if ref_end < start or ref_start > end:
+                    if ref_end < start or ref_start > window_end:
                         continue
-                    if edits and ref_start <= last_ref_end:
+                    if last_ref_end is not None and ref_start <= last_ref_end:
                         continue
 
-                    edits[ref_start] = (ref, alt)
                     last_ref_end = ref_end
-                    if len(alt) < len(ref):
-                        deleted_intervals.append((ref_start, ref_end))
+                    left = max(ref_start, start)
+                    right = min(ref_end, window_end)
+                    parts.append(reference[cursor - start:left - start])
+                    # Assign ALT bases left-to-right to REF positions; extra
+                    # inserted bases belong to the final REF position.
+                    alt_start = left - ref_start
+                    alt_end = right - ref_start + 1
+                    if right == ref_end:
+                        alt_end = len(alt)
+                    parts.append(alt[alt_start:alt_end])
+                    cursor = right + 1
+                    has_indel = has_indel or len(ref) != len(alt)
         except ValueError as e: # Can be raised if name is not part of tabix for vcf
             if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
                 # The chromosome name is not part of the vcf
@@ -1543,39 +1549,12 @@ class FastaVariant(Fasta):
                 # This is something else
                 raise e
 
-        final_mut = []
-        i = 0
-        while i < len(seq_mut):
-            pos = start + i
-            edit = edits.get(pos)
-            if edit is None:
-                if any(ref_start <= pos <= ref_end
-                       for ref_start, ref_end in deleted_intervals):
-                    i += 1
-                    continue
-                final_mut.append(seq_mut[i])
-                i += 1
-                continue
-
-            ref, alt = edit
-            ref_start = pos
-            ref_end = pos + len(ref) - 1
-            if len(alt) < len(ref):
-                if ref_start >= start:
-                    final_mut.append(alt)
-                i = min(len(seq_mut), max(i + 1, ref_end - start + 1))
-            elif len(alt) == len(ref):
-                final_mut.append(alt)
-                i += len(ref)
-            else:
-                final_mut.append(alt)
-                i += len(ref)
-
-        final = ''.join(final_mut)
+        parts.append(reference[cursor - start:])
+        final = ''.join(parts)
         if self.faidx.as_raw:
             return final
         else:
-            if len(final) != original_len:
+            if has_indel:
                 return Sequence(name=name, seq=final, start=None, end=None)
             else:
                 seq.seq = final

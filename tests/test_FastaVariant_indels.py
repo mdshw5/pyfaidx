@@ -165,3 +165,106 @@ def test_default_sample_is_first_with_warning(ensure_tiny_vcf_tbi):
         assert s_def == s_s1
     except (ImportError, IOError):
         pytest.skip("pysam or PyVCF not installed or VCF indexing unavailable.")
+
+
+@pytest.fixture
+def boundary_variants(tmp_path):
+    pysam = pytest.importorskip("pysam")
+    pytest.importorskip("vcf")
+    reference = tmp_path / "reference.fa"
+    reference.write_text(">chr\nACGTACGTACGT\n>other\nACGT\n")
+    vcf = tmp_path / "variants.vcf"
+    vcf.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr,length=12>\n"
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS\n"
+        "chr\t4\t.\tTAC\tTA,GGC,TAACT\t.\tPASS\t.\tGT\t{gt}\n"
+    )
+
+    def make(gt, extra_records="", **kwargs):
+        content = vcf.read_text().replace("{gt}", gt)
+        content += extra_records
+        path = tmp_path / ("variants_" + gt.replace("/", "_") + ".vcf")
+        path.write_text(content)
+        compressed = str(path) + ".gz"
+        pysam.tabix_compress(str(path), compressed, force=True)
+        pysam.tabix_index(compressed, preset="vcf", force=True)
+        return FastaVariant(str(reference), compressed, sample="S", **kwargs)
+
+    return make
+
+
+@pytest.mark.parametrize("gt,start,end,expected", [
+    ("1/1", 5, 6, "A"),
+    ("1/1", 6, 8, "GT"),
+    ("1/1", 3, 5, "GTA"),
+    ("2/2", 5, 6, "GC"),
+    ("2/2", 3, 4, "GG"),
+    ("2/1", 5, 6, "A"),
+    ("3/3", 5, 6, "AACT"),
+    ("3/3", 4, 5, "TA"),
+    ("3/3", 6, 7, "ACTG"),
+])
+def test_edits_clipped_to_reference_window(boundary_variants, gt, start, end, expected):
+    with boundary_variants(gt, as_raw=True) as fasta:
+        assert fasta.get_seq("chr", start, end) == expected
+
+
+def test_balanced_indels_clear_coordinates(ensure_tiny_vcf_tbi):
+    with FastaVariant(os.path.join("data", "tiny.fa"), ensure_tiny_vcf_tbi,
+                      sample="sample1") as fasta:
+        seq = fasta.get_seq("chr3", 4, 12)
+        assert str(seq) == "TGTTTACGT"
+        assert seq.start is None and seq.end is None
+        assert seq[1].start is None
+
+
+def test_overlapping_edit_is_skipped(boundary_variants):
+    extra = "chr\t5\t.\tA\tG\t.\tPASS\t.\tGT\t1/1\n"
+    with boundary_variants("1/1", extra_records=extra, as_raw=True) as fasta:
+        assert fasta.get_seq("chr", 1, 8) == "ACGTAGT"
+        assert fasta.get_seq("chr", 5, 8) == "AGT"
+
+
+def test_mnp_keeps_coordinates_but_partial_indel_does_not(boundary_variants):
+    with boundary_variants("2/2") as fasta:
+        seq = fasta.get_seq("chr", 3, 4)
+        assert str(seq) == "GG"
+        assert (seq.start, seq.end) == (3, 4)
+    with boundary_variants("1/1") as fasta:
+        seq = fasta.get_seq("chr", 5, 5)
+        assert str(seq) == "A"
+        assert seq.start is None and seq.end is None
+
+
+def test_clipped_reference_keeps_coordinates(boundary_variants):
+    with boundary_variants("0/0") as fasta:
+        seq = fasta.get_seq("chr", 10, 20)
+        assert str(seq) == "CGT"
+        assert (seq.start, seq.end) == (10, 12)
+        assert str(fasta.get_seq("other", 1, 4)) == "ACGT"
+
+
+def test_many_deletions_in_reference_order(tmp_path):
+    pysam = pytest.importorskip("pysam")
+    pytest.importorskip("vcf")
+    reference = tmp_path / "reference.fa"
+    reference.write_text(">chr\n" + "ACGT" * 2000 + "\n")
+    vcf = tmp_path / "variants.vcf"
+    header = (
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr,length=8000>\n"
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS\n"
+    )
+    records = "".join(
+        "chr\t{}\t.\tCG\tC\t.\tPASS\t.\tGT\t1/1\n".format(2 + 4 * i)
+        for i in range(2000)
+    )
+    vcf.write_text(header + records)
+    compressed = str(vcf) + ".gz"
+    pysam.tabix_compress(str(vcf), compressed)
+    pysam.tabix_index(compressed, preset="vcf")
+    with FastaVariant(str(reference), compressed, sample="S", as_raw=True) as fasta:
+        assert fasta["chr"][:] == "ACT" * 2000
