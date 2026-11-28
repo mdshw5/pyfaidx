@@ -134,7 +134,7 @@ class Sequence(object):
         >chr1
         AC
         >>> x[-2]
-        >chr1
+        >chr1:4-5
         T
         """
         if self.start is None or self.end is None or len(self.seq) == 0:
@@ -164,23 +164,27 @@ class Sequence(object):
                 start = None
                 end = None
             elif slice_step == -1:  # flip the coordinates when we reverse
-                if slice_stop == -1:
-                    slice_stop = 0
-                start = self_end - slice_stop
-                end = self_start + slice_stop
+                direction = -1 if self_start > self_end else 1
+                start = self_start + direction * (slice_start + 1 + correction_factor)
+                end = self_start + direction * (slice_stop + 1)
             else:
-                start = self_start + slice_start
-                end = self_start + slice_stop + correction_factor
+                # Adjust coordinates based on the original orientation.
+                # If start > end, the sequence is in reverse orientation and
+                # coordinate math must decrement.
+                if self_start is not None and self_end is not None and self_start > self_end:
+                    start = self_start - slice_start
+                    end = self_start - slice_stop - correction_factor
+                else:
+                    start = self_start + slice_start
+                    end = self_start + slice_stop + correction_factor
             return self.__class__(self.name, self.seq[n], start, end,
                                   self.comp)
         elif isinstance(n, int):
             if n < 0:
                 n = len(self) + n
-            if self.start:
-                return self.__class__(self.name, self.seq[n], self.start + n,
-                                      self.start + n, self.comp)
-            else:
-                return self.__class__(self.name, self.seq[n], self.comp)
+            if not 0 <= n < len(self):
+                raise IndexError('String index out of range')
+            return self[n:n + 1]
 
     def __str__(self):
         return self.seq
@@ -389,6 +393,14 @@ class BgzfBlock(namedtuple('BgzfBlock', ['cstart', 'clen', 'ustart', 'ulen'])):
             return self.ustart < other.ustart
         elif isinstance(other, (int, float)):
             return self.ustart < other
+        return NotImplemented
+
+    def __gt__(self, other):
+        """Compare BgzfBlock ustart to an integer, or to another BgzfBlock by ustart."""
+        if isinstance(other, BgzfBlock):
+            return self.ustart > other.ustart
+        elif isinstance(other, (int, float)):
+            return self.ustart > other
         return NotImplemented
 
     def __len__(self):
@@ -682,7 +694,9 @@ class Faidx(object):
                     bend = offset + newlines + rlen
                     rec = IndexRecord(rlen, offset, lenc, lenb, bend,
                                       prev_bend)
-                    if self.read_long_names:
+                    if self.read_long_names and self._bgzf:
+                        rname = self._long_name_from_bgzf(rec)
+                    elif self.read_long_names:
                         rname = self._long_name_from_index_record(rec)
                     if self.split_char:
                         rname = filter(self.filt_function,
@@ -737,11 +751,22 @@ class Faidx(object):
                         line = line.decode()
                         line_clen = len(line.rstrip('\n\r'))
                         lastline = i
+                        if rname is None and line[0] != '>':
+                            # before the first record, skip comment lines
+                            # (the original FASTA convention) and blank lines
+                            if line[0] == ';' or not line.strip():
+                                offset += line_blen
+                                continue
+                            raise FastaIndexingError(
+                                "Unexpected text before the first sequence "
+                                "definition line in %s at line %d. Check that "
+                                "sequence definition lines start with '>' and "
+                                "comment lines with ';'." % (self.filename, i + 1))
                         # write an index line
                         if line[0] == '>':
                             valid_entry = check_bad_lines(
                                 rname, bad_lines, i - 1)
-                            if valid_entry and i > 0:
+                            if valid_entry and rname is not None:
                                 indexfile.write(
                                     "{0}\t{1:d}\t{2:d}\t{3:d}\t{4:d}\n".format(
                                         rname, rlen, thisoffset, clen, blen))
@@ -944,22 +969,15 @@ class Faidx(object):
                              "\n".format(end, rname))
 
         with self.lock:
-            if self._bgzf: 
-                insertion_i = bisect.bisect_left(self.gzi_index, bstart)
-                if insertion_i == 0:  # bisect_left already returns index to the left if values are the same
-                    start_block = self.gzi_index[insertion_i]
-                else:
-                    start_block = self.gzi_index[insertion_i - 1]
-                within_block_offset = bstart - start_block.ustart
-                self.file.seek(make_virtual_offset(start_block.cstart, within_block_offset))
-            else:
-                self.file.seek(bstart)
-
             # If the requested sequence exceeds len(FastaRecord), return as much as possible
             if bstart + seq_blen > i.bend and not self.strict_bounds:
                 seq_blen = i.bend - bstart
             # Otherwise it should be safe to read the sequence
             if seq_blen > 0:
+                if self._bgzf:
+                    self.file.seek(self._bgzf_virtual_offset(bstart))
+                else:
+                    self.file.seek(bstart)
                 seq = self.file.read(seq_blen).decode()
             # If the requested sequence is negative, we will pad the empty string with default_seq.
             # This was changed to support #155 with strict_bounds=True.
@@ -1007,12 +1025,13 @@ class Faidx(object):
         file_seq, internals = self.from_file(rname, start, end, internals=True)
 
         with self.lock:
-            if len(seq) != len(file_seq) - internals['newlines_inside']:
+            line_breaks = file_seq.splitlines(keepends=True)
+            sequence_length = sum(len(line.rstrip('\r\n')) for line in line_breaks)
+            if len(seq) != sequence_length:
                 raise IOError(
                     "Specified replacement sequence needs to have the same length as original."
                 )
-            elif len(seq) == len(file_seq) - internals['newlines_inside']:
-                line_len = internals['i'].lenc
+            else:
                 if '\r\n' in file_seq:
                     newline_char = '\r\n'
                 elif '\r' in file_seq:
@@ -1022,15 +1041,17 @@ class Faidx(object):
                 self.file.seek(internals['bstart'])
                 if internals['newlines_inside'] == 0:
                     self.file.write(seq.encode())
-                elif internals['newlines_inside'] > 0:
-                    n = 0
-                    m = file_seq.index(newline_char)
-                    while m < len(seq):
-                        self.file.write(''.join([seq[n:m], newline_char]).encode())
-                        n = m
-                        m += line_len
-                    self.file.write(seq[n:].encode())
-                    self.file.flush()
+                else:
+                    lines = file_seq.split(newline_char)
+                    offset = 0
+                    replacement = []
+                    for line in lines:
+                        replacement.append(seq[offset:offset + len(line)])
+                        offset += len(line)
+                    self.file.write(newline_char.join(replacement).encode())
+                self.file.flush()
+                # A different name may refer to the same sequence via split_char.
+                self.buffer['name'] = None
 
     def get_long_name(self, rname):
         """ Return the full sequence defline and description. External method using the self.index """
@@ -1045,28 +1066,24 @@ class Faidx(object):
         prev_bend = index_record.prev_bend
         defline_end = index_record.offset
         self.file.seek(prev_bend)
-        return self.file.read(defline_end - prev_bend).decode()[1:-1]
+        return _defline_from_chunk(self.file.read(defline_end - prev_bend).decode())
+
+    def _bgzf_virtual_offset(self, offset):
+        """Return the canonical BGZF virtual offset for an uncompressed byte offset."""
+        insertion_i = bisect.bisect_right(self.gzi_index, offset)
+        start_block = self.gzi_index[max(0, insertion_i - 1)]
+        within_block_offset = offset - start_block.ustart
+        return make_virtual_offset(start_block.cstart, within_block_offset)
 
     def _long_name_from_bgzf(self, index_record):
         """ Return the full sequence defline and description for BGZF compressed files.
         Uses information from the .fai file to efficiently access the sequence defline. """
 
         offset_to_seq = index_record.offset
-        prev_bend = index_record.prev_bend        
-        insertion_i = bisect.bisect_left(self.gzi_index, prev_bend)
-        if insertion_i == 0:
-            start_block = self.gzi_index[insertion_i]
-        else:
-            start_block = self.gzi_index[insertion_i - 1]
-        
-        within_block_offset = prev_bend - start_block.ustart
-        
-        self.file.seek(make_virtual_offset(start_block.cstart, within_block_offset))
-        
+        prev_bend = index_record.prev_bend
+        self.file.seek(self._bgzf_virtual_offset(prev_bend))
         defline_length = offset_to_seq - prev_bend
-        
-        defline = self.file.read(defline_length).decode()        
-        return defline[1:].rstrip('\r\n')
+        return _defline_from_chunk(self.file.read(defline_length).decode())
 
     def close(self):
         self.__exit__()
@@ -1095,6 +1112,11 @@ class FastaRecord(object):
         Coordinates are 0-based, end-exclusive."""
         try:
             if isinstance(n, slice):
+                if n.step is not None and n.step < 0:
+                    start, stop, step = n.indices(len(self))
+                    if start <= stop:
+                        return self._fa.get_seq(self.name, 1, 0)[::step]
+                    return self._fa.get_seq(self.name, stop + 2, start + 1)[::step]
                 start, stop, step = n.start, n.stop, n.step
                 if start is None:
                     start = 0
@@ -1160,6 +1182,8 @@ class FastaRecord(object):
         https://github.com/Illumina/hap.py/blob/master/src/c%2B%2B/lib/tools/Fasta.cpp#L284
         """
         length = len(self)
+        if length == 0:
+            return 0
         stop = False
         for line in iter(self):
             if stop:
@@ -1172,6 +1196,8 @@ class FastaRecord(object):
                 else:
                     stop = True
                     break
+        if length == 0:
+            return 0
         stop = False
         for line in reversed(self):
             if stop:
@@ -1192,15 +1218,7 @@ class FastaRecord(object):
     @property
     def variant_sites(self):
         if isinstance(self._fa, FastaVariant):
-            pos = []
-            var = self._fa.vcf.fetch(self.name, 0, len(self))
-            for site in var:
-                if site.is_snp:
-                    sample = site.genotype(self._fa.sample)
-                    if sample.gt_type in self._fa.gt_type and eval(
-                            self._fa.filter):
-                        pos.append(site.POS)
-            return tuple(pos)
+            return tuple(pos for pos, _ in self._fa._snp_variants(self.name, 0, len(self)))
         else:
             raise NotImplementedError(
                 "variant_sites() only valid for FastaVariant.")
@@ -1345,6 +1363,8 @@ class Fasta(object):
         # Get sequence from real genome object and save result.
         seq = self.faidx.fetch(name, start, end)
         if rc:
+            if self.faidx.as_raw:
+                return complement(seq[::-1])
             return -seq
         else:
             return seq
@@ -1447,6 +1467,32 @@ class FastaVariant(Fasta):
                                                       self.vcf.filename,
                                                       str(self.gt_type))
 
+    @staticmethod
+    def _called_alt_index(sample):
+        # Prefer the first ALT in VCF order among those called in GT.
+        return min(
+            (int(allele) for allele in sample.gt_alleles if allele not in (None, '0')),
+            default=0,
+        )
+
+    def _snp_variants(self, name, start, end):
+        """Yield 1-based SNP positions and alleles for a 0-based VCF query."""
+        try:
+            variants = self.vcf.fetch(name, start, end)
+        except ValueError:
+            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
+                return
+            raise
+
+        for record in variants:
+            if not record.is_snp:
+                continue
+            sample = record.genotype(self.sample)
+            if sample.gt_type in self.gt_type and eval(self.filter):
+                allele_index = self._called_alt_index(sample)
+                if allele_index:
+                    yield record.POS, str(record.ALT[allele_index - 1])
+
     def get_seq(self, name, start, end):
         """Return a sequence by record name and interval [start, end].
         Replace positions with polymorphism with variant.
@@ -1460,38 +1506,18 @@ class FastaVariant(Fasta):
             seq_mut = list(seq.seq)
             original_len = len(seq.seq)
             del seq.seq
+        edits = {}
+        deleted_intervals = []
         try:
             var = self.vcf.fetch(name, start - 1, end)
-            edits = {}
-            deleted_intervals = []
             for record in var:
                 sample = record.genotype(self.sample)
                 if sample.gt_type in self.gt_type and eval(self.filter):
                     ref = str(record.REF)
-                    alleles = getattr(sample, 'gt_alleles', None)
-                    alt = None
-                    if alleles:
-                        for allele in alleles:
-                            try:
-                                allele_index = int(allele)
-                            except (TypeError, ValueError):
-                                continue
-                            if allele_index > 0:
-                                alt = str(record.ALT[allele_index - 1])
-                                break
-                    if alt is None:
-                        gt_bases = getattr(sample, 'gt_bases', None)
-                        if gt_bases:
-                            called_bases = re.split(r'[/|]', gt_bases)
-                            for called_base in called_bases:
-                                for allele in record.ALT:
-                                    if allele is not None and str(allele) == called_base:
-                                        alt = str(allele)
-                                        break
-                                if alt is not None:
-                                    break
-                    if alt is None:
+                    allele_index = self._called_alt_index(sample)
+                    if not allele_index:
                         continue
+                    alt = str(record.ALT[allele_index - 1])
                     if not re.fullmatch(r'[ACGTRYKMSWBDHVN]+', ref, re.IGNORECASE):
                         continue
                     if not re.fullmatch(r'[ACGTRYKMSWBDHVN]+', alt, re.IGNORECASE):
@@ -1557,6 +1583,13 @@ class FastaVariant(Fasta):
             else:
                 seq.seq = final
                 return seq
+
+
+def _defline_from_chunk(chunk):
+    """ Return the defline, without '>', from the text between the end of the
+    previous record's sequence and the start of this record's sequence. That text
+    can also hold blank lines and ';' comment lines, and lines can end in CRLF. """
+    return chunk.rstrip('\r\n').rsplit('\n', 1)[-1].rstrip('\r')[1:]
 
 
 def wrap_sequence(n, sequence, fillvalue='', newline='\n'):
@@ -1643,13 +1676,23 @@ def complement(seq):
 
 
 def bed_split(bed_entry):
-    if bed_entry[0] == "#":
+    bed_entry = bed_entry.strip()
+    if not bed_entry or bed_entry.startswith("#"):
         return (None, None, None)
-    try:
-        rname, start, end = bed_entry.rstrip().split()[:3]
-    except (IndexError, ValueError):
+    fields = bed_entry.split()
+    if len(fields) < 3:
         raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
-    start, end = (int(start), int(end))
+    rname, start, end = fields[:3]
+    if not rname or any(char in rname for char in ('"', "'", '&')):
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    if not re.fullmatch(r'[0-9]+', start) or not re.fullmatch(r'[0-9]+', end):
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    try:
+        start, end = int(start), int(end)
+    except ValueError:
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
+    if start > end:
+        raise BedError('Malformed BED entry! {0}\n'.format(bed_entry.rstrip()))
     return (rname, start, end)
 
 

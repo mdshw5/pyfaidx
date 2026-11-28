@@ -41,3 +41,10 @@ def test_as_raw_type_when_blen_lt_0(remove_index):
     expect = ''
     result = fasta.faidx.fetch('KF435150.1', 10, 0)
     assert result == expect
+
+def test_as_raw_get_seq_reverse_complement(remove_index):
+    fasta = Fasta('data/genes.fasta', as_raw=True)
+    forward = fasta.get_seq('KF435150.1', 100, 150)
+    result = fasta.get_seq('KF435150.1', 100, 150, rc=True)
+    assert isinstance(result, str)
+    assert result == forward[::-1].translate(str.maketrans('ACGTacgt', 'TGCAtgca'))

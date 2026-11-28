@@ -40,7 +40,7 @@ or download a `release <https://github.com/mdshw5/pyfaidx/releases>`_ and:
 
 If using ``pip install --user`` make sure to add ``/home/$USER/.local/bin`` to your ``$PATH`` (on linux) or ``/Users/$USER/Library/Python/{python version}/bin`` (on macOS) if you want to run the ``faidx`` script.
 
-Python 2.6 and 2.7 users may choose to use a package version from `v0.7.2 <https://github.com/mdshw5/pyfaidx/releases/tag/v0.7.2.2>`_ or earier.
+Python 2.6 and 2.7 users may choose to use a package version from `v0.7.2 <https://github.com/mdshw5/pyfaidx/releases/tag/v0.7.2.2>`_ or earlier.
 
 Usage
 -----
@@ -52,7 +52,10 @@ Usage
     >>> genes
     Fasta("tests/data/genes.fasta")  # set strict_bounds=True for bounds checking
 
-Acts like a dictionary.
+Acts like a dictionary. Record names are always strings, so dictionary-style lookups need a ``str`` key.
+
+For common configuration options and the lower-level ``Faidx`` API, see the
+`Fasta and Faidx constructor options`_ reference near the end of this guide.
 
 .. code:: python
 
@@ -92,6 +95,12 @@ Indexes like a list:
     >>> genes[0][:50]
     >AB821309.1:1-50
     ATGGTCAGCTGGGGTCGTTTCATCTGCCTGGTCGTGGTCACCATGGCAAC
+
+An ``int`` key is always a position in the file, never a record name. If your
+record names are numbers (for example chromosomes ``1``, ``2``, ... in Ensembl
+or TAIR10 genomes), convert the key first: ``genes[str(chrom)]``. This is easy
+to miss when names come from a table, since pandas reads a numeric ``chrom``
+column as integers.
 
 Slices just like a string:
 
@@ -317,6 +326,11 @@ Any portion of the FastaRecord can be replaced with an equivalent-length string.
 
 The FastaVariant class provides a way to integrate single nucleotide variant calls to generate a consensus sequence.
 
+Requires ``pyvcf3`` and a tabix-indexed VCF (``.vcf.gz`` plus ``.tbi``). By
+default, both heterozygous and homozygous alternate SNP calls are applied to
+the first VCF sample. See the options below the examples to choose a sample or
+filter calls.
+
 .. code:: python
 
     # new in v0.4.0
@@ -337,6 +351,27 @@ The FastaVariant class provides a way to integrate single nucleotide variant cal
     >>> consensus = FastaVariant('tests/data/chr22.fasta', 'tests/data/chr22.vcf.gz', sample='NA06984', het=True, hom=True, call_filter='GT == "0/1"')
     >>> consensus['22'].variant_sites
     (16042793, 29187373, 29187448, 29194610, 29821332)
+
+``FastaVariant`` accepts all ``Fasta`` options through ``**kwargs``, plus:
+
+``vcf_file``
+    Required path to the tabix-indexed compressed VCF.
+``sample``
+    VCF sample name to use. If omitted, the first sample is selected; when
+    there are multiple samples, a warning is emitted.
+``het`` and ``hom``
+    Include heterozygous and homozygous alternate calls, respectively. Both
+    default to ``True``. Set both to ``False`` to exclude genotype calls.
+    When an included SNP has multiple alternate alleles in the sample's
+    genotype, the first of those alleles in VCF ALT order is used.
+``call_filter``
+    Optional PyVCF-style genotype expression in the form ``'FIELD OPERATOR
+    VALUE'``, for example ``'GQ > 30'`` or ``'GT == "0/1"'``. Supported
+    operators are ``>``, ``<``, ``=``, ``!``, and ``!=``.
+
+``variant_sites`` contains the 1-based positions where the reference and
+consensus differ. Indels are skipped; SNP and multibase alternate calls are
+applied to retrieved sequence.
     
 You can also specify paths using ``pathlib.Path`` objects.
 
@@ -386,10 +421,13 @@ cli script: faidx
       -i {bed,chromsizes,nucleotide,transposed}, --transform {bed,chromsizes,nucleotide,transposed} transform the requested regions into another format. default: None
       -c, --complement      complement the sequence. default: False
       -r, --reverse         reverse the sequence. default: False
+      -y, --auto-strand     reverse complement when the region start coordinate is
+                            greater than the end coordinate. default: False
       -a SIZE_RANGE, --size-range SIZE_RANGE
                             selected sequences are in the size range [low, high]. example: 1,1000 default: None
       -n, --no-names        omit sequence names from output. default: False
-      -f, --full-names      output full names including description. default: False
+      -f, --long-names      output full names including description. default: False
+      -t, --no-coords       omit coordinates from output headers. default: False
       -x, --split-files     write each region to a separate file (names are derived from regions)
       -l, --lazy            fill in --default-seq for missing ranges. default: False
       -s DEFAULT_SEQ, --default-seq DEFAULT_SEQ
@@ -406,8 +444,7 @@ cli script: faidx
       -m, --mask-with-default-seq
                             mask the FASTA file using --default-seq default: False
       -M, --mask-by-case    mask the FASTA file by changing to lowercase. default: False
-      -e HEADER_FUNCTION, --header-function HEADER_FUNCTION
-                            python function to modify header lines e.g: "lambda x: x.split("|")[0]". default: None
+      --no-output           suppress sequence output. default: False
       --no-rebuild          do not rebuild the .fai index even if it is out of date. default: False
       --version             print pyfaidx version number
 
@@ -424,7 +461,7 @@ Examples:
     >NM_001282543.1:300-320
     GTAATTGTGTAAGTGACTGCA
 
-    $ faidx --full-names tests/data/genes.fasta NM_001282543.1:201-210
+    $ faidx --long-names tests/data/genes.fasta NM_001282543.1:201-210
     >NM_001282543.1| Homo sapiens BRCA1 associated RING domain 1 (BARD1), transcript variant 2, mRNA
     CTCGTTCCGC
 
@@ -569,6 +606,19 @@ A lower-level Faidx class is also available:
    where "filename.fa" is the original FASTA file.
 -  Start and end coordinates are 1-based.
 
+For in-place updates with the lower-level API, initialize ``Faidx`` with
+``mutable=True`` and call ``to_file`` with 1-based inclusive coordinates. The
+replacement must have exactly the same length as the requested region; changes
+are immediate and permanent.
+
+.. code:: python
+
+    >>> fa = Faidx('genes.fa', mutable=True)
+    >>> fa.to_file('AB821309.1', 1, 10, 'NNNNNNNNNN')
+    >>> fa.fetch('AB821309.1', 1, 10)
+    >AB821309.1:1-10
+    NNNNNNNNNN
+
 Support for compressed FASTA
 ----------------------------
 
@@ -582,6 +632,52 @@ files compressed with ``bgzip`` are valid ``gzip`` and so can be read by
 ``gunzip``.  See `this description
 <http://pydoc.net/Python/biopython/1.66/Bio.bgzf/>`_ for more details on
 ``bgzip``.
+
+.. _Fasta and Faidx constructor options:
+
+Fasta and Faidx constructor options
+-----------------------------------
+
+``Fasta`` provides a dictionary and sequence-record interface; ``Faidx`` is
+the lower-level index and fetch interface. Both accept these options:
+
+``filename``
+    FASTA file name or an ``fsspec`` ``OpenFile`` object.
+``indexname`` and ``gzi_indexname``
+    Optional paths or ``fsspec`` ``OpenFile`` objects for the ``.fai`` and
+    (for BGZF FASTA) ``.gzi`` indexes. Defaults are ``filename + ".fai"`` and
+    ``filename + ".gzi"``.
+``key_function``, ``split_char``, and ``filt_function``
+    Customize record keys, split names into additional keys, and include only
+    keys accepted by the filter callback.
+``duplicate_action``
+    Handle duplicate keys with ``stop`` (default, raises ``ValueError``),
+    ``first``, ``last``, ``longest``, ``shortest``, or ``drop``.
+``as_raw``
+    Return strings instead of ``Sequence`` objects.
+``strict_bounds`` and ``default_seq``
+    Raise ``FetchError`` for out-of-range requests when strict bounds are
+    enabled; otherwise, ``default_seq`` fills missing positions, if supplied.
+``read_ahead``
+    Number of bases to buffer ahead during sequential reads.
+``one_based_attributes``
+    Set ``Sequence.start`` to one-based coordinates (default). The end
+    attribute remains the slice-style exclusive end; this option does not
+    affect slicing coordinates.
+``read_long_names``
+    Use the complete FASTA header as the key instead of the first
+    whitespace-delimited name.
+``sequence_always_upper``
+    Return sequences in uppercase regardless of their case in the FASTA file.
+``mutable``
+    Allow in-place updates for uncompressed local FASTA files. Updates are
+    immediate and permanent; replacements must preserve sequence length.
+``build_index`` and ``rebuild``
+    ``build_index=True`` (default) creates a missing ``.fai`` index.
+    ``rebuild=True`` (default) also rebuilds an existing index when it is stale.
+
+``Faidx.fetch(name, start, end)`` uses 1-based inclusive coordinates. The same
+index and retrieval options accepted by ``Faidx`` can be passed to ``Fasta``.
 
 Changelog
 ---------
@@ -612,7 +708,7 @@ To get test running on your machine:
 
  - Run the tests with
 
-      pytests
+      pytest
 
 Acknowledgements
 ----------------

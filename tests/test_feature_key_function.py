@@ -75,3 +75,26 @@ def test_duplicated_keys_longest(remove_index):
     expect = 5317
     result = len(genes["BARD1"])
     assert expect == result
+
+
+@pytest.mark.parametrize('action, expected', [
+    ('first', 'AC'),
+    ('last', 'TTTT'),
+    ('drop', None),
+])
+def test_duplicate_key_selection_with_reused_index(tmp_path, action, expected):
+    filename = tmp_path / 'duplicates.fa'
+    filename.write_text('>shared.1\nAC\n>unique.1\nGG\n'
+                        '>shared.2\nCCC\n>shared.3\nTTTT\n')
+    key_function = lambda name: name.split('.')[0]
+
+    for build_index in (True, False):
+        with Fasta(filename, key_function=key_function,
+                   duplicate_action=action, build_index=build_index) as fasta:
+            assert str(fasta['unique'][:]) == 'GG'
+            if expected is None:
+                assert 'shared' not in fasta
+                with pytest.raises(KeyError):
+                    fasta['shared']
+            else:
+                assert str(fasta['shared'][:]) == expected

@@ -4,7 +4,7 @@ import argparse
 import sys
 import os.path
 import re
-from pyfaidx import Fasta, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
+from pyfaidx import Fasta, Sequence, wrap_sequence, FetchError, ucsc_split, bed_split, get_valid_filename
 from collections import defaultdict
 from operator import itemgetter
 from heapq import nlargest
@@ -33,7 +33,7 @@ def write_sequence(args):
     if args.invert_match:
         filt_function = lambda x: not re.compile(args.regex).search(x)
 
-    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.long_names, rebuild=not args.no_rebuild)
+    fasta = Fasta(args.fasta, default_seq=args.default_seq, key_function=eval(args.header_function), strict_bounds=not args.lazy, split_char=args.delimiter, filt_function=filt_function, read_long_names=args.long_names, rebuild=not args.no_rebuild, duplicate_action=args.duplicates_action)
 
     regions_to_fetch, split_function = split_regions(args)
     if not regions_to_fetch:
@@ -52,6 +52,8 @@ def write_sequence(args):
                 sequence_len = len(fasta[name])
             if args.size_range[0] > sequence_len or args.size_range[1] < sequence_len:
                 continue
+        if args.no_output and args.transform:
+            continue
         if args.split_files:  # open output file based on sequence name
             filename = '.'.join(str(e) for e in (name, start, end, ext) if e)
             filename = get_valid_filename(filename)
@@ -79,7 +81,7 @@ def write_sequence(args):
 def fetch_sequence(args, fasta, name, start=None, end=None):
     try:
         line_len = fasta.faidx.index[name].lenc
-        if args.auto_strand and start > end and start is not None and end is not None:
+        if args.auto_strand and start is not None and end is not None and start > end:
             # flip (0, 1] coordinates
             sequence = fasta[name][end - 1:start + 1]
             sequence = sequence.reverse.complement
@@ -97,7 +99,7 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
     if args.no_names:
         pass
     else:
-        if (start or end) and not args.no_coords:
+        if start is not None and end is not None and not args.no_coords:
             yield ''.join(['>', sequence.fancy_name, '\n'])
         else:
             yield ''.join(['>', sequence.name, '\n'])
@@ -107,19 +109,22 @@ def fetch_sequence(args, fasta, name, start=None, end=None):
 
 
 def mask_sequence(args):
-    with Fasta(args.fasta, mutable=True, split_char=args.delimiter) as fasta:
+    with Fasta(args.fasta, mutable=True, split_char=args.delimiter, duplicate_action=args.duplicates_action) as fasta:
         regions_to_fetch, split_function = split_regions(args)
 
         for region in regions_to_fetch:
             rname, start, end = split_function(region)
+            if rname is None:
+                continue
             if args.mask_with_default_seq:
-                if start and end:
+                if start is not None and end is not None:
                     span = end - start
                 elif not start and not end:
                     span = len(fasta[rname])
                 else:
                     span = len(fasta[rname][start:end])
-                fasta[rname][start:end] = span * args.default_seq
+                if span > 0:
+                    fasta[rname][start:end] = span * args.default_seq
             elif args.mask_by_case:
                 fasta[rname][start:end] = str(fasta[rname][start:end]).lower()
 
@@ -135,19 +140,35 @@ def split_regions(args):
 
 
 def transform_sequence(args, fasta, name, start=None, end=None):
-    line_len = fasta.faidx.index[name].lenc
+      # first handle case where the output does not require sequence retrieval   
+    if args.no_output:
+        return
+    elif args.transform == 'bed':
+        if start is None and end is None:
+            return '{name}\t{start}\t{end}\n'.format(name=name, start=0, end=len(fasta[name]))
+        else:
+            s_proxy = Sequence(name=name,
+                               seq=''.join(['N',] * len(fasta[name])),
+                               start=1,
+                               end=len(fasta[name]))
+            s_proxy = s_proxy[start:end]
+            return '{name}\t{start}\t{end}\n'.format(name=s_proxy.name, start=s_proxy.start - 1 , end=s_proxy.end)
+    elif args.transform == 'chromsizes':
+        if start is None and end is None:
+            return '{name}\t{length}\n'.format(name=name, length=len(fasta[name]))
+        else:
+            s_proxy = Sequence(name=name,
+                               seq=''.join(['N',] * len(fasta[name])),
+                               start=1,
+                               end=len(fasta[name]))
+            s_proxy = s_proxy[start:end]
+            return '{name}\t{length}\n'.format(name=s_proxy.name, length=len(s_proxy))
     s = fasta[name][start:end]
     if args.complement:
         s = s.complement
     if args.reverse:
         s = s.reverse
-    if args.no_output:
-        return
-    if args.transform == 'bed':
-        return '{name}\t{start}\t{end}\n'.format(name=s.name, start=s.start - 1 , end=s.end)
-    elif args.transform == 'chromsizes':
-        return '{name}\t{length}\n'.format(name=s.name, length=len(s))
-    elif args.transform == 'nucleotide':
+    if args.transform == 'nucleotide':
         ss = str(s).upper()
         nucs = defaultdict(int)
         nucs.update([(c, ss.count(c)) for c in set(ss)])

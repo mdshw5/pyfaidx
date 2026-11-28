@@ -29,6 +29,24 @@ def test_integer_index():
 def test_slice_index():
     assert seq[0:10].seq == 'TTGAAGATTT'
 
+def test_reverse_complement_slice_coordinates():
+    s = Sequence(name='contig1', seq='ACGTA', start=1, end=5)
+    rc = s.reverse.complement
+    assert rc[0:3].seq == 'TAC'
+    assert rc[0:3].fancy_name == 'contig1:5-3 (complement)'
+
+def test_reverse_complement_slice_coordinates_middle():
+    s = Sequence(name='contig1', seq='ACGTA', start=1, end=5)
+    rc = s.reverse.complement
+    assert rc[1:4].seq == 'ACG'
+    assert rc[1:4].fancy_name == 'contig1:4-2 (complement)'
+
+def test_reverse_complement_slice_coordinates_end():
+    s = Sequence(name='contig1', seq='ACGTA', start=1, end=5)
+    rc = s.reverse.complement
+    assert rc[2:5].seq == 'CGT'
+    assert rc[2:5].fancy_name == 'contig1:3-1 (complement)'
+
 @pytest.mark.xfail(raises=ValueError)
 def test_comp_invalid():
     complement(comp_invalid)

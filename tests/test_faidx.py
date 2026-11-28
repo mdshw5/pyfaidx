@@ -1,7 +1,7 @@
 import os
 import filecmp
 import pytest
-from pyfaidx import BedError, FetchError, FastaNotFoundError
+from pyfaidx import BedError, FetchError, FastaNotFoundError, Fasta, Faidx
 from pyfaidx.cli import main
 from tempfile import NamedTemporaryFile
 
@@ -35,16 +35,28 @@ def test_fetch_error():
 def test_key_warning():
     main(['data/genes.fasta', 'foo'])
     
-def test_auto_strand():
+def test_auto_strand(tmp_path):
     """ Test that --auto-strand produces the same output as --reverse --complement"""
-    with NamedTemporaryFile() as auto_strand:
-        with NamedTemporaryFile() as noto_strand:
-            main(['--auto-strand', '-o', auto_strand.name, 'data/genes.fasta', 'KF435150.1:100-1'])
-            main(['--reverse', '--complement', '-o', noto_strand.name, 'data/genes.fasta', 'KF435150.1:1-100'])
-            print(auto_strand.read())
-            print()
-            print(noto_strand.read())
-            assert filecmp.cmp(auto_strand.name, noto_strand.name)
+    fasta = tmp_path / 'genes.fasta'
+    fasta.write_text('>KF435150.1\n' + ('AACCGTTA' * 50) + '\n')
+    auto_strand = tmp_path / 'auto-strand.fa'
+    noto_strand = tmp_path / 'reverse-complement.fa'
+    main(['--auto-strand', '--no-names', '-o', str(auto_strand), str(fasta), 'KF435150.1:100-1'])
+    main(['--reverse', '--complement', '--no-names', '-o', str(noto_strand), str(fasta), 'KF435150.1:1-100'])
+    assert filecmp.cmp(auto_strand, noto_strand)
+
+
+@pytest.mark.parametrize('regions, expected', [
+    ([], 'ACGTAC\nGATT\n'),
+    (['test'], 'ACGTAC\n'),
+    (['test:2-5'], 'CGTA\n'),
+    (['test:5-2'], 'TACG\n'),
+])
+def test_auto_strand_regions(tmp_path, capsys, regions, expected):
+    filename = tmp_path / 'reference.fa'
+    filename.write_bytes(b'>test\nACGTAC\n>other\nGATT\n')
+    main(['--auto-strand', '--no-names', str(filename)] + regions)
+    assert capsys.readouterr().out == expected
     
 def test_regexp():
     main(['data/genes.fasta', '-g', 'XR'])
@@ -98,6 +110,18 @@ def test_faidx_cli_transform_transposed():
     os.remove(temp_fasta.name)
     os.remove(transform_table.name)
 
+@pytest.mark.parametrize('transform, expected', [
+    ('transposed', 'test\t4\t1\tGCAA\n'),
+    ('nucleotide', 'name\tstart\tend\tA\tT\tC\tG\tN\tothers\n'
+                   'test\t4\t1\t2\t0\t1\t1\t0\t0\n'),
+])
+def test_faidx_cli_transform_reverse(tmp_path, capsys, transform, expected):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>test\nAACG\n')
+    main(['--reverse', '--transform', transform, str(fasta)])
+    assert capsys.readouterr().out == expected
+
+
 def test_faidx_cli_transform_bed():
     """Test that the CLI can transform sequences to BED format."""
     with NamedTemporaryFile(delete=False) as temp_fasta:
@@ -114,21 +138,26 @@ def test_faidx_cli_transform_bed():
     os.remove(temp_fasta.name)
     os.remove(transform_bed.name)
 
-def test_faidx_cli_transform_chromsizes():
-    """Test that the CLI can transform sequences to chromsizes format."""
-    with NamedTemporaryFile(delete=False) as temp_fasta:
-        with NamedTemporaryFile(delete=False) as transform_chromsizes:
-            temp_fasta.write(b'>test\nATCG\n')
-            temp_fasta.close()
-            result = main(['--out', transform_chromsizes.name, '--transform', 'chromsizes', temp_fasta.name])
-            assert result is None  # CLI should not return anything
-            with open(transform_chromsizes.name, 'r') as f:
-                content = f.read()
-            # Check that the output matches the expected format
-            assert content == 'test\t4\n'
-    # Clean up temporary files
-    os.remove(temp_fasta.name)
-    os.remove(transform_chromsizes.name)
+@pytest.mark.parametrize('compressed', [False, True])
+def test_faidx_cli_transform_chromsizes(tmp_path, capsys, monkeypatch, compressed):
+    """Whole-record lengths should not require fetching chromosome sequences."""
+    filename = tmp_path / ('chromosomes.fa.gz' if compressed else 'chromosomes.fa')
+    content = b'>chr1 description\nATCG\nATCG\n>chr2\nATCGA\n'
+    if compressed:
+        from Bio.bgzf import BgzfWriter
+        with BgzfWriter(str(filename), 'wb') as fasta:
+            fasta.write(content)
+    else:
+        filename.write_bytes(content)
+    with Fasta(str(filename)):
+        pass  # Build the indexes before checking indexed retrieval.
+
+    def unexpected_fetch(*args, **kwargs):
+        pytest.fail('chromsizes fetched sequence instead of using the index')
+
+    monkeypatch.setattr(Faidx, 'fetch', unexpected_fetch)
+    main(['--transform', 'chromsizes', str(filename)])
+    assert capsys.readouterr().out == 'chr1\t8\nchr2\t5\n'
 
 def test_faidx_cli_size_range():
     """Test that the CLI can handle size range arguments."""
@@ -200,3 +229,64 @@ def test_faidx_sequence_masking_case():
     assert content == '>test\natCG\n'
     # Clean up temporary files
     os.remove(temp_fasta_name)
+
+
+@pytest.mark.parametrize('transform', ['bed', 'chromsizes', 'nucleotide', 'transposed'])
+def test_faidx_transform_no_output(tmp_path, capsys, transform):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>chr1\nATCG\n')
+
+    main([str(fasta), '--no-output', '--transform', transform])
+
+    assert capsys.readouterr().out == ''
+    assert fasta.with_suffix('.fa.fai').is_file()
+
+
+def test_faidx_transform_no_output_rejects_malformed_bed(tmp_path):
+    fasta = tmp_path / 'reference.fa'
+    fasta.write_bytes(b'>chr1\nATCG\n')
+    bed = tmp_path / 'regions.bed'
+    bed.write_text('chr1\t0\t2\nchr1\t0\n')
+
+    with pytest.raises(BedError):
+        main([str(fasta), '--bed', str(bed), '--no-output', '--transform', 'bed'])
+
+
+@pytest.mark.parametrize('action, selected', [
+    ('first', 0), ('last', 2), ('longest', 1), ('shortest', 2)])
+@pytest.mark.parametrize('mode', ['extract', 'transform', 'soft-mask', 'hard-mask'])
+def test_faidx_cli_duplicates_action(tmp_path, capsys, action, selected, mode):
+    sequences = ['AAAA', 'CCCCCC', 'TT']
+    filename = tmp_path / 'duplicates.fa'
+    filename.write_bytes(''.join('>chr1\n' + seq + '\n' for seq in sequences).encode())
+    args = [str(filename)]
+    if mode == 'extract':
+        args += ['--no-names']
+    elif mode == 'transform':
+        args += ['--transform', 'transposed']
+    elif mode == 'soft-mask':
+        args += ['chr1:1-2', '--mask-by-case']
+    else:
+        args += ['chr1:1-2', '--mask-with-default-seq', '--default-seq', 'N']
+    args += ['--duplicates-action', action]
+
+    main(args)
+    output = capsys.readouterr().out
+    sequence = sequences[selected]
+    if mode == 'extract':
+        assert output == sequence + '\n'
+    elif mode == 'transform':
+        assert output == 'chr1\t1\t{}\t{}\n'.format(len(sequence), sequence)
+    else:
+        assert output == ''
+        prefix = sequence[:2].lower() if mode == 'soft-mask' else 'NN'
+        sequences[selected] = prefix + sequence[2:]
+    assert filename.read_text() == ''.join('>chr1\n' + seq + '\n' for seq in sequences)
+
+
+@pytest.mark.parametrize('action', [[], ['--duplicates-action', 'stop']])
+def test_faidx_cli_duplicate_names_stop(tmp_path, action):
+    filename = tmp_path / 'duplicates.fa'
+    filename.write_bytes(b'>chr1\nAAAA\n>chr1\nTT\n')
+    with pytest.raises(ValueError, match='Duplicate key "chr1"'):
+        main([str(filename)] + action)
