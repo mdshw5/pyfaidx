@@ -324,12 +324,12 @@ Any portion of the FastaRecord can be replaced with an equivalent-length string.
     >NM_001282543.1:1-15
     NNNNNNNNNNCTGGC
 
-The FastaVariant class provides a way to integrate single nucleotide variant calls to generate a consensus sequence.
+The FastaVariant class provides a way to integrate variant calls to generate a consensus sequence.
 
 Requires ``pyvcf3`` and a tabix-indexed VCF (``.vcf.gz`` plus ``.tbi``). By
 default, both heterozygous and homozygous alternate SNP calls are applied to
-the first VCF sample. See the options below the examples to choose a sample or
-filter calls.
+the first VCF sample. See the options below the examples to choose a sample,
+filter calls, or enable indels.
 
 .. code:: python
 
@@ -362,16 +362,30 @@ filter calls.
 ``het`` and ``hom``
     Include heterozygous and homozygous alternate calls, respectively. Both
     default to ``True``. Set both to ``False`` to exclude genotype calls.
-    When an included SNP has multiple alternate alleles in the sample's
+    When an included variant has multiple alternate alleles in the sample's
     genotype, the first of those alleles in VCF ALT order is used.
 ``call_filter``
     Optional PyVCF-style genotype expression in the form ``'FIELD OPERATOR
     VALUE'``, for example ``'GQ > 30'`` or ``'GT == "0/1"'``. Supported
     operators are ``>``, ``<``, ``=``, ``!``, and ``!=``.
+``indels``
+    Apply multibase substitutions and indels in addition to SNPs. Defaults to
+    ``False``, preserving the historical SNP-only consensus behavior. When
+    enabled, overlapping records are handled as in ``bcftools consensus``.
 
-``variant_sites`` contains the 1-based positions where the reference and
-consensus differ. Indels are skipped; SNP and multibase alternate calls are
-applied to retrieved sequence.
+``variant_sites`` lists 1-based SNP positions; it does not include indels.
+By default, consensus retrieval applies literal SNP calls only. With
+``indels=True``, literal multibase substitutions and indels are applied too,
+choosing the lowest-index called ALT for multiallelic genotypes. Overlapping
+records after the first accepted edit are skipped, except for anchored indels
+that start exactly at the final reference position of the preceding edit, which
+are applied as in ``bcftools consensus`` (unless that preceding edit was itself
+an insertion). Non-literal alleles are skipped. For partially overlapping edits,
+ALT bases are assigned left-to-right to REF positions, with extra inserted bases
+assigned to the final REF position.
+With ``indels=True``, sequence coordinates are cleared when an indel overlaps
+the requested window, because consensus positions may no longer correspond to
+reference positions.
     
 You can also specify paths using ``pathlib.Path`` objects.
 

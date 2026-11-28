@@ -1422,6 +1422,7 @@ class FastaVariant(Fasta):
                  het=True,
                  hom=True,
                  call_filter=None,
+                 indels=False,
                  **kwargs):
         super(FastaVariant, self).__init__(filename, **kwargs)
         try:
@@ -1440,6 +1441,7 @@ class FastaVariant(Fasta):
             self.filter = "sample['{key}'] {expr} {value}".format(**locals())
         else:
             self.filter = 'True'
+        self._has_filter = call_filter is not None
         if os.path.exists(vcf_file):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
@@ -1461,11 +1463,34 @@ class FastaVariant(Fasta):
             self.gt_type = set((2, ))
         else:
             self.gt_type = set()
+        self.indels = indels
 
     def __repr__(self):
         return 'FastaVariant("%s", "%s", gt="%s")' % (self.filename,
                                                       self.vcf.filename,
                                                       str(self.gt_type))
+
+    @staticmethod
+    def _called_alt_index(sample):
+        # Prefer the first ALT in VCF order among those called in GT.
+        return min(
+            (int(allele) for allele in sample.gt_alleles if allele not in (None, '0')),
+            default=0,
+        )
+
+    @staticmethod
+    def _is_anchored_indel(ref, alt):
+        """Return True for a literal insertion/deletion with a shared anchor.
+
+        bcftools represents indels with a common first base (for example
+        ``G -> GTT`` or ``TTA -> T``).  Such records can be applied even when
+        their POS is the final reference position of the previous edit.
+        """
+        ref_upper = ref.upper()
+        alt_upper = alt.upper()
+        if len(ref_upper) == len(alt_upper):
+            return False
+        return alt_upper.startswith(ref_upper) or ref_upper.startswith(alt_upper)
 
     def _snp_variants(self, name, start, end):
         """Yield 1-based SNP positions and alleles for a 0-based VCF query."""
@@ -1480,37 +1505,150 @@ class FastaVariant(Fasta):
             if not record.is_snp:
                 continue
             sample = record.genotype(self.sample)
-            if sample.gt_type in self.gt_type and eval(self.filter):
-                # Prefer the first ALT in VCF order among those called in GT.
-                allele_index = min(
-                    (int(allele) for allele in sample.gt_alleles if allele not in (None, '0')),
-                    default=0,
-                )
+            if sample.gt_type in self.gt_type and (
+                not self._has_filter or eval(self.filter)
+            ):
+                allele_index = self._called_alt_index(sample)
                 if allele_index:
                     yield record.POS, str(record.ALT[allele_index - 1])
+
+    def _get_seq_snps(self, name, start, end):
+        """Historical SNP-only consensus path used when indels are disabled."""
+        seq = self.faidx.fetch(name, start, end)
+        text = seq if self.faidx.as_raw else seq.seq
+        window_length = end - start + 1
+        try:
+            # A bytearray avoids a 50M-element list of Python characters for
+            # chromosome-scale queries (and the associated GC scanning).
+            sequence = bytearray(text, 'latin-1')
+        except UnicodeEncodeError:
+            # Preserve the old behavior for unusual non-Latin-1 FASTA text.
+            sequence = list(text)
+            for pos, alt in self._snp_variants(name, start - 1, end):
+                i = pos - start
+                sequence[i:i + len(alt)] = alt
+            final = ''.join(sequence[:window_length])
+        else:
+            for pos, alt in self._snp_variants(name, start - 1, end):
+                i = pos - start
+                sequence[i:i + len(alt)] = alt.encode('latin-1')
+            final = (
+                sequence.decode('latin-1')
+                if len(sequence) == window_length
+                else sequence[:window_length].decode('latin-1')
+            )
+
+        if self.faidx.as_raw:
+            return final
+        else:
+            seq.seq = final
+            return seq
 
     def get_seq(self, name, start, end):
         """Return a sequence by record name and interval [start, end].
         Replace positions with polymorphism with variant.
         Coordinates are 1-based, closed interval.
         """
+        if not self.indels:
+            return self._get_seq_snps(name, start, end)
         seq = self.faidx.fetch(name, start, end)
-        if self.faidx.as_raw:
-            seq_mut = list(seq)
-            del seq
-        else:
-            seq_mut = list(seq.seq)
-            del seq.seq
-        for pos, alt in self._snp_variants(name, start - 1, end):
-            i = pos - start
-            seq_mut[i:i + len(alt)] = alt
+        reference = seq if self.faidx.as_raw else seq.seq
+        window_end = start + len(reference) - 1
+        parts = []
+        cursor = start
+        last_ref_end = None
+        prev_is_insert = False
+        has_indel = False
+        try:
+            var = self.vcf.fetch(name, start - 1, end)
+            for record in var:
+                sample = record.genotype(self.sample)
+                if sample.gt_type in self.gt_type and (
+                    not self._has_filter or eval(self.filter)
+                ):
+                    ref = str(record.REF)
+                    allele_index = self._called_alt_index(sample)
+                    if not allele_index:
+                        continue
+                    alt = str(record.ALT[allele_index - 1])
+                    if not re.fullmatch(r'[ACGTRYKMSWBDHVN]+', ref, re.IGNORECASE):
+                        continue
+                    if not re.fullmatch(r'[ACGTRYKMSWBDHVN]+', alt, re.IGNORECASE):
+                        continue
 
-        # slice the list in case we added an MNP in last position
+                    ref_start = record.POS
+                    ref_end = record.POS + len(ref) - 1
+                    if ref_end < start or ref_start > window_end:
+                        continue
+                    if last_ref_end is not None and ref_start <= last_ref_end:
+                        # Match bcftools: an anchored indel is allowed to start
+                        # exactly at the final reference position of the previous
+                        # edit, unless that edit was itself an insertion.  The
+                        # shared anchor base has already been emitted (or
+                        # removed), so only the remaining reference bases and the
+                        # inserted suffix are added here.
+                        boundary_indel = (
+                            ref_start == last_ref_end
+                            and not prev_is_insert
+                            and self._is_anchored_indel(ref, alt)
+                        )
+                        if not boundary_indel:
+                            continue
+                        right = min(ref_end, window_end)
+                        if cursor <= right:
+                            if len(alt) > len(ref):
+                                parts.append(
+                                    reference[cursor - start:right - start + 1])
+                            elif len(alt) < len(ref):
+                                # A deletion ALT can retain more than its
+                                # anchor base; emit the portion that maps to
+                                # reference positions not yet consumed.
+                                alt_start = max(0, cursor - ref_start)
+                                alt_end = min(
+                                    len(alt), window_end - ref_start + 1)
+                                if alt_start < alt_end:
+                                    parts.append(alt[alt_start:alt_end])
+                            cursor = right + 1
+                        if len(alt) > len(ref) and ref_end <= window_end:
+                            parts.append(alt[len(ref):])
+                        last_ref_end = ref_end
+                        prev_is_insert = len(alt) > len(ref)
+                        has_indel = True
+                        continue
+
+                    last_ref_end = ref_end
+                    prev_is_insert = len(alt) > len(ref)
+                    left = max(ref_start, start)
+                    right = min(ref_end, window_end)
+                    parts.append(reference[cursor - start:left - start])
+                    # Assign ALT bases left-to-right to REF positions; extra
+                    # inserted bases belong to the final REF position.
+                    alt_start = left - ref_start
+                    alt_end = right - ref_start + 1
+                    if right == ref_end:
+                        alt_end = len(alt)
+                    parts.append(alt[alt_start:alt_end])
+                    cursor = right + 1
+                    has_indel = has_indel or len(ref) != len(alt)
+        except ValueError as e: # Can be raised if name is not part of tabix for vcf
+            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
+                # The chromosome name is not part of the vcf
+                # The sequence returned is the same as the reference
+                pass
+            else:
+                # This is something else
+                raise e
+
+        parts.append(reference[cursor - start:])
+        final = ''.join(parts)
         if self.faidx.as_raw:
-            return ''.join(seq_mut[:end - start + 1])
+            return final
         else:
-            seq.seq = ''.join(seq_mut[:end - start + 1])
-            return seq
+            if has_indel:
+                return Sequence(name=name, seq=final, start=None, end=None)
+            else:
+                seq.seq = final
+                return seq
 
 
 def _defline_from_chunk(chunk):
