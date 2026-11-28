@@ -1441,6 +1441,7 @@ class FastaVariant(Fasta):
             self.filter = "sample['{key}'] {expr} {value}".format(**locals())
         else:
             self.filter = 'True'
+        self._has_filter = call_filter is not None
         if os.path.exists(vcf_file):
             self.vcf = vcf.Reader(filename=vcf_file)
         else:
@@ -1504,7 +1505,9 @@ class FastaVariant(Fasta):
             if not record.is_snp:
                 continue
             sample = record.genotype(self.sample)
-            if sample.gt_type in self.gt_type and eval(self.filter):
+            if sample.gt_type in self.gt_type and (
+                not self._has_filter or eval(self.filter)
+            ):
                 allele_index = self._called_alt_index(sample)
                 if allele_index:
                     yield record.POS, str(record.ALT[allele_index - 1])
@@ -1512,21 +1515,33 @@ class FastaVariant(Fasta):
     def _get_seq_snps(self, name, start, end):
         """Historical SNP-only consensus path used when indels are disabled."""
         seq = self.faidx.fetch(name, start, end)
-        if self.faidx.as_raw:
-            seq_mut = list(seq)
-            del seq
+        text = seq if self.faidx.as_raw else seq.seq
+        window_length = end - start + 1
+        try:
+            # A bytearray avoids a 50M-element list of Python characters for
+            # chromosome-scale queries (and the associated GC scanning).
+            sequence = bytearray(text, 'latin-1')
+        except UnicodeEncodeError:
+            # Preserve the old behavior for unusual non-Latin-1 FASTA text.
+            sequence = list(text)
+            for pos, alt in self._snp_variants(name, start - 1, end):
+                i = pos - start
+                sequence[i:i + len(alt)] = alt
+            final = ''.join(sequence[:window_length])
         else:
-            seq_mut = list(seq.seq)
-            del seq.seq
-        for pos, alt in self._snp_variants(name, start - 1, end):
-            i = pos - start
-            seq_mut[i:i + len(alt)] = alt
+            for pos, alt in self._snp_variants(name, start - 1, end):
+                i = pos - start
+                sequence[i:i + len(alt)] = alt.encode('latin-1')
+            final = (
+                sequence.decode('latin-1')
+                if len(sequence) == window_length
+                else sequence[:window_length].decode('latin-1')
+            )
 
-        # slice the list in case we added an MNP in last position
         if self.faidx.as_raw:
-            return ''.join(seq_mut[:end - start + 1])
+            return final
         else:
-            seq.seq = ''.join(seq_mut[:end - start + 1])
+            seq.seq = final
             return seq
 
     def get_seq(self, name, start, end):
@@ -1548,7 +1563,9 @@ class FastaVariant(Fasta):
             var = self.vcf.fetch(name, start - 1, end)
             for record in var:
                 sample = record.genotype(self.sample)
-                if sample.gt_type in self.gt_type and eval(self.filter):
+                if sample.gt_type in self.gt_type and (
+                    not self._has_filter or eval(self.filter)
+                ):
                     ref = str(record.REF)
                     allele_index = self._called_alt_index(sample)
                     if not allele_index:

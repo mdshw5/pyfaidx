@@ -393,3 +393,16 @@ def test_non_anchored_overlap_is_skipped(overlap_variants):
     with overlap_variants(records, as_raw=True) as fasta:
         assert fasta["chr"][:] == "ACGTACGTACGACGTACGTACGTACGTACGT"
         assert fasta["chr"][19:20] == ""
+
+
+def test_call_filter_still_applies_to_snps(ensure_tiny_vcf_tbi):
+    with FastaVariant(
+        os.path.join("data", "tiny.fa"), ensure_tiny_vcf_tbi,
+        sample="sample3", call_filter='GT == "0/1"', as_raw=True,
+    ) as fasta:
+        assert fasta["chr1"][0:3] == "AGA"
+    with FastaVariant(
+        os.path.join("data", "tiny.fa"), ensure_tiny_vcf_tbi,
+        sample="sample3", call_filter='GT == "1/1"', as_raw=True,
+    ) as fasta:
+        assert fasta["chr1"][0:3] == "AAA"
