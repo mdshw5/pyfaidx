@@ -1377,7 +1377,7 @@ class Fasta(object):
         If rc is set, reverse complement will be returned.
         """
         # Get sequence for all intervals
-        chunks = [self.faidx.fetch(name, s, e) for s, e in intervals]
+        chunks = [self.get_seq(name, s, e) for s, e in intervals]
         start = chunks[0].start
         end = chunks[-1].end
 
