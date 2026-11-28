@@ -1218,15 +1218,7 @@ class FastaRecord(object):
     @property
     def variant_sites(self):
         if isinstance(self._fa, FastaVariant):
-            pos = []
-            var = self._fa.vcf.fetch(self.name, 0, len(self))
-            for site in var:
-                if site.is_snp:
-                    sample = site.genotype(self._fa.sample)
-                    if sample.gt_type in self._fa.gt_type and eval(
-                            self._fa.filter):
-                        pos.append(site.POS)
-            return tuple(pos)
+            return tuple(pos for pos, _ in self._fa._snp_variants(self.name, 0, len(self)))
         else:
             raise NotImplementedError(
                 "variant_sites() only valid for FastaVariant.")
@@ -1473,6 +1465,28 @@ class FastaVariant(Fasta):
                                                       self.vcf.filename,
                                                       str(self.gt_type))
 
+    def _snp_variants(self, name, start, end):
+        """Yield 1-based SNP positions and alleles for a 0-based VCF query."""
+        try:
+            variants = self.vcf.fetch(name, start, end)
+        except ValueError:
+            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
+                return
+            raise
+
+        for record in variants:
+            if not record.is_snp:
+                continue
+            sample = record.genotype(self.sample)
+            if sample.gt_type in self.gt_type and eval(self.filter):
+                # Prefer the first ALT in VCF order among those called in GT.
+                allele_index = min(
+                    (int(allele) for allele in sample.gt_alleles if allele not in (None, '0')),
+                    default=0,
+                )
+                if allele_index:
+                    yield record.POS, str(record.ALT[allele_index - 1])
+
     def get_seq(self, name, start, end):
         """Return a sequence by record name and interval [start, end].
         Replace positions with polymorphism with variant.
@@ -1485,23 +1499,9 @@ class FastaVariant(Fasta):
         else:
             seq_mut = list(seq.seq)
             del seq.seq
-        try:
-            var = self.vcf.fetch(name, start - 1, end)
-            for record in var:
-                if record.is_snp:  # skip indels
-                    sample = record.genotype(self.sample)
-                    if sample.gt_type in self.gt_type and eval(self.filter):
-                        alt = record.ALT[0]
-                        i = (record.POS - 1) - (start - 1)
-                        seq_mut[i:i + len(alt)] = str(alt)
-        except ValueError as e: # Can be raised if name is not part of tabix for vcf
-            if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
-                # The chromosome name is not part of the vcf
-                # The sequence returned is the same as the reference
-                pass
-            else:
-                # This is something else
-                raise e
+        for pos, alt in self._snp_variants(name, start - 1, end):
+            i = pos - start
+            seq_mut[i:i + len(alt)] = alt
 
         # slice the list in case we added an MNP in last position
         if self.faidx.as_raw:

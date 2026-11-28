@@ -362,6 +362,8 @@ filter calls.
 ``het`` and ``hom``
     Include heterozygous and homozygous alternate calls, respectively. Both
     default to ``True``. Set both to ``False`` to exclude genotype calls.
+    When an included SNP has multiple alternate alleles in the sample's
+    genotype, the first of those alleles in VCF ALT order is used.
 ``call_filter``
     Optional PyVCF-style genotype expression in the form ``'FIELD OPERATOR
     VALUE'``, for example ``'GQ > 30'`` or ``'GT == "0/1"'``. Supported
