@@ -17,6 +17,10 @@ def ensure_tiny_vcf_tbi():
         import pysam
     except ImportError:
         pytest.skip("pysam not installed.")
+    try:
+        import vcf
+    except ImportError:
+        pytest.skip("PyVCF3 not installed.")
 
     vcf_txt = os.path.join("data", "tiny.vcf")
     vcf_gz = vcf_txt + ".gz"
@@ -57,8 +61,8 @@ def _make_fasta_variant(vcf_gz, **kwargs):
         ),
         (
             "sample2",
-            # chr1 first 48bp (the complete consensus sequence has two extra Ts at the end)
-            "AAAACCCCGGTTGGTTTTAAAACCCCGGGGTTTTAAAACCCCGGGGTT",
+            # chr1 complete 50bp because the insertion at pos10 adds two bases
+            "AAAACCCCGGTTGGTTTTAAAACCCCGGGGTTTTAAAACCCCGGGGTTTT",
             # chr2 complete 48bp
             "ACGTACGTANACGTACGTACGTACGTACGTACGTACGTACGT",
             # chr3 complete 20bp
@@ -108,13 +112,13 @@ def test_chr1_deletion_only_window(ensure_tiny_vcf_tbi):
 
 def test_chr1_insertion_only_window(ensure_tiny_vcf_tbi):
     """Window 9..12 (0-based [8:12]) includes only the insertion at pos10 (G->GTT).
-    Length remains 4 due to truncation to request size; content reflects insertion.
+    The insertion expands the consensus without truncating the requested window.
     """
     try:
         fasta = _make_fasta_variant(ensure_tiny_vcf_tbi)
 
         s = fasta["chr1"][8:12]
-        assert s == "GGTT"  # was 'GGGG'
+        assert s == "GGTTGG"
 
     except (ImportError, IOError):
         pytest.skip("pysam or PyVCF not installed or VCF indexing unavailable.")
@@ -130,6 +134,12 @@ def test_chr3_overlapping_del_then_ins(ensure_tiny_vcf_tbi):
     assert len(s) == 9
     # Basic sanity: result starts with the anchor 'T' at pos4
     assert s[0] == "T"
+
+
+def test_chr3_deletion_overlapping_window_left_boundary(ensure_tiny_vcf_tbi):
+    fasta = _make_fasta_variant(ensure_tiny_vcf_tbi)
+    s = fasta["chr3"][2:5]  # 0-based slice [2:5] == bases 3..5
+    assert s == "GT"
 
 
 def test_chr3_deletion_at_chrom_end(ensure_tiny_vcf_tbi):

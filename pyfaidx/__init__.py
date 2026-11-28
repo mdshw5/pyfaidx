@@ -1458,37 +1458,59 @@ class FastaVariant(Fasta):
             del seq
         else:
             seq_mut = list(seq.seq)
-            # We'll reuse the Sequence container near the end
+            original_len = len(seq.seq)
             del seq.seq
-        # Track net positional shift caused by prior indels applied within this window
-        delta = 0
         try:
             var = self.vcf.fetch(name, start - 1, end)
+            edits = {}
+            deleted_intervals = []
             for record in var:
                 sample = record.genotype(self.sample)
-                # Apply only records that pass genotype type and optional filter
                 if sample.gt_type in self.gt_type and eval(self.filter):
                     ref = str(record.REF)
-                    alt = str(record.ALT[0])
-                    # local 0-based index of the variant anchor within the requested window
-                    i0 = (record.POS - 1) - (start - 1)
-                    # Guard against variants outside our requested window slice
-                    if i0 < 0 or i0 >= (end - start + 1):
+                    alleles = getattr(sample, 'gt_alleles', None)
+                    alt = None
+                    if alleles:
+                        for allele in alleles:
+                            try:
+                                allele_index = int(allele)
+                            except (TypeError, ValueError):
+                                continue
+                            if allele_index > 0:
+                                alt = str(record.ALT[allele_index - 1])
+                                break
+                    if alt is None:
+                        gt_bases = getattr(sample, 'gt_bases', None)
+                        if gt_bases:
+                            called_bases = re.split(r'[/|]', gt_bases)
+                            for called_base in called_bases:
+                                for allele in record.ALT:
+                                    if allele is not None and str(allele) == called_base:
+                                        alt = str(allele)
+                                        break
+                                if alt is not None:
+                                    break
+                    if alt is None:
                         continue
-                    # For safety, only apply edits fully contained within window
-                    # This avoids boundary complications for partial indels
-                    if (record.POS >= start) and (record.POS + len(ref) - 1 <= end):
-                        i = i0 + delta
-                        # Constrain within current mutable sequence bounds
-                        left = max(0, i)
-                        right = min(len(seq_mut), i + len(ref))
-                        # If the replacement extends beyond current bounds, skip conservatively
-                        if left >= len(seq_mut) or right <= left:
-                            continue
-                        # Apply SNP/MNP/INDEL by splicing
-                        seq_mut[left:right] = list(alt)
-                        # Update delta for downstream variants
-                        delta += (len(alt) - len(ref))
+                    if not re.fullmatch(r'[ACGTRYKMSWBDHVN]+', ref, re.IGNORECASE):
+                        continue
+                    if not re.fullmatch(r'[ACGTRYKMSWBDHVN]+', alt, re.IGNORECASE):
+                        continue
+
+                    ref_start = record.POS
+                    ref_end = record.POS + len(ref) - 1
+                    if ref_end < start or ref_start > end:
+                        continue
+                    if any(edit_pos <= ref_end and ref_start <= edit_pos + len(edits[edit_pos][0]) - 1
+                           for edit_pos in edits):
+                        continue
+                    if any(ref_start <= deleted_end and deleted_start <= ref_end
+                           for deleted_start, deleted_end in deleted_intervals):
+                        continue
+
+                    edits[ref_start] = (ref, alt)
+                    if len(alt) < len(ref):
+                        deleted_intervals.append((ref_start, ref_end))
         except ValueError as e: # Can be raised if name is not part of tabix for vcf
             if self.vcf._tabix is not None and name not in self.vcf._tabix.contigs:
                 # The chromosome name is not part of the vcf
@@ -1498,14 +1520,39 @@ class FastaVariant(Fasta):
                 # This is something else
                 raise e
 
-        # Build final string. Truncate to requested window length if necessary.
-        target_len = end - start + 1
-        final = ''.join(seq_mut[:target_len])
+        final_mut = []
+        i = 0
+        while i < len(seq_mut):
+            pos = start + i
+            edit = edits.get(pos)
+            if edit is None:
+                if any(ref_start <= pos <= ref_end
+                       for ref_start, ref_end in deleted_intervals):
+                    i += 1
+                    continue
+                final_mut.append(seq_mut[i])
+                i += 1
+                continue
+
+            ref, alt = edit
+            ref_start = pos
+            ref_end = pos + len(ref) - 1
+            if len(alt) < len(ref):
+                if ref_start >= start:
+                    final_mut.append(alt)
+                i = min(len(seq_mut), max(i + 1, ref_end - start + 1))
+            elif len(alt) == len(ref):
+                final_mut.append(alt)
+                i += len(ref)
+            else:
+                final_mut.append(alt)
+                i += len(ref)
+
+        final = ''.join(final_mut)
         if self.faidx.as_raw:
             return final
         else:
-            # If an indel changed the net length inside the window, avoid coordinate mismatch errors
-            if len(final) != target_len:
+            if len(final) != original_len:
                 return Sequence(name=name, seq=final, start=None, end=None)
             else:
                 seq.seq = final
